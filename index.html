@@ -7,68 +7,71 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <div class="header">
         <div class="header-left">
             <h1>Sổ Thu Chi</h1>
             <div class="date-chip" id="current-date">...</div>
         </div>
         <div class="header-right">
-            <span id="balance" class="balance-tag">Đang tải...</span>
+            <span id="balance" class="balance-tag">Loading...</span>
         </div>
     </div>
 
     <div class="card">
         <div class="card-header">
             <span class="card-title red-text">CHI TIÊU</span>
-            <button class="btn-sm" id="chi-clear">Xóa Hết</button>
+            <button type="button" class="btn-sm" id="chi-clear-all">Reset Form</button>
         </div>
         
-        <div class="input-group">
-            <input type="number" id="chi-amount" placeholder="Nhập tiền (vd: 25 = 25k)">
-            <button class="btn-add" id="chi-add">+</button>
-        </div>
-
-        <div id="chi-list" class="temp-list"></div>
-
-        <div id="chi-desc" class="desc-area" style="display:none;">
+        <div class="desc-area-visible">
             <div id="chi-checkboxes" class="checkbox-container"></div>
-            
             <div class="desc-row">
                 <select id="chi-dropdown" class="input-std"></select>
             </div>
             <div class="desc-row">
                 <input type="text" id="chi-text" class="input-std" placeholder="Ghi chú thêm...">
             </div>
-            
-            <button class="btn-submit btn-red" id="chi-submit">LƯU KHOẢN CHI</button>
-            <div id="chi-message" class="status-msg"></div>
+        </div>
+
+        <div class="input-group" style="margin-top:15px">
+            <input type="number" id="chi-amount" placeholder="Nhập tiền (vd: 25)" inputmode="decimal">
+            <button type="button" class="btn-add" id="chi-add" disabled>+</button>
+        </div>
+        
+        <div id="chi-message" class="status-msg"></div>
+
+        <div id="chi-list-container" style="display:none">
+            <div class="divider"></div>
+            <div id="chi-list" class="temp-list"></div>
+            <button type="button" class="btn-submit btn-red" id="chi-submit">LƯU TẤT CẢ VÀO DATABASE</button>
         </div>
     </div>
 
     <div class="card">
         <div class="card-header">
             <span class="card-title green-text">THU NHẬP</span>
-            <button class="btn-sm" id="thu-clear">Xóa Hết</button>
         </div>
 
-        <div class="input-group">
-            <input type="number" id="thu-amount" placeholder="Nhập tiền (vd: 500 = 500k)">
-            <button class="btn-add btn-green" id="thu-add">+</button>
-        </div>
-
-        <div id="thu-list" class="temp-list"></div>
-
-        <div id="thu-desc" class="desc-area" style="display:none;">
+        <div class="desc-area-visible">
             <div class="desc-row">
                 <select id="thu-dropdown" class="input-std"></select>
             </div>
             <div class="desc-row">
-                <input type="text" id="thu-text" class="input-std" placeholder="Nguồn tiền (vd: Lương)...">
+                <input type="text" id="thu-text" class="input-std" placeholder="Nguồn tiền...">
             </div>
-            
-            <button class="btn-submit btn-green" id="thu-submit">LƯU KHOẢN THU</button>
-            <div id="thu-message" class="status-msg"></div>
+        </div>
+
+        <div class="input-group" style="margin-top:15px">
+            <input type="number" id="thu-amount" placeholder="Nhập tiền..." inputmode="decimal">
+            <button type="button" class="btn-add btn-green-bg" id="thu-add" disabled>+</button>
+        </div>
+
+        <div id="thu-message" class="status-msg"></div>
+
+        <div id="thu-list-container" style="display:none">
+            <div class="divider"></div>
+            <div id="thu-list" class="temp-list"></div>
+            <button type="button" class="btn-submit btn-green" id="thu-submit">LƯU THU VÀO DATABASE</button>
         </div>
     </div>
 
