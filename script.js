@@ -1,5 +1,5 @@
 // --- CẤU HÌNH ---
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-_-I6LLrifbZZPscBDUN9jufEyYrtf2tIIjtGihIScCU2tFp-HtuIgLkw6NqU0mUfOsEe9lIBTnIc/pub?gid=1944311512&single=true&output=csv';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTF_rWGi_1G9b7zlldKzXLj_AJtcxzxQArrF4eIvIOnz_3WYudFAmMYhXwkTAb2hNgJkFbbO4hRwrIX/pub?gid=1944311512&single=true&output=csv';
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec';
 
 // Dữ liệu mặc định để load ngay lập tức (tránh việc chờ fetch CSV lâu)
@@ -84,16 +84,30 @@ function fillDropdowns(options) {
 
 // --- 3. VALIDATION ---
 function setupValidation() {
-    ['input', 'change', 'click'].forEach(evt => {
-        document.getElementById('chi-amount')?.addEventListener(evt, checkChiState);
-        document.getElementById('chi-text')?.addEventListener(evt, checkChiState);
-        document.getElementById('chi-dropdown')?.addEventListener(evt, checkChiState);
-        document.getElementById('chi-checkboxes')?.addEventListener(evt, checkChiState); // Click vào div cha
-
-        document.getElementById('thu-amount')?.addEventListener(evt, checkThuState);
-        document.getElementById('thu-text')?.addEventListener(evt, checkThuState);
-        document.getElementById('thu-dropdown')?.addEventListener(evt, checkThuState);
-    });
+    // SỬA: Thêm event riêng cho từng element để trigger đúng
+    const chiAmount = document.getElementById('chi-amount');
+    const chiText = document.getElementById('chi-text');
+    const chiDropdown = document.getElementById('chi-dropdown');
+    const chiCheckboxes = document.querySelectorAll('#chi-checkboxes input');
+    
+    if(chiAmount) {
+        chiAmount.addEventListener('input', checkChiState);
+        chiAmount.addEventListener('change', checkChiState);
+    }
+    if(chiText) chiText.addEventListener('input', checkChiState);
+    if(chiDropdown) chiDropdown.addEventListener('change', checkChiState);
+    chiCheckboxes.forEach(cb => cb.addEventListener('change', checkChiState)); // SỬA: Event cho từng checkbox
+    
+    const thuAmount = document.getElementById('thu-amount');
+    const thuText = document.getElementById('thu-text');
+    const thuDropdown = document.getElementById('thu-dropdown');
+    
+    if(thuAmount) {
+        thuAmount.addEventListener('input', checkThuState);
+        thuAmount.addEventListener('change', checkThuState);
+    }
+    if(thuText) thuText.addEventListener('input', checkThuState);
+    if(thuDropdown) thuDropdown.addEventListener('change', checkThuState);
 }
 
 function checkChiState() {
