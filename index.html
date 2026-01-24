@@ -9,56 +9,66 @@
 <body>
 
     <div class="header">
-        <h1>Sổ Thu Chi</h1>
-        <div class="date-chip" id="current-date">...</div>
+        <div class="header-left">
+            <h1>Sổ Thu Chi</h1>
+            <div class="date-chip" id="current-date">...</div>
+        </div>
+        <div class="header-right">
+            <span id="balance" class="balance-tag">Đang tải...</span>
+        </div>
     </div>
 
     <div class="card">
-        <div class="card-title">Số dư thực tế</div>
-        <div id="balance" style="font-size: 24px; color: #007aff; font-weight: bold;">Đang tải...</div>
-    </div>
-
-    <div class="card">
-        <div class="card-title">
-            Phần Chi 
-            <button class="btn-sm red" id="chi-clear">Xóa</button>
+        <div class="card-header">
+            <span class="card-title red-text">CHI TIÊU</span>
+            <button class="btn-sm" id="chi-clear">Xóa Hết</button>
         </div>
         
-        <div class="input-row">
-            <input type="number" id="chi-amount" placeholder="Nhập số (vd: 25 = 25k)">
+        <div class="input-group">
+            <input type="number" id="chi-amount" placeholder="Nhập tiền (vd: 25 = 25k)">
             <button class="btn-add" id="chi-add">+</button>
         </div>
 
-        <div id="chi-list"></div> <div id="chi-desc" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-            <div id="chi-checkboxes" class="checkbox-grid"></div>
+        <div id="chi-list" class="temp-list"></div>
+
+        <div id="chi-desc" class="desc-area" style="display:none;">
+            <div id="chi-checkboxes" class="checkbox-container"></div>
             
-            <select id="chi-dropdown" class="full-width"></select>
-            <input type="text" id="chi-text" class="full-width" placeholder="Nhập mô tả riêng...">
+            <div class="desc-row">
+                <select id="chi-dropdown" class="input-std"></select>
+            </div>
+            <div class="desc-row">
+                <input type="text" id="chi-text" class="input-std" placeholder="Ghi chú thêm...">
+            </div>
             
-            <button class="btn-submit" id="chi-submit">LƯU KHOẢN CHI</button>
-            <p id="chi-message" class="msg"></p>
+            <button class="btn-submit btn-red" id="chi-submit">LƯU KHOẢN CHI</button>
+            <div id="chi-message" class="status-msg"></div>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-title">
-            Phần Thu
-            <button class="btn-sm red" id="thu-clear">Xóa</button>
+        <div class="card-header">
+            <span class="card-title green-text">THU NHẬP</span>
+            <button class="btn-sm" id="thu-clear">Xóa Hết</button>
         </div>
 
-        <div class="input-row">
-            <input type="number" id="thu-amount" placeholder="Nhập số (vd: 500 = 500k)">
-            <button class="btn-add" id="thu-add">+</button>
+        <div class="input-group">
+            <input type="number" id="thu-amount" placeholder="Nhập tiền (vd: 500 = 500k)">
+            <button class="btn-add btn-green" id="thu-add">+</button>
         </div>
 
-        <div id="thu-list"></div>
+        <div id="thu-list" class="temp-list"></div>
 
-        <div id="thu-desc" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-            <select id="thu-dropdown" class="full-width"></select>
-            <input type="text" id="thu-text" class="full-width" placeholder="Nguồn tiền (vd: Lương)...">
+        <div id="thu-desc" class="desc-area" style="display:none;">
+            <div class="desc-row">
+                <select id="thu-dropdown" class="input-std"></select>
+            </div>
+            <div class="desc-row">
+                <input type="text" id="thu-text" class="input-std" placeholder="Nguồn tiền (vd: Lương)...">
+            </div>
             
-            <button class="btn-submit" id="thu-submit">LƯU KHOẢN THU</button>
-            <p id="thu-message" class="msg"></p>
+            <button class="btn-submit btn-green" id="thu-submit">LƯU KHOẢN THU</button>
+            <div id="thu-message" class="status-msg"></div>
         </div>
     </div>
 
