@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sổ Thu Chi</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json"> <!-- Cho PWA-like trên iOS -->
+</head>
+<body>
+    <div class="ios-header">
+        <div class="header-content">
+            <div class="draw-info">
+                <h1>Sổ Thu Chi</h1>
+                <p id="current-date">Ngày: 25/01/2026</p>
+            </div>
+            <button id="settings-btn">⚙️</button>
+        </div>
+    </div>
+
+    <div class="ios-container">
+        <div class="ios-widget">
+            <div class="widget-header">Số dư lý thuyết hiện tại</div>
+            <p id="balance">Đang tải...</p>
+        </div>
+
+        <div class="ios-widget" id="chi-section">
+            <div class="widget-header">Phần Chi</div>
+            <input type="number" id="chi-amount" placeholder="Nhập số tiền (vd: 25)">
+            <button id="chi-add">+</button>
+            <button id="chi-clear" style="background: red;">Xoá hết</button>
+            <div id="chi-list"></div>
+            <div id="chi-desc" style="display: none;">
+                <div id="chi-checkboxes"></div>
+                <select id="chi-dropdown"></select>
+                <input type="text" id="chi-text" placeholder="Mô tả riêng">
+                <button id="chi-submit">Thêm</button>
+            </div>
+            <p id="chi-message"></p>
+        </div>
+
+        <div class="ios-widget" id="thu-section">
+            <div class="widget-header">Phần Thu</div>
+            <input type="number" id="thu-amount" placeholder="Nhập số tiền">
+            <button id="thu-add">+</button>
+            <button id="thu-clear" style="background: red;">Xoá hết</button>
+            <div id="thu-list"></div>
+            <div id="thu-desc" style="display: none;">
+                <select id="thu-dropdown"></select>
+                <input type="text" id="thu-text" placeholder="Mô tả riêng">
+                <button id="thu-submit">Thêm</button>
+            </div>
+            <p id="thu-message"></p>
+        </div>
+
+        <div class="ios-widget" id="tongket-section">
+            <div class="widget-header">Phần Tổng kết</div>
+            <p id="last-summary">Đang tải...</p>
+            <button id="new-summary">Tổng kết mới</button>
+            <p id="new-summary-result"></p>
+        </div>
+    </div>
+
+    <!-- Modal Settings -->
+    <div id="settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="background: white; margin: 20%; padding: 20px; border-radius: 10px;">
+            <h3>Chọn 8 mô tả cho Chi</h3>
+            <div id="settings-checkboxes"></div>
+            <button id="settings-save">Lưu</button>
+            <button id="settings-close">Đóng</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
