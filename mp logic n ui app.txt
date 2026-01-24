@@ -1,67 +1,160 @@
-Logic Xử Lý Tổng Quan (Backend)
-Kết nối Sheets: Sử dụng Google Sheets API (fetch JS) để read/write từ link mới: https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-_-I6LLrifbZZPscBDUN9jufEyYrtf2tIIjtGihIScCU2tFp-HtuIgLkw6NqU0mUfOsEe9lIBTnIc/pub?gid=1944311512&single=true&output=csv.
-Read: Load data ban đầu (danh sách chi/thu, tổng dư, mô tả list cho dropdown/settings).
-Write: Append dòng mới cho chi/thu, update tổng kết.
-Auth: OAuth cho iOS (prompt user login Google).
-Xử lý Data:
-Chi: List tạm (array JS), tính tổng, mô tả combine (checkboxes + dropdown + text).
-Thu: Tương tự, đơn giản.
-Tổng kết: Tính SUM(J) - SUM(D) cho dư lý thuyết, prompt nhập thực tế, ghi chênh lệch.
-Sync: Data realtime giữa 2 device qua sheet chung.
-Mockup Giao Diện (Frontend Layout)
-App là single page, scroll dọc trên iPhone. Dùng CSS: bg #f2f2f7, header sticky, card #ffffff, nút #007aff.
+MASTER PLAN: APP SỔ THU CHI 2026 (EDITABLE VERSION)
+1. TỔNG QUAN HỆ THỐNG
+Mô hình: Web App (Single Page Application).
 
-Code
-[Header Sticky - iOS style]
-Sổ Thu Chi | Icon Settings (bánh răng) | Ngày hiện tại: 25/01/2026
+Database: Google Sheets (Lưu dữ liệu giao dịch).
 
-[Container Scroll]
+Local Storage (Bộ nhớ trình duyệt): Chỉ dùng để lưu Cấu hình (Settings) của người dùng (VD: Danh sách 8 mục thường dùng). Không lưu dữ liệu tiền tệ.
 
-1. Phần Chi
-   [Card White]
-   Ô nhập số: [________] (vd: 25)  [Nút +]  [Nút Xóa Hết (đỏ)]
-   
-   Thông báo list tạm (clickable):
-   - Chi 25/01/26: 25.000  (click để edit)
-   - + 50.000  (click để edit)
-   - + 45.000  (click để edit)
-   
-   Mô tả (hiện sau khi có list):
-   8 Checkboxes: [ ] Ăn sáng  [ ] Đi chợ  [ ] Nạp điện thoại  [ ] Tiền điện  [ ] Tiền nước  [ ] Quà tết  [ ] Mua ccq  [ ] Tóc
-   Dropdown: [Chọn mô tả khác ▼] (options: lãi tech, phượng đưa, bán ve chai, etc. từ sheet)
-   Text box: [Nhập mô tả riêng ________]
-   
-   [Nút Thêm (xanh)] 
-   Thông báo: "Đã thêm chi ăn sáng, đi chợ + mua ccq 25.000 + 50.000 + 45.000 = 120.000 ngày 25/01/26 thành công!"
+Phong cách: Nhập liệu siêu tốc (Rapid Entry) - Cộng dồn - Chỉnh sửa linh hoạt.
 
-2. Phần Thu
-   [Card White]
-   Ô nhập số: [________]  [Nút +]  [Nút Xóa Hết (đỏ)]
-   
-   Thông báo list tạm:
-   - Thu 25/01/26: 191.616.700
-   
-   Mô tả: Dropdown + Text box (tương tự, ít checkboxes hơn: lãi tech, phượng đưa, nhà trọ, etc.)
-   
-   [Nút Thêm] 
-   Thông báo: "Đã thêm thu lãi tech 191.616.700 ngày 25/01/26 thành công!"
+2. GIAO DIỆN & LUỒNG NGƯỜI DÙNG (UI/UX FLOW)
+Giao diện chia làm 4 khu vực chính: Header (chứa Setting), Phần Chi, Phần Thu, Phần Tổng Kết.
 
-3. Phần Tổng kết
-   [Card White]
-   Tổng kết lần trước: 11/01/26 - Tài khoản: acb 40.196.502, hd 82.997.404, ... Tổng 1.408.728.753, Thiếu 18.432
-   
-   [Nút Tổng kết mới (vàng)]
-   
-   (Sau nhấn): Tổng kết mới: 25/01/26 - Tài khoản: [Nhập acb ________] [Nhập hd ________] ... Tổng [tính], Thiếu [tính]
+A. HEADER & SETTINGS (CẤU HÌNH)
+1. Giao diện Header:
 
-[Footer]
-Số dư lý thuyết hiện tại: 186.000.000 (từ sheet)
-Logic Giao Diện (Xử Lý Event)
-Nhập số: On input, validate số.
-Nút +: Push to array tạm, render list clickable, clear input.
-Click số trong list: Populate input, đổi nút thành V (confirm), update on confirm.
-Nút Xóa hết: Clear array, reset UI.
-Mô tả: On change checkboxes/dropdown/text, combine string.
-Nút Thêm: Call Sheets API append, show toast success, reload data.
-Settings: Modal popup: Checkboxes chọn 8 mô tả, save local/sheet.
-Tổng kết: Read sheet, prompt nhập thực tế, calculate, append.
+Logo/Tên App: Sổ Thu Chi.
+
+Ngày hiện tại.
+
+Nút Bánh Răng (Settings): Nằm góc phải.
+
+2. Luồng Settings (Cài đặt 8 mục mô tả):
+
+B1: Nhấn nút Bánh Răng -> Mở Popup/Modal cài đặt.
+
+B2: Hiển thị danh sách tất cả các danh mục có thể có (khoảng 20-30 mục như: Ăn sáng, Cafe, Xăng, Đi chợ, Hiếu hỉ, Y tế...).
+
+B3: Người dùng tick chọn tối đa 8 mục mình hay dùng nhất.
+
+B4: Nhấn "Lưu".
+
+App lưu danh sách 8 mục này vào Local Storage.
+
+Giao diện nhập liệu bên ngoài lập tức cập nhật 8 Checkbox theo cài đặt mới.
+
+B. PHẦN CHI TIÊU (EXPENSE) - TRỌNG TÂM
+1. Khu vực Nhập số & Danh sách tạm (The Calculator)
+Trạng thái Mặc định (Mode: NHẬP MỚI):
+
+Ô nhập số: Trống.
+
+Nút hành động: Hình dấu Cộng (+).
+
+Danh sách tạm (List View): Hiển thị các số đã nhập (VD: 25.000, 50.000). Bên cạnh mỗi số có nút Xóa (icon thùng rác/dấu x).
+
+Luồng Nhập Mới:
+
+Nhập số 25 -> Nhấn (+).
+
+Số 25 bay xuống Danh sách tạm. Ô nhập xóa trắng. Focus giữ nguyên.
+
+Luồng Chỉnh Sửa (Mode: SỬA):
+
+B1: Người dùng nhấn vào số 25.000 đang nằm dưới Danh sách tạm.
+
+B2: App chuyển sang chế độ Sửa:
+
+Số 25 được đưa ngược lên Ô nhập số.
+
+Nút (+) đổi icon thành nút Xác nhận (✓) (Màu xanh/Vàng để phân biệt).
+
+Dòng 25.000 dưới danh sách tạm tạm thời bị ẩn hoặc highlight để biết đang sửa dòng đó.
+
+B3: Người dùng sửa 25 thành 30.
+
+B4: Nhấn nút Xác nhận (✓).
+
+B5: Số 30 cập nhật lại vào vị trí cũ trong Danh sách tạm. Ô nhập xóa trắng. Nút trở về hình Cộng (+).
+
+Luồng Xóa Dòng:
+
+Nhấn nút (x) bên cạnh số 50.000 trong danh sách tạm.
+
+Số đó biến mất khỏi danh sách ngay lập tức. Tổng tiền cập nhật lại.
+
+Nút Reset: Nút "Xóa Hết" nằm góc trên để hủy toàn bộ danh sách tạm làm lại từ đầu.
+
+2. Khu vực Mô tả (Description)
+Cấu trúc:
+
+Hàng 1 & 2: 8 Checkbox (Được load từ Setting). Dạng thẻ chip, chọn được nhiều cái cùng lúc.
+
+Hàng 3:
+
+1 Dropdown: Chứa các danh mục ít dùng hơn (hoặc danh mục phụ).
+
+1 Ô Text: Nhập ghi chú tự do.
+
+Logic: Mô tả cuối cùng = (Các Checkbox đang chọn) + (Giá trị Dropdown) + (Nội dung Text).
+
+3. Nút Gửi (Submit)
+Chỉ kích hoạt (Enable) khi: (Danh sách tạm có tiền) VÀ (Có ít nhất 1 mô tả).
+
+Khi nhấn:
+
+Tính tổng tiền trong danh sách tạm.
+
+Gộp mô tả.
+
+Gửi lên Sheet.
+
+Thông báo kết quả & Reset form.
+
+C. PHẦN THU NHẬP (INCOME)
+Cấu trúc y hệt phần Chi.
+
+Cũng có 8 Checkbox (Load từ Setting riêng cho Thu hoặc mặc định), Dropdown, và Text.
+
+Cũng có cơ chế Sửa (nút chuyển thành ✓) và Xóa (nút x) từng dòng tiền.
+
+D. PHẦN TỔNG KẾT (SUMMARY)
+Giữ nguyên logic cũ:
+
+Load dữ liệu lịch sử từ Sheet (Read-only).
+
+Nút "Tổng kết mới" tính toán realtime (Thu - Chi) từ dữ liệu Sheet hiện tại.
+
+3. LOGIC KỸ THUẬT (LOGIC XỬ LÝ)
+1. Quản lý Mảng Tạm (Temporary Array Management)
+Thay vì chỉ lưu một chuỗi text, App sẽ quản lý một mảng đối tượng: tempList = [{id: 1, value: 25}, {id: 2, value: 50}]
+
+Thêm: push() vào mảng.
+
+Xóa: Dùng splice() hoặc filter() dựa trên ID hoặc Index để xóa phần tử.
+
+Sửa:
+
+Lưu editingIndex (vị trí đang sửa).
+
+Khi nhấn (✓), cập nhật giá trị tại tempList[editingIndex].
+
+Reset editingIndex = -1.
+
+2. Logic Nút Đa Năng (Button State Machine)
+Nút bên cạnh ô nhập có 2 trạng thái:
+
+State ADD: Icon (+). Hành động: Thêm mới vào mảng.
+
+State CONFIRM: Icon (✓). Hành động: Cập nhật phần tử đang chọn. Trạng thái này kích hoạt khi biến editingIndex > -1.
+
+3. Logic Settings (Local Storage)
+Key: sothuchi_settings_chi (Lưu mảng string 8 mục chi).
+
+Khi mở App:
+
+Kiểm tra LocalStorage.
+
+Nếu có: Load 8 mục đó ra giao diện.
+
+Nếu không (lần đầu dùng): Load 8 mục mặc định (Hardcode) -> Lưu vào LocalStorage.
+
+Khi Lưu Setting: Ghi đè mảng mới vào LocalStorage -> Render lại giao diện ngay lập tức.
+
+4. Logic Định dạng & Tính toán
+Hiển thị số tiền luôn có phân cách hàng nghìn (format number).
+
+Tổng tiền gửi đi = Tổng các phần tử trong mảng tempList.
+
+Chuỗi diễn giải gửi đi = "25.000 + 50.000..." (Lấy từ mảng ghép lại).
