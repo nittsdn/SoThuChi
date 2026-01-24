@@ -112,19 +112,14 @@ function setupValidation() {
 
 function checkChiState() {
     const amt = parseFloat(document.getElementById('chi-amount').value);
-    const checks = document.querySelectorAll('#chi-checkboxes input:checked').length > 0;
-    const drop = document.getElementById('chi-dropdown').value !== "";
-    const text = document.getElementById('chi-text').value.trim() !== "";
-    
-    toggleBtn('chi-add', amt > 0 && (checks || drop || text));
+    // SỬA: Nút + chỉ cần amt > 0, không cần mô tả (mô tả cho submit)
+    toggleBtn('chi-add', amt > 0);
 }
 
 function checkThuState() {
     const amt = parseFloat(document.getElementById('thu-amount').value);
-    const drop = document.getElementById('thu-dropdown').value !== "";
-    const text = document.getElementById('thu-text').value.trim() !== "";
-    
-    toggleBtn('thu-add', amt > 0 && (drop || text));
+    // SỬA: Nút + chỉ cần amt > 0
+    toggleBtn('thu-add', amt > 0);
 }
 
 function toggleBtn(id, enable) {
@@ -142,7 +137,7 @@ function addToTemp(type) {
     const amtVal = parseFloat(amtInput.value);
     const msg = document.getElementById(`${type}-message`);
     
-    // Lấy mô tả
+    // Lấy mô tả (có thể rỗng lúc này)
     let descStr = "";
     if (type === 'chi') {
         const checks = Array.from(document.querySelectorAll('#chi-checkboxes input:checked')).map(c => c.value);
@@ -171,9 +166,6 @@ function addToTemp(type) {
     // RESET Ô TIỀN
     amtInput.value = ""; 
     amtInput.focus(); 
-    
-    // Validate lại
-    if(type === 'chi') checkChiState(); else checkThuState();
     
     renderList(type);
 }
@@ -226,11 +218,15 @@ async function submitData(type) {
 
     try {
         console.log("Đang gửi dữ liệu...", rowsToSend);
-        await fetch(SCRIPT_URL, {
+        const response = await fetch(SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors',
+            mode: 'no-cors', // SỬA: Thử bỏ no-cors để debug, hoặc thêm headers
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({ type: type, data: rowsToSend })
         });
+        console.log("Response status:", response.status); // Debug
 
         const total = list.reduce((a,b) => a + b.amount, 0);
         if(msg) {
@@ -261,7 +257,7 @@ async function submitData(type) {
     } catch (e) {
         console.error("Lỗi gửi:", e);
         if(msg) {
-            msg.innerText = "❌ Lỗi kết nối!";
+            msg.innerText = "❌ Lỗi kết nối: " + e.message;
             msg.className = "status-msg error";
         }
     } finally {
