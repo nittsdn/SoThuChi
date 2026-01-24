@@ -4,268 +4,64 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sổ Thu Chi 2026</title>
-    <style>
-        :root { --ios-blue: #007aff; --ios-bg: #f2f2f7; --ios-card: #ffffff; --ios-red: #ff3b30; --ios-green: #34c759; --ios-gray: #8e8e93; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--ios-bg); margin: 0; padding-bottom: 40px; color: #000; }
-        
-        /* Header */
-        .header { position: sticky; top: 0; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid #ccc; z-index: 100; }
-        .header h1 { font-size: 18px; margin: 0; font-weight: 600; }
-        .date-chip { font-size: 13px; color: var(--ios-gray); }
-
-        /* Cards */
-        .card { background: var(--ios-card); border-radius: 12px; margin: 15px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .card-title { font-size: 17px; font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; }
-        
-        /* Inputs & Buttons */
-        .input-group { display: flex; gap: 8px; margin-bottom: 10px; }
-        input[type="number"], input[type="text"], select { flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 10px; font-size: 16px; outline: none; }
-        .btn { border: none; border-radius: 8px; padding: 10px 15px; font-weight: 600; font-size: 15px; cursor: pointer; transition: opacity 0.2s; }
-        .btn:active { opacity: 0.6; }
-        .btn-blue { background: var(--ios-blue); color: white; width: 100%; margin-top: 10px; }
-        .btn-add { background: var(--ios-blue); color: white; font-size: 20px; }
-        .btn-clear { background: var(--ios-red); color: white; }
-        .btn-summary { background: #ffcc00; color: black; width: 100%; }
-
-        /* Checkbox & List */
-        .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
-        .check-item { display: flex; align-items: center; font-size: 14px; gap: 5px; }
-        .temp-list { background: #f9f9f9; border-radius: 8px; padding: 10px; margin-bottom: 10px; border: 0.5px dashed #ccc; }
-        .temp-item { font-size: 14px; padding: 5px 0; border-bottom: 0.5px solid #eee; cursor: pointer; color: var(--ios-blue); }
-        .temp-item:last-child { border: none; }
-        
-        /* Footer Balance */
-        .footer-balance { position: fixed; bottom: 0; width: 100%; background: white; padding: 10px; text-align: center; font-weight: bold; border-top: 0.5px solid #ccc; font-size: 16px; }
-        .success-msg { color: var(--ios-green); font-size: 13px; margin-top: 5px; text-align: center; }
-        
-        /* Settings Modal */
-        #settings-modal { display: none; position: fixed; inset: 0; background: white; z-index: 1000; padding: 20px; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div class="header">
-        <span onclick="toggleSettings()">⚙️</span>
         <h1>Sổ Thu Chi</h1>
-        <div class="date-chip" id="current-date">--/--/----</div>
+        <div class="date-chip" id="current-date">...</div>
     </div>
 
     <div class="card">
-        <div class="card-title">Chi Tiêu <button class="btn btn-clear" onclick="clearTemp('chi')">Xóa hết</button></div>
-        <div class="input-group">
-            <input type="number" id="chi-amt" placeholder="Nhập số (vd: 25)">
-            <button class="btn btn-add" id="chi-add-btn" onclick="addToTemp('chi')">+</button>
-        </div>
-        <div id="chi-list-container" style="display:none">
-            <div class="temp-list" id="chi-temp-list"></div>
-            <div class="check-grid" id="chi-checkboxes"></div>
-            <select id="chi-dropdown"><option value="">Chọn mô tả khác...</option></select>
-            <input type="text" id="chi-note" placeholder="Nhập mô tả riêng..." style="width:94%; margin-top:10px">
-            <button class="btn btn-blue" onclick="submitData('chi')">THÊM CHI</button>
-        </div>
-        <div id="chi-msg" class="success-msg"></div>
+        <div class="card-title">Số dư thực tế</div>
+        <div id="balance" style="font-size: 24px; color: #007aff; font-weight: bold;">Đang tải...</div>
     </div>
 
     <div class="card">
-        <div class="card-title">Thu Nhập <button class="btn btn-clear" onclick="clearTemp('thu')">Xóa hết</button></div>
-        <div class="input-group">
-            <input type="number" id="thu-amt" placeholder="Số tiền">
-            <button class="btn btn-add" id="thu-add-btn" onclick="addToTemp('thu')">+</button>
+        <div class="card-title">
+            Phần Chi 
+            <button class="btn-sm red" id="chi-clear">Xóa</button>
         </div>
-        <div id="thu-list-container" style="display:none">
-            <div class="temp-list" id="thu-temp-list"></div>
-            <select id="thu-dropdown"><option value="">Nguồn tiền...</option></select>
-            <input type="text" id="thu-note" placeholder="Ghi chú nguồn...">
-            <button class="btn btn-blue" onclick="submitData('thu')">THÊM THU</button>
+        
+        <div class="input-row">
+            <input type="number" id="chi-amount" placeholder="Nhập số (vd: 25 = 25k)">
+            <button class="btn-add" id="chi-add">+</button>
         </div>
-        <div id="thu-msg" class="success-msg"></div>
-    </div>
 
-    <div class="card">
-        <div class="card-title">Tổng Kết</div>
-        <div id="last-summary" style="font-size:13px; color:#666; margin-bottom:10px">Đang tải...</div>
-        <button class="btn btn-summary" onclick="startSummary()">TỔNG KẾT MỚI</button>
-    </div>
-
-    <div class="footer-balance">
-        Số dư lý thuyết: <span id="theory-balance">0</span> VND
-    </div>
-
-    <div id="settings-modal">
-        <h2>Cài đặt mô tả nhanh</h2>
-        <div id="settings-checks" class="check-grid"></div>
-        <button class="btn btn-blue" onclick="toggleSettings()">Đóng & Lưu</button>
-    </div>
-
-    <script>
-        // CẤU HÌNH QUAN TRỌNG
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-_-I6LLrifbZZPscBDUN9jufEyYrtf2tIIjtGihIScCU2tFp-HtuIgLkw6NqU0mUfOsEe9lIBTnIc/pub?gid=1944311512&single=true&output=csv';
-        const APPS_SCRIPT_URL = 'URL_WEB_APP_CỦA_BẠN'; // BẠN PHẢI LÀM BƯỚC 2 ĐỂ CÓ LINK NÀY
-
-        let sheetData = [];
-        let chiTemp = [];
-        let thuTemp = [];
-        let selectedQuickDesc = ['Ăn sáng', 'Đi chợ', 'Nạp điện thoại', 'Tiền điện', 'Tiền nước', 'Quà tết', 'Mua ccq', 'Tóc'];
-        let editIndex = -1;
-
-        document.addEventListener('DOMContentLoaded', () => {
-            init();
-            loadData();
-        });
-
-        function init() {
-            document.getElementById('current-date').innerText = new Date().toLocaleDateString('vi-VN');
-            renderQuickChecks();
-        }
-
-        async function loadData() {
-            try {
-                const res = await fetch(CSV_URL);
-                const text = await res.text();
-                sheetData = text.split('\n').map(row => row.split(','));
-                processData();
-            } catch (e) { console.error("Lỗi tải dữ liệu", e); }
-        }
-
-        function processData() {
-            // Tính số dư lý thuyết: SUM(J) - SUM(C)
-            let totalThu = 0, totalChi = 0;
-            sheetData.slice(1).forEach(r => {
-                totalChi += parseFloat(r[2]) || 0;
-                totalThu += parseFloat(r[9]) || 0;
-            });
-            document.getElementById('theory-balance').innerText = ((totalThu - totalChi) * 1000).toLocaleString();
-
-            // Tìm tổng kết cuối
-            const lastSumRow = [...sheetData].reverse().find(r => r[0] === "Tổng kết" || r[7]);
-            if(lastSumRow) {
-                document.getElementById('last-summary').innerText = `Lần cuối: ${lastSumRow[4] || ''} - Tổng: ${lastSumRow[8] || 0}`;
-            }
-
-            // Load dropdown options (cột B và L)
-            const options = [...new Set(sheetData.slice(1).map(r => r[1] || r[11]).filter(x => x && x.length < 20))];
-            const chiDrop = document.getElementById('chi-dropdown');
-            chiDrop.innerHTML = '<option value="">Chọn mô tả khác...</option>' + options.map(o => `<option>${o}</option>`).join('');
-            document.getElementById('thu-dropdown').innerHTML = '<option value="">Nguồn tiền...</option>' + options.map(o => `<option>${o}</option>`).join('');
-        }
-
-        function renderQuickChecks() {
-            const container = document.getElementById('chi-checkboxes');
-            container.innerHTML = selectedQuickDesc.map(d => `<label class="check-item"><input type="checkbox" value="${d}"> ${d}</label>`).join('');
-            document.getElementById('settings-checks').innerHTML = selectedQuickDesc.map(d => `<label class="check-item"><input type="checkbox" checked disabled> ${d}</label>`).join('');
-        }
-
-        function addToTemp(type) {
-            const input = document.getElementById(`${type}-amt`);
-            const val = parseFloat(input.value);
-            if(!val) return;
-
-            if(editIndex > -1) {
-                if(type === 'chi') chiTemp[editIndex] = val;
-                else thuTemp[editIndex] = val;
-                editIndex = -1;
-                document.getElementById(`${type}-add-btn`).innerText = "+";
-            } else {
-                if(type === 'chi') chiTemp.push(val);
-                else thuTemp.push(val);
-            }
+        <div id="chi-list"></div> <div id="chi-desc" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+            <div id="chi-checkboxes" class="checkbox-grid"></div>
             
-            input.value = "";
-            renderTempList(type);
-        }
-
-        function renderTempList(type) {
-            const list = type === 'chi' ? chiTemp : thuTemp;
-            const container = document.getElementById(`${type}-temp-list`);
-            const wrap = document.getElementById(`${type}-list-container`);
+            <select id="chi-dropdown" class="full-width"></select>
+            <input type="text" id="chi-text" class="full-width" placeholder="Nhập mô tả riêng...">
             
-            if(list.length > 0) {
-                wrap.style.display = "block";
-                container.innerHTML = list.map((v, i) => `<div class="temp-item" onclick="editItem('${type}', ${i})">${type.toUpperCase()} ${v}.000</div>`).join('');
-            } else {
-                wrap.style.display = "none";
-            }
-        }
+            <button class="btn-submit" id="chi-submit">LƯU KHOẢN CHI</button>
+            <p id="chi-message" class="msg"></p>
+        </div>
+    </div>
 
-        function editItem(type, idx) {
-            editIndex = idx;
-            const list = type === 'chi' ? chiTemp : thuTemp;
-            document.getElementById(`${type}-amt`).value = list[idx];
-            document.getElementById(`${type}-add-btn`).innerText = "V";
-        }
+    <div class="card">
+        <div class="card-title">
+            Phần Thu
+            <button class="btn-sm red" id="thu-clear">Xóa</button>
+        </div>
 
-        function clearTemp(type) {
-            if(type === 'chi') chiTemp = []; else thuTemp = [];
-            renderTempList(type);
-        }
+        <div class="input-row">
+            <input type="number" id="thu-amount" placeholder="Nhập số (vd: 500 = 500k)">
+            <button class="btn-add" id="thu-add">+</button>
+        </div>
 
-        async function submitData(type) {
-            const btn = event.target;
-            btn.disabled = true;
-            btn.innerText = "ĐANG GỬI...";
+        <div id="thu-list"></div>
 
-            let payload = {};
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('vi-VN');
+        <div id="thu-desc" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+            <select id="thu-dropdown" class="full-width"></select>
+            <input type="text" id="thu-text" class="full-width" placeholder="Nguồn tiền (vd: Lương)...">
+            
+            <button class="btn-submit" id="thu-submit">LƯU KHOẢN THU</button>
+            <p id="thu-message" class="msg"></p>
+        </div>
+    </div>
 
-            if(type === 'chi') {
-                const checks = Array.from(document.querySelectorAll('#chi-checkboxes input:checked')).map(c => c.value);
-                const drop = document.getElementById('chi-dropdown').value;
-                const note = document.getElementById('chi-note').value;
-                const desc = [...checks, drop, note].filter(x => x).join(', ');
-                const total = chiTemp.reduce((a, b) => a + b, 0);
-
-                payload = {
-                    type: 'chi',
-                    row: [sheetData.length, desc, total, (total*1000).toLocaleString('vi-VN'), dateStr]
-                };
-            } else {
-                const total = thuTemp.reduce((a, b) => a + b, 0);
-                const source = document.getElementById('thu-dropdown').value || document.getElementById('thu-note').value;
-                // Mapping: Col J=9, K=10, L=11. Các cột trước để trống.
-                let row = Array(12).fill("");
-                row[9] = total * 1000;
-                row[10] = dateStr;
-                row[11] = source;
-                payload = { type: 'thu', row: row };
-            }
-
-            const success = await sendToSheet(payload);
-            if(success) {
-                document.getElementById(`${type}-msg`).innerText = "Thành công! Dữ liệu sẽ cập nhật sau vài giây.";
-                clearTemp(type);
-                setTimeout(loadData, 3000);
-            }
-            btn.disabled = false;
-            btn.innerText = `THÊM ${type.toUpperCase()}`;
-        }
-
-        async function sendToSheet(data) {
-            if(APPS_SCRIPT_URL === 'URL_WEB_APP_CỦA_BẠN') {
-                alert("Bạn chưa dán link Web App Apps Script!");
-                return false;
-            }
-            try {
-                await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify(data)
-                });
-                return true;
-            } catch (e) { return false; }
-        }
-
-        function toggleSettings() {
-            const m = document.getElementById('settings-modal');
-            m.style.display = m.style.display === 'block' ? 'none' : 'block';
-        }
-
-        function startSummary() {
-            const input = prompt("Nhập số dư các tài khoản (vd: acb:40196502,hd:82997404)");
-            if(!input) return;
-            // Logic xử lý text tổng kết và gửi row tương tự submitData...
-            alert("Đã ghi nhận lệnh tổng kết.");
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
