@@ -1,0 +1,67 @@
+Logic Xử Lý Tổng Quan (Backend)
+Kết nối Sheets: Sử dụng Google Sheets API (fetch JS) để read/write từ link mới: https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-_-I6LLrifbZZPscBDUN9jufEyYrtf2tIIjtGihIScCU2tFp-HtuIgLkw6NqU0mUfOsEe9lIBTnIc/pub?gid=1944311512&single=true&output=csv.
+Read: Load data ban đầu (danh sách chi/thu, tổng dư, mô tả list cho dropdown/settings).
+Write: Append dòng mới cho chi/thu, update tổng kết.
+Auth: OAuth cho iOS (prompt user login Google).
+Xử lý Data:
+Chi: List tạm (array JS), tính tổng, mô tả combine (checkboxes + dropdown + text).
+Thu: Tương tự, đơn giản.
+Tổng kết: Tính SUM(J) - SUM(D) cho dư lý thuyết, prompt nhập thực tế, ghi chênh lệch.
+Sync: Data realtime giữa 2 device qua sheet chung.
+Mockup Giao Diện (Frontend Layout)
+App là single page, scroll dọc trên iPhone. Dùng CSS: bg #f2f2f7, header sticky, card #ffffff, nút #007aff.
+
+Code
+[Header Sticky - iOS style]
+Sổ Thu Chi | Icon Settings (bánh răng) | Ngày hiện tại: 25/01/2026
+
+[Container Scroll]
+
+1. Phần Chi
+   [Card White]
+   Ô nhập số: [________] (vd: 25)  [Nút +]  [Nút Xóa Hết (đỏ)]
+   
+   Thông báo list tạm (clickable):
+   - Chi 25/01/26: 25.000  (click để edit)
+   - + 50.000  (click để edit)
+   - + 45.000  (click để edit)
+   
+   Mô tả (hiện sau khi có list):
+   8 Checkboxes: [ ] Ăn sáng  [ ] Đi chợ  [ ] Nạp điện thoại  [ ] Tiền điện  [ ] Tiền nước  [ ] Quà tết  [ ] Mua ccq  [ ] Tóc
+   Dropdown: [Chọn mô tả khác ▼] (options: lãi tech, phượng đưa, bán ve chai, etc. từ sheet)
+   Text box: [Nhập mô tả riêng ________]
+   
+   [Nút Thêm (xanh)] 
+   Thông báo: "Đã thêm chi ăn sáng, đi chợ + mua ccq 25.000 + 50.000 + 45.000 = 120.000 ngày 25/01/26 thành công!"
+
+2. Phần Thu
+   [Card White]
+   Ô nhập số: [________]  [Nút +]  [Nút Xóa Hết (đỏ)]
+   
+   Thông báo list tạm:
+   - Thu 25/01/26: 191.616.700
+   
+   Mô tả: Dropdown + Text box (tương tự, ít checkboxes hơn: lãi tech, phượng đưa, nhà trọ, etc.)
+   
+   [Nút Thêm] 
+   Thông báo: "Đã thêm thu lãi tech 191.616.700 ngày 25/01/26 thành công!"
+
+3. Phần Tổng kết
+   [Card White]
+   Tổng kết lần trước: 11/01/26 - Tài khoản: acb 40.196.502, hd 82.997.404, ... Tổng 1.408.728.753, Thiếu 18.432
+   
+   [Nút Tổng kết mới (vàng)]
+   
+   (Sau nhấn): Tổng kết mới: 25/01/26 - Tài khoản: [Nhập acb ________] [Nhập hd ________] ... Tổng [tính], Thiếu [tính]
+
+[Footer]
+Số dư lý thuyết hiện tại: 186.000.000 (từ sheet)
+Logic Giao Diện (Xử Lý Event)
+Nhập số: On input, validate số.
+Nút +: Push to array tạm, render list clickable, clear input.
+Click số trong list: Populate input, đổi nút thành V (confirm), update on confirm.
+Nút Xóa hết: Clear array, reset UI.
+Mô tả: On change checkboxes/dropdown/text, combine string.
+Nút Thêm: Call Sheets API append, show toast success, reload data.
+Settings: Modal popup: Checkboxes chọn 8 mô tả, save local/sheet.
+Tổng kết: Read sheet, prompt nhập thực tế, calculate, append.
