@@ -1,70 +1,71 @@
-// --- CẤU HÌNH ---
-// 1. Link CSV (để xem số dư)
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-_-I6LLrifbZZPscBDUN9jufEyYrtf2tIIjtGihIScCU2tFp-HtuIgLkw6NqU0mUfOsEe9lIBTnIc/pub?gid=1944311512&single=true&output=csv';
-
-// 2. Link Script (Để lưu dữ liệu)
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec';
 
-// DỮ LIỆU CỐ ĐỊNH
 const QUICK_DESC = ['Ăn sáng', 'Đi chợ', 'Nạp điện thoại', 'Tiền điện', 'Tiền nước', 'Quà tết', 'Mua ccq', 'Tóc', 'Xăng xe', 'Cafe'];
 const DEFAULT_DROPDOWN = ['Lương', 'Thưởng', 'Lãi Tech', 'Lãi HD', 'Ba mẹ đưa', 'Hoàn tiền', 'Khác'];
 
-let chiStack = [];
-let thuStack = [];
+let chiStack = [], thuStack = [];
 
 document.addEventListener('DOMContentLoaded', () => {
-    updateDate();
+    initDates();
     renderStaticUI();
     setupEvents();
-    loadSheetData(); 
+    loadSheetData();
 });
 
-// --- 1. LOAD DATA ---
+function initDates() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('chi-date').value = today;
+    document.getElementById('thu-date').value = today;
+}
+
+function handleBackDate(type) {
+    const input = document.getElementById(`${type}-date`);
+    const d = new Date(input.value);
+    d.setDate(d.getDate() - 1);
+    input.value = d.toISOString().split('T')[0];
+}
+
 async function loadSheetData() {
     try {
         const res = await fetch(CSV_URL);
         const text = await res.text();
         const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
-        
-        let thu = 0, chi = 0;
+        let thu = 0, chi = 0, lastChi = "Chưa có dữ liệu";
+
         if (rows.length > 1) {
             rows.slice(1).forEach(r => {
-                const cVal = r[3] ? r[3].replace(/[\."]/g, '') : "0"; 
-                const tVal = r[9] ? r[9].replace(/[\."]/g, '') : "0"; 
-                chi += parseFloat(cVal) || 0;
-                thu += parseFloat(tVal) || 0;
+                const cVal = r[3] ? r[3].replace(/[\."]/g, '') : "0";
+                const tVal = r[9] ? r[9].replace(/[\."]/g, '') : "0";
+                chi += parseFloat(cVal) || 0; thu += parseFloat(tVal) || 0;
             });
+            // Lấy dòng chi cuối
+            for (let i = rows.length - 1; i > 0; i--) {
+                const money = rows[i][3] ? parseFloat(rows[i][3].replace(/[\."]/g, '')) : 0;
+                if (money > 0) {
+                    lastChi = `Ghi nhận chi cuối: ${money.toLocaleString()} đ ngày ${rows[i][4].replace(/"/g, '')}`;
+                    break;
+                }
+            }
         }
         document.getElementById('balance').innerText = (thu - chi).toLocaleString('vi-VN') + ' đ';
-    } catch (e) {
-        document.getElementById('balance').innerText = "Offline";
-    }
+        document.getElementById('last-trans').innerText = lastChi;
+    } catch (e) { console.error(e); }
 }
 
-// --- 2. GIAO DIỆN ---
 function renderStaticUI() {
-    document.getElementById('chi-checkboxes').innerHTML = QUICK_DESC.map(d => 
-        `<label class="cb-chip"><input type="checkbox" value="${d}"> ${d}</label>`
-    ).join('');
-    
-    const html = '<option value="">-- Chọn danh mục --</option>' + 
-                 DEFAULT_DROPDOWN.map(d => `<option value="${d}">${d}</option>`).join('');
-    document.getElementById('chi-dropdown').innerHTML = html;
-    document.getElementById('thu-dropdown').innerHTML = html;
+    document.getElementById('chi-checkboxes').innerHTML = QUICK_DESC.map(d => `<label class="cb-chip"><input type="checkbox" value="${d}"> ${d}</label>`).join('');
+    const opt = '<option value="">-- Chọn danh mục --</option>' + DEFAULT_DROPDOWN.map(d => `<option value="${d}">${d}</option>`).join('');
+    document.getElementById('chi-dropdown').innerHTML = opt;
+    document.getElementById('thu-dropdown').innerHTML = opt;
 }
 
-function updateDate() {
-    document.getElementById('current-date').innerText = new Date().toLocaleDateString('vi-VN');
-}
-
-// --- 3. XỬ LÝ CỘNG DỒN ---
 function handlePlus(type) {
     const input = document.getElementById(`${type}-amount`);
     const val = parseFloat(input.value);
     if (val > 0) {
-        type === 'chi' ? chiStack.push(val) : thuStack.push(val);
-        input.value = "";
-        input.focus();
+        (type === 'chi' ? chiStack : thuStack).push(val);
+        input.value = ""; input.focus();
         updateStackDisplay(type);
         checkSubmitState(type);
     }
@@ -72,156 +73,77 @@ function handlePlus(type) {
 
 function updateStackDisplay(type) {
     const stack = type === 'chi' ? chiStack : thuStack;
-    const display = document.getElementById(`${type}-stack-display`);
-    if (stack.length > 0) {
-        display.innerText = `Đang cộng: ${stack.map(n => n.toLocaleString('vi-VN')).join(' + ')}`;
-        display.style.display = 'block';
-    } else {
-        display.innerText = "";
-        display.style.display = 'none';
-    }
+    const disp = document.getElementById(`${type}-stack-display`);
+    disp.innerText = stack.length > 0 ? `Đang cộng: ${stack.join(' + ')}` : "";
+    disp.style.display = stack.length > 0 ? 'block' : 'none';
 }
 
 function checkSubmitState(type) {
-    const btn = document.getElementById(`${type}-submit`);
     const inputVal = parseFloat(document.getElementById(`${type}-amount`).value);
-    const stack = type === 'chi' ? chiStack : thuStack;
-    const hasMoney = stack.length > 0 || (inputVal > 0);
-    
-    let hasDesc = false;
-    if (type === 'chi') {
-        const checked = document.querySelectorAll('#chi-checkboxes input:checked').length > 0;
-        const drop = document.getElementById('chi-dropdown').value !== "";
-        const text = document.getElementById('chi-text').value.trim() !== "";
-        hasDesc = checked || drop || text;
-    } else {
-        const drop = document.getElementById('thu-dropdown').value !== "";
-        const text = document.getElementById('thu-text').value.trim() !== "";
-        hasDesc = drop || text;
-    }
-    
-    btn.disabled = !(hasMoney && hasDesc);
-    btn.classList.toggle('active-submit', !btn.disabled);
+    const hasMoney = (type === 'chi' ? chiStack : thuStack).length > 0 || inputVal > 0;
+    document.getElementById(`${type}-submit`).disabled = !hasMoney;
 }
 
-// --- 4. GỬI DỮ LIỆU (ĐÃ CHỈNH SỬA LOGIC CÔNG THỨC) ---
 async function submitData(type) {
     const btn = document.getElementById(`${type}-submit`);
     const msg = document.getElementById(`${type}-message`);
-    const input = document.getElementById(`${type}-amount`);
+    const amountInput = document.getElementById(`${type}-amount`);
+    const dateVal = document.getElementById(`${type}-date`).value;
     
-    // 1. Gom tất cả các số vào Stack
-    let finalStack = type === 'chi' ? [...chiStack] : [...thuStack];
-    const currentVal = parseFloat(input.value);
-    if (currentVal > 0) finalStack.push(currentVal);
+    let stack = type === 'chi' ? [...chiStack] : [...thuStack];
+    if (parseFloat(amountInput.value) > 0) stack.push(parseFloat(amountInput.value));
     
-    if (finalStack.length === 0) return;
-
-    // Tính tổng để hiển thị thông báo trên App (UI)
-    const totalUI = finalStack.reduce((a, b) => a + b, 0);
-
-    // 2. XỬ LÝ CÔNG THỨC CHO GOOGLE SHEET
-    let sendValK, sendValFull;
-
-    if (finalStack.length > 1) {
-        // Nếu có nhiều số (vd: 20, 30) -> Tạo công thức "=20+30"
-        const formula = finalStack.join('+');
-        sendValK = `=${formula}`;             // Gửi: =20+30
-        sendValFull = `=(${formula})*1000`;   // Gửi: =(20+30)*1000
-    } else {
-        // Nếu chỉ có 1 số -> Gửi số bình thường
-        sendValK = totalUI;
-        sendValFull = totalUI * 1000;
-    }
-
-    // 3. Gom mô tả
+    const total = stack.reduce((a, b) => a + b, 0);
+    const totalFull = total * 1000;
+    
     let desc = "";
     if (type === 'chi') {
         const checks = Array.from(document.querySelectorAll('#chi-checkboxes input:checked')).map(c => c.value);
-        const drop = document.getElementById('chi-dropdown').value;
-        const text = document.getElementById('chi-text').value;
-        desc = [...checks, drop, text].filter(x => x).join(', ');
+        desc = [...checks, document.getElementById('chi-dropdown').value, document.getElementById('chi-text').value].filter(x => x).join(', ');
     } else {
-        const drop = document.getElementById('thu-dropdown').value;
-        const text = document.getElementById('thu-text').value;
-        desc = [drop, text].filter(x => x).join(', ');
+        desc = [document.getElementById('thu-dropdown').value, document.getElementById('thu-text').value].filter(x => x).join(', ');
     }
 
     btn.disabled = true;
     btn.innerText = "ĐANG GỬI...";
-    
-    const today = new Date(); 
-    let payloadData = [];
-
-    // 4. TẠO GÓI TIN GỬI ĐI
-    if (type === 'chi') {
-        // [STT, Mô tả, Tiền(k), Tiền(full), Ngày]
-        // Lưu ý: sendValK và sendValFull có thể là String (công thức) hoặc Number
-        payloadData = [[0, desc, sendValK, sendValFull, today]];
-    } else {
-        // [Tiền(full), Ngày, Nguồn]
-        payloadData = [[sendValFull, today, desc]];
-    }
 
     try {
-        const response = await fetch(SCRIPT_URL, {
+        const formulaK = stack.length > 1 ? `=${stack.join('+')}` : total;
+        const formulaFull = stack.length > 1 ? `=(${stack.join('+')})*1000` : totalFull;
+        
+        const payload = type === 'chi' ? [[0, desc, formulaK, formulaFull, dateVal]] : [[formulaFull, dateVal, desc]];
+        
+        const res = await fetch(SCRIPT_URL, {
             method: 'POST',
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ type: type, data: payloadData })
+            body: JSON.stringify({ type, data: payload })
         });
-
-        const result = await response.json(); 
-
+        const result = await res.json();
         if (result.status === 'success') {
-            msg.innerHTML = `✅ <b>${desc}</b><br>Đã lưu: <b>${totalUI}k</b>`;
+            msg.innerHTML = `✅ Đã lưu: ${total}k`;
             msg.className = "status-msg success";
-            
             resetForm(type);
-            setTimeout(() => { loadSheetData(); }, 2000); 
-        } else {
-            throw new Error(result.msg);
+            setTimeout(loadSheetData, 2000);
+            setTimeout(() => { msg.className = "status-msg"; }, 3000);
         }
-
     } catch (e) {
         msg.innerText = "❌ Lỗi: " + e.message;
         msg.className = "status-msg error";
     } finally {
+        btn.disabled = false;
         btn.innerText = type === 'chi' ? "LƯU KHOẢN CHI" : "LƯU KHOẢN THU";
-        checkSubmitState(type);
     }
 }
 
 function resetForm(type) {
-    if (type === 'chi') {
-        chiStack = [];
-        document.querySelectorAll('#chi-checkboxes input').forEach(c => c.checked = false);
-        document.getElementById('chi-dropdown').value = "";
-        document.getElementById('chi-text').value = "";
-    } else {
-        thuStack = [];
-        document.getElementById('thu-dropdown').value = "";
-        document.getElementById('thu-text').value = "";
-    }
+    if (type === 'chi') chiStack = []; else thuStack = [];
     document.getElementById(`${type}-amount`).value = "";
     updateStackDisplay(type);
+    initDates();
 }
 
-// --- 5. SỰ KIỆN ---
 function setupEvents() {
-    document.getElementById('chi-btn-plus').onclick = (e) => { e.preventDefault(); handlePlus('chi'); };
-    document.getElementById('thu-btn-plus').onclick = (e) => { e.preventDefault(); handlePlus('thu'); };
-    document.getElementById('chi-submit').onclick = (e) => { e.preventDefault(); submitData('chi'); };
-    document.getElementById('thu-submit').onclick = (e) => { e.preventDefault(); submitData('thu'); };
-    document.getElementById('chi-reset').onclick = (e) => { e.preventDefault(); resetForm('chi'); };
-    document.getElementById('thu-reset').onclick = (e) => { e.preventDefault(); resetForm('thu'); };
-
-    const events = ['input', 'change'];
-    events.forEach(evt => {
-        ['chi', 'thu'].forEach(type => {
-            document.getElementById(`${type}-amount`).addEventListener(evt, () => checkSubmitState(type));
-            document.getElementById(`${type}-text`).addEventListener(evt, () => checkSubmitState(type));
-            document.getElementById(`${type}-dropdown`).addEventListener(evt, () => checkSubmitState(type));
-        });
-        document.getElementById('chi-checkboxes').addEventListener(evt, () => checkSubmitState('chi'));
-    });
+    document.getElementById('chi-btn-plus').onclick = () => handlePlus('chi');
+    document.getElementById('thu-btn-plus').onclick = () => handlePlus('thu');
+    document.getElementById('chi-submit').onclick = () => submitData('chi');
+    document.getElementById('thu-submit').onclick = () => submitData('thu');
 }
