@@ -1,24 +1,325 @@
-body { background: #f2f2f7; font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 40px; }
-.header { background: #fff; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; position: sticky; top:0; z-index:100; }
-.header h1 { margin: 0; font-size: 18px; font-weight: 700; }
-.balance-tag { background: #e5f1fb; color: #007aff; padding: 5px 10px; border-radius: 15px; font-weight: bold; font-size: 14px; }
+/* --- CẤU HÌNH CHUNG & FONT --- */
+:root {
+    --bg-color: #F2F2F7;
+    --card-bg: #FFFFFF;
+    --text-primary: #1C1C1E;
+    --text-secondary: #8E8E93;
+    --ios-blue: #007AFF;
+    
+    /* Màu tùy chỉnh theo yêu cầu */
+    --chi-cyan: #30B0C7; /* Cyan đậm đà cho nút + */
+    --chi-cyan-grad: linear-gradient(135deg, #2ac3de 0%, #0099cc 100%);
+    
+    --thu-green: #34C759;
+    --thu-light-green-grad: linear-gradient(135deg, #6BE285 0%, #34C759 100%);
+    
+    --danger-red: #FF3B30;
+    --gold-color: #FFD60A;
+    --gold-text: #B48811;
+}
 
-.card { background: #fff; margin: 15px; border-radius: 12px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-.card-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
-.card-title { font-weight: 700; font-size: 16px; }
-.red-text { color: #ff3b30; }
-.green-text { color: #34c759; }
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
 
-.input-group { display: flex; gap: 8px; margin-bottom: 10px; }
-input, select { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; outline:none; }
-.btn-add { width: 50px; background: #007aff; color: white; border: none; border-radius: 8px; font-size: 24px; }
-.btn-sm { background: #e5e5ea; border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; }
-.btn-submit { width: 100%; padding: 14px; border: none; border-radius: 10px; color: white; font-weight: bold; font-size: 16px; margin-top: 10px; }
-.btn-red { background: #ff3b30; }
-.btn-green { background: #34c759; }
+body {
+    background-color: var(--bg-color);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding-bottom: 50px; /* Để chừa chỗ cuộn cuối trang */
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+}
 
-.temp-item { padding: 8px 0; border-bottom: 1px dashed #eee; font-weight: 500; display: flex; justify-content: space-between; }
-.edit-hint { color: #007aff; font-size: 12px; font-weight: normal; }
-.checkbox-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; font-size: 14px; }
-.desc-row { margin-bottom: 8px; }
-.status-msg { text-align: center; margin-top: 8px; height: 20px; font-size: 13px; color: #34c759; font-weight: 600; }
+/* --- HEADER (GLASSMORPHISM) --- */
+.header {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.date-chip {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.balance-tag {
+    background: rgba(0, 122, 255, 0.1);
+    color: var(--ios-blue);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.3px;
+}
+
+/* --- CARD GIAO DIỆN --- */
+.card {
+    background: var(--card-bg);
+    margin: 20px;
+    border-radius: 24px; /* Bo góc cực mạnh kiểu iOS mới */
+    padding: 24px;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08); /* Đổ bóng mịn */
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.card-title {
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    text-transform: uppercase;
+}
+
+.red-text { color: var(--danger-red); }
+.green-text { color: var(--thu-green); }
+
+/* --- NÚT RESET NHỎ --- */
+.btn-sm {
+    background: rgba(142, 142, 147, 0.12);
+    color: var(--text-secondary);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-sm:active {
+    transform: scale(0.95);
+    background: rgba(142, 142, 147, 0.25);
+}
+
+/* --- INPUT GROUP (Ô NHẬP TIỀN & NÚT +) --- */
+.input-group {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+input[type="number"] {
+    flex: 1;
+    padding: 16px;
+    background: #F2F2F7; /* Nền xám nhạt */
+    border: none;
+    border-radius: 16px;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    outline: none;
+    transition: background 0.2s;
+}
+
+input[type="number"]:focus {
+    background: #E5E5EA;
+}
+
+/* Nút Cộng (+) Chung */
+.btn-add {
+    width: 56px;
+    height: 56px;
+    border: none;
+    border-radius: 18px; /* Bo squircle */
+    color: white;
+    font-size: 28px;
+    font-weight: 400;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 4px; /* Căn chỉnh dấu cộng */
+}
+
+.btn-add:active {
+    transform: scale(0.92);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* --- MÀU SẮC RIÊNG CHO NÚT CỘNG (THEO YÊU CẦU) --- */
+
+/* Nút Chi: Xanh Cyan */
+#chi-btn-plus {
+    background: var(--chi-cyan-grad); 
+    box-shadow: 0 8px 20px -5px rgba(48, 176, 199, 0.4);
+}
+
+/* Nút Thu: Xanh Lá Nhạt */
+#thu-btn-plus {
+    background: var(--thu-light-green-grad);
+    box-shadow: 0 8px 20px -5px rgba(52, 199, 89, 0.4);
+}
+
+
+/* --- KHU VỰC HIỂN THỊ CỘNG DỒN (STACK) --- */
+.stack-display {
+    font-size: 15px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin: 0 0 16px 4px;
+    min-height: 20px;
+    display: none;
+    font-family: "SF Mono", monospace; /* Font số cho dễ nhìn */
+    letter-spacing: -0.5px;
+}
+
+/* --- KHU VỰC MÔ TẢ (CHECKBOX & INPUT) --- */
+.checkbox-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+/* Checkbox kiểu Chip iOS */
+.cb-chip {
+    cursor: pointer;
+    user-select: none;
+}
+
+.cb-chip input {
+    display: none;
+}
+
+.cb-chip {
+    padding: 8px 16px;
+    background: #F2F2F7;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+/* Khi chọn Checkbox */
+.cb-chip:has(input:checked) {
+    background: #EBF3FF; /* Xanh cực nhạt */
+    color: var(--ios-blue);
+    border-color: rgba(0, 122, 255, 0.3);
+    font-weight: 600;
+}
+
+/* Input text & Select */
+.desc-row {
+    margin-bottom: 12px;
+}
+
+.input-std {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid rgba(0,0,0,0.05);
+    background: #FAFAFC;
+    border-radius: 14px;
+    font-size: 16px;
+    outline: none;
+    color: var(--text-primary);
+    -webkit-appearance: none; /* Xóa mũi tên select mặc định xấu xí */
+}
+
+.input-std:focus {
+    background: #FFFFFF;
+    border-color: rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* --- THÔNG BÁO (STATUS MSG) --- */
+.status-msg {
+    display: none;
+    margin-bottom: 14px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+    animation: slideDown 0.3s ease-out;
+}
+
+/* Thông báo CHI (Màu Đỏ) */
+#chi-message.success, 
+#chi-message.error {
+    background: #FFF1F0; /* Nền đỏ rất nhạt */
+    color: #D32F2F;      /* Chữ đỏ đậm */
+    border: 1px solid #FFCCC7;
+}
+
+/* Thông báo THU (Màu Vàng Gold) */
+#thu-message.success,
+#thu-message.error {
+    background: #FFFBE6; /* Nền vàng kem */
+    color: var(--gold-text); /* Chữ vàng đậm */
+    border: 1px solid #FFE58F;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- NÚT GỬI (SUBMIT) --- */
+.btn-submit {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 18px;
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.btn-submit:active {
+    transform: scale(0.97);
+}
+
+/* Màu nút Submit (Giữ nguyên hoặc chỉnh cho hợp tông) */
+.btn-red {
+    background: linear-gradient(135deg, #FF3B30, #FF6B6B);
+    box-shadow: 0 10px 25px -5px rgba(255, 59, 48, 0.4);
+}
+
+.btn-green {
+    background: linear-gradient(135deg, #34C759, #30D158);
+    box-shadow: 0 10px 25px -5px rgba(52, 199, 89, 0.4);
+}
+
+/* Nút Disable */
+button:disabled {
+    opacity: 0.5;
+    background: #C7C7CC !important; /* Màu xám chuẩn iOS */
+    box-shadow: none !important;
+    cursor: not-allowed;
+    transform: none;
+}
