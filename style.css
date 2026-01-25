@@ -6,15 +6,14 @@
     --text-secondary: #8E8E93;
     --ios-blue: #007AFF;
     
-    /* Màu tùy chỉnh theo yêu cầu */
-    --chi-cyan: #30B0C7; /* Cyan đậm đà cho nút + */
+    /* Màu tùy chỉnh */
+    --chi-cyan: #30B0C7; 
     --chi-cyan-grad: linear-gradient(135deg, #2ac3de 0%, #0099cc 100%);
     
     --thu-green: #34C759;
     --thu-light-green-grad: linear-gradient(135deg, #6BE285 0%, #34C759 100%);
     
     --danger-red: #FF3B30;
-    --gold-color: #FFD60A;
     --gold-text: #B48811;
 }
 
@@ -27,12 +26,12 @@ body {
     background-color: var(--bg-color);
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
-    padding-bottom: 50px; /* Để chừa chỗ cuộn cuối trang */
+    padding-bottom: 50px;
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
 }
 
-/* --- HEADER (GLASSMORPHISM) --- */
+/* --- HEADER --- */
 .header {
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(20px);
@@ -68,16 +67,15 @@ body {
     border-radius: 20px;
     font-weight: 600;
     font-size: 15px;
-    letter-spacing: -0.3px;
 }
 
 /* --- CARD GIAO DIỆN --- */
 .card {
     background: var(--card-bg);
     margin: 20px;
-    border-radius: 24px; /* Bo góc cực mạnh kiểu iOS mới */
+    border-radius: 24px;
     padding: 24px;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08); /* Đổ bóng mịn */
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
@@ -116,7 +114,7 @@ body {
     background: rgba(142, 142, 147, 0.25);
 }
 
-/* --- INPUT GROUP (Ô NHẬP TIỀN & NÚT +) --- */
+/* --- INPUT GROUP --- */
 .input-group {
     display: flex;
     gap: 12px;
@@ -127,7 +125,7 @@ body {
 input[type="number"] {
     flex: 1;
     padding: 16px;
-    background: #F2F2F7; /* Nền xám nhạt */
+    background: #F2F2F7;
     border: none;
     border-radius: 16px;
     font-size: 20px;
@@ -141,45 +139,39 @@ input[type="number"]:focus {
     background: #E5E5EA;
 }
 
-/* Nút Cộng (+) Chung */
+/* Nút Cộng (+) */
 .btn-add {
     width: 56px;
     height: 56px;
     border: none;
-    border-radius: 18px; /* Bo squircle */
+    border-radius: 18px;
     color: white;
     font-size: 28px;
     font-weight: 400;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-bottom: 4px; /* Căn chỉnh dấu cộng */
+    padding-bottom: 4px;
 }
 
 .btn-add:active {
     transform: scale(0.92);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
-/* --- MÀU SẮC RIÊNG CHO NÚT CỘNG (THEO YÊU CẦU) --- */
-
-/* Nút Chi: Xanh Cyan */
 #chi-btn-plus {
     background: var(--chi-cyan-grad); 
     box-shadow: 0 8px 20px -5px rgba(48, 176, 199, 0.4);
 }
 
-/* Nút Thu: Xanh Lá Nhạt */
 #thu-btn-plus {
     background: var(--thu-light-green-grad);
     box-shadow: 0 8px 20px -5px rgba(52, 199, 89, 0.4);
 }
 
-
-/* --- KHU VỰC HIỂN THỊ CỘNG DỒN (STACK) --- */
+/* --- STACK DISPLAY --- */
 .stack-display {
     font-size: 15px;
     color: var(--text-secondary);
@@ -187,26 +179,16 @@ input[type="number"]:focus {
     margin: 0 0 16px 4px;
     min-height: 20px;
     display: none;
-    font-family: "SF Mono", monospace; /* Font số cho dễ nhìn */
+    font-family: "SF Mono", monospace;
     letter-spacing: -0.5px;
 }
 
-/* --- KHU VỰC MÔ TẢ (CHECKBOX & INPUT) --- */
+/* --- KHU VỰC MÔ TẢ --- */
 .checkbox-container {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 16px;
-}
-
-/* Checkbox kiểu Chip iOS */
-.cb-chip {
-    cursor: pointer;
-    user-select: none;
-}
-
-.cb-chip input {
-    display: none;
 }
 
 .cb-chip {
@@ -218,20 +200,20 @@ input[type="number"]:focus {
     color: var(--text-primary);
     transition: all 0.2s;
     border: 1px solid transparent;
+    cursor: pointer;
+    user-select: none;
 }
 
-/* Khi chọn Checkbox */
+.cb-chip input { display: none; }
+
 .cb-chip:has(input:checked) {
-    background: #EBF3FF; /* Xanh cực nhạt */
+    background: #EBF3FF;
     color: var(--ios-blue);
     border-color: rgba(0, 122, 255, 0.3);
     font-weight: 600;
 }
 
-/* Input text & Select */
-.desc-row {
-    margin-bottom: 12px;
-}
+.desc-row { margin-bottom: 12px; }
 
 .input-std {
     width: 100%;
@@ -242,7 +224,7 @@ input[type="number"]:focus {
     font-size: 16px;
     outline: none;
     color: var(--text-primary);
-    -webkit-appearance: none; /* Xóa mũi tên select mặc định xấu xí */
+    -webkit-appearance: none;
 }
 
 .input-std:focus {
@@ -251,9 +233,9 @@ input[type="number"]:focus {
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-/* --- THÔNG BÁO (STATUS MSG) --- */
+/* --- THÔNG BÁO (QUAN TRỌNG: ĐÃ FIX LỖI ẨN) --- */
 .status-msg {
-    display: none;
+    display: none; /* Mặc định ẩn */
     margin-bottom: 14px;
     padding: 12px 16px;
     border-radius: 12px;
@@ -264,19 +246,25 @@ input[type="number"]:focus {
     animation: slideDown 0.3s ease-out;
 }
 
-/* Thông báo CHI (Màu Đỏ) */
+/* BẮT BUỘC HIỆN KHI CÓ CLASS */
+.status-msg.success,
+.status-msg.error {
+    display: block !important;
+}
+
+/* Thông báo CHI (Đỏ) */
 #chi-message.success, 
 #chi-message.error {
-    background: #FFF1F0; /* Nền đỏ rất nhạt */
-    color: #D32F2F;      /* Chữ đỏ đậm */
+    background: #FFF1F0;
+    color: #D32F2F;
     border: 1px solid #FFCCC7;
 }
 
-/* Thông báo THU (Màu Vàng Gold) */
+/* Thông báo THU (Vàng Gold) */
 #thu-message.success,
 #thu-message.error {
-    background: #FFFBE6; /* Nền vàng kem */
-    color: var(--gold-text); /* Chữ vàng đậm */
+    background: #FFFBE6;
+    color: #B48811;
     border: 1px solid #FFE58F;
 }
 
@@ -285,7 +273,7 @@ input[type="number"]:focus {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- NÚT GỬI (SUBMIT) --- */
+/* --- NÚT SUBMIT --- */
 .btn-submit {
     width: 100%;
     padding: 18px;
@@ -295,16 +283,13 @@ input[type="number"]:focus {
     font-weight: 700;
     color: white;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition: all 0.3s;
     letter-spacing: 0.5px;
     text-transform: uppercase;
 }
 
-.btn-submit:active {
-    transform: scale(0.97);
-}
+.btn-submit:active { transform: scale(0.97); }
 
-/* Màu nút Submit (Giữ nguyên hoặc chỉnh cho hợp tông) */
 .btn-red {
     background: linear-gradient(135deg, #FF3B30, #FF6B6B);
     box-shadow: 0 10px 25px -5px rgba(255, 59, 48, 0.4);
@@ -315,10 +300,9 @@ input[type="number"]:focus {
     box-shadow: 0 10px 25px -5px rgba(52, 199, 89, 0.4);
 }
 
-/* Nút Disable */
 button:disabled {
     opacity: 0.5;
-    background: #C7C7CC !important; /* Màu xám chuẩn iOS */
+    background: #C7C7CC !important;
     box-shadow: none !important;
     cursor: not-allowed;
     transform: none;
