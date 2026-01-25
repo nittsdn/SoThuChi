@@ -2,7 +2,7 @@
 // 1. Link CSV (để xem số dư)
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-_-I6LLrifbZZPscBDUN9jufEyYrtf2tIIjtGihIScCU2tFp-HtuIgLkw6NqU0mUfOsEe9lIBTnIc/pub?gid=1944311512&single=true&output=csv';
 
-// 2. Link Script (để lưu dữ liệu - LINK BẠN CUNG CẤP)
+// 2. Link Script (Để lưu dữ liệu)
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec';
 
 // DỮ LIỆU CỐ ĐỊNH
@@ -104,23 +104,37 @@ function checkSubmitState(type) {
     btn.classList.toggle('active-submit', !btn.disabled);
 }
 
-// --- 4. GỬI DỮ LIỆU ---
+// --- 4. GỬI DỮ LIỆU (ĐÃ CHỈNH SỬA LOGIC CÔNG THỨC) ---
 async function submitData(type) {
     const btn = document.getElementById(`${type}-submit`);
     const msg = document.getElementById(`${type}-message`);
     const input = document.getElementById(`${type}-amount`);
     
-    // Gom tiền
+    // 1. Gom tất cả các số vào Stack
     let finalStack = type === 'chi' ? [...chiStack] : [...thuStack];
     const currentVal = parseFloat(input.value);
     if (currentVal > 0) finalStack.push(currentVal);
     
     if (finalStack.length === 0) return;
 
-    const total = finalStack.reduce((a, b) => a + b, 0);
-    const totalFull = total * 1000;
+    // Tính tổng để hiển thị thông báo trên App (UI)
+    const totalUI = finalStack.reduce((a, b) => a + b, 0);
 
-    // Gom mô tả
+    // 2. XỬ LÝ CÔNG THỨC CHO GOOGLE SHEET
+    let sendValK, sendValFull;
+
+    if (finalStack.length > 1) {
+        // Nếu có nhiều số (vd: 20, 30) -> Tạo công thức "=20+30"
+        const formula = finalStack.join('+');
+        sendValK = `=${formula}`;             // Gửi: =20+30
+        sendValFull = `=(${formula})*1000`;   // Gửi: =(20+30)*1000
+    } else {
+        // Nếu chỉ có 1 số -> Gửi số bình thường
+        sendValK = totalUI;
+        sendValFull = totalUI * 1000;
+    }
+
+    // 3. Gom mô tả
     let desc = "";
     if (type === 'chi') {
         const checks = Array.from(document.querySelectorAll('#chi-checkboxes input:checked')).map(c => c.value);
@@ -139,19 +153,19 @@ async function submitData(type) {
     const today = new Date(); 
     let payloadData = [];
 
-    // CẤU TRÚC GỬI (KHỚP VỚI BACKEND)
+    // 4. TẠO GÓI TIN GỬI ĐI
     if (type === 'chi') {
         // [STT, Mô tả, Tiền(k), Tiền(full), Ngày]
-        payloadData = [[0, desc, total, totalFull, today]];
+        // Lưu ý: sendValK và sendValFull có thể là String (công thức) hoặc Number
+        payloadData = [[0, desc, sendValK, sendValFull, today]];
     } else {
         // [Tiền(full), Ngày, Nguồn]
-        payloadData = [[totalFull, today, desc]];
+        payloadData = [[sendValFull, today, desc]];
     }
 
     try {
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
-            // Dùng text/plain để tránh lỗi CORS
             headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify({ type: type, data: payloadData })
         });
@@ -159,8 +173,9 @@ async function submitData(type) {
         const result = await response.json(); 
 
         if (result.status === 'success') {
-            msg.innerHTML = `✅ <b>${desc}</b><br>Đã lưu: <b>${total}k</b>`;
+            msg.innerHTML = `✅ <b>${desc}</b><br>Đã lưu: <b>${totalUI}k</b>`;
             msg.className = "status-msg success";
+            
             resetForm(type);
             setTimeout(() => { loadSheetData(); }, 2000); 
         } else {
