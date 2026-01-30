@@ -18,13 +18,18 @@
     <div class="card">
         <div class="card-header">
             <span class="card-title red-text">CHI TIÊU</span>
-            <button type="button" class="btn-sm" onclick="resetForm('chi')">Xóa Hết</button>
+            <button type="button" class="btn-icon-reset" onclick="resetForm('chi')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+            </button>
         </div>
         
-        <div class="date-row">
-            <button type="button" class="btn-date-nav" onclick="changeDate('chi', -1)"> << </button>
-            <input type="date" id="chi-date" class="date-input" onchange="this.blur()">
-            <button type="button" class="btn-date-nav" onclick="changeDate('chi', 1)"> >> </button>
+        <div class="date-navigation">
+            <button type="button" class="btn-nav" onclick="changeDate('chi', -1)"> << </button>
+            <div class="date-display-wrapper">
+                <span id="chi-date-text" class="date-text-display">Đang tải...</span>
+                <input type="date" id="chi-date" onchange="handleDateChange('chi')">
+            </div>
+            <button type="button" class="btn-nav" onclick="changeDate('chi', 1)"> >> </button>
         </div>
 
         <div class="input-group">
@@ -33,10 +38,10 @@
         </div>
         <div id="chi-stack-display" class="stack-display"></div>
         
-        <div class="desc-area-visible">
-            <div id="chi-checkboxes" class="checkbox-container">Loading...</div>
-            <div class="desc-row"><select id="chi-dropdown" class="input-std"></select></div>
-            <div class="desc-row"><input type="text" id="chi-text" class="input-std" placeholder="Ghi chú thêm..."></div>
+        <div class="desc-area">
+            <div id="chi-checkboxes" class="checkbox-container"></div>
+            <select id="chi-dropdown" class="input-std"></select>
+            <input type="text" id="chi-text" class="input-std" placeholder="Ghi chú thêm...">
         </div>
         
         <div id="chi-message" class="status-msg"></div>
@@ -46,13 +51,18 @@
     <div class="card">
         <div class="card-header">
             <span class="card-title green-text">THU NHẬP</span>
-            <button type="button" class="btn-sm" onclick="resetForm('thu')">Xóa Hết</button>
+            <button type="button" class="btn-icon-reset" onclick="resetForm('thu')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+            </button>
         </div>
 
-        <div class="date-row">
-            <button type="button" class="btn-date-nav" onclick="changeDate('thu', -1)"> << </button>
-            <input type="date" id="thu-date" class="date-input" onchange="this.blur()">
-            <button type="button" class="btn-date-nav" onclick="changeDate('thu', 1)"> >> </button>
+        <div class="date-navigation">
+            <button type="button" class="btn-nav" onclick="changeDate('thu', -1)"> << </button>
+            <div class="date-display-wrapper">
+                <span id="thu-date-text" class="date-text-display">Đang tải...</span>
+                <input type="date" id="thu-date" onchange="handleDateChange('thu')">
+            </div>
+            <button type="button" class="btn-nav" onclick="changeDate('thu', 1)"> >> </button>
         </div>
 
         <div class="input-group">
@@ -61,9 +71,9 @@
         </div>
         <div id="thu-stack-display" class="stack-display"></div>
         
-        <div class="desc-area-visible">
-            <div class="desc-row"><select id="thu-dropdown" class="input-std"></select></div>
-            <div class="desc-row"><input type="text" id="thu-text" class="input-std" placeholder="Nguồn tiền..."></div>
+        <div class="desc-area">
+            <select id="thu-dropdown" class="input-std"></select>
+            <input type="text" id="thu-text" class="input-std" placeholder="Nguồn tiền...">
         </div>
         
         <div id="thu-message" class="status-msg"></div>
