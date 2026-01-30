@@ -2,84 +2,42 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sổ Thu Chi 2026</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sổ Chi Tiêu</title>
+
+    <!-- APP VERSION: timestamp -->
+    <script>
+        window.APP_VERSION = Date.now();
+    </script>
+
+    <!-- CSS: ép load mới bằng timestamp (KHÔNG document.write) -->
+    <link rel="stylesheet" id="app-style">
+    <script>
+        document.getElementById("app-style").href =
+            "style.css?v=" + window.APP_VERSION;
+    </script>
 </head>
 <body>
-    <div class="header">
-        <div class="header-top">
-            <h1>Sổ Thu Chi</h1>
-            <span id="balance" class="balance-tag">...</span>
+
+    <div class="container">
+        <h1>Sổ Chi Tiêu</h1>
+
+        <div id="summary">
+            <p>Số dư hiện tại: <span id="balance">Đang tải...</span></p>
+            <p id="lastExpense">Chi tiêu cuối: Đang tải...</p>
         </div>
-        <div id="last-trans" class="last-trans-static">Đang tải dữ liệu...</div>
+
+        <div class="actions">
+            <button onclick="forceUpdate()">Làm mới App</button>
+        </div>
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title red-text">CHI TIÊU</span>
-            <button type="button" class="btn-icon-reset" onclick="forceUpdate()" title="Làm mới App">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-            </button>
-        </div>
-        
-        <div class="date-navigation">
-            <button type="button" class="btn-nav" onclick="changeDate('chi', -1)"> << </button>
-            <div class="date-display-wrapper">
-                <span id="chi-date-text" class="date-text-display">...</span>
-                <input type="date" id="chi-date" onchange="handleDateChange('chi')">
-            </div>
-            <button type="button" class="btn-nav" onclick="changeDate('chi', 1)"> >> </button>
-        </div>
+    <!-- JS: ép load mới bằng timestamp (KHÔNG document.write) -->
+    <script id="app-script"></script>
+    <script>
+        document.getElementById("app-script").src =
+            "script.js?v=" + window.APP_VERSION;
+    </script>
 
-        <div class="input-group">
-            <input type="number" id="chi-amount" placeholder="x 1000" inputmode="decimal">
-            <button type="button" class="btn-add" id="chi-btn-plus">+</button>
-        </div>
-        <div id="chi-stack-display" class="stack-display"></div>
-        
-        <div class="desc-area">
-            <div id="chi-checkboxes" class="checkbox-container"></div>
-            <select id="chi-dropdown" class="input-std"></select>
-            <input type="text" id="chi-text" class="input-std" placeholder="Ghi chú thêm...">
-        </div>
-        
-        <div id="chi-message" class="status-msg"></div>
-        <button type="button" class="btn-submit btn-red" id="chi-submit" disabled>LƯU KHOẢN CHI</button>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title green-text">THU NHẬP</span>
-            <button type="button" class="btn-icon-reset" onclick="forceUpdate()" title="Làm mới App">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-            </button>
-        </div>
-
-        <div class="date-navigation">
-            <button type="button" class="btn-nav" onclick="changeDate('thu', -1)"> << </button>
-            <div class="date-display-wrapper">
-                <span id="thu-date-text" class="date-text-display">...</span>
-                <input type="date" id="thu-date" onchange="handleDateChange('thu')">
-            </div>
-            <button type="button" class="btn-nav" onclick="changeDate('thu', 1)"> >> </button>
-        </div>
-
-        <div class="input-group">
-            <input type="number" id="thu-amount" placeholder="x 1000" inputmode="decimal">
-            <button type="button" class="btn-add btn-green-bg" id="thu-btn-plus">+</button>
-        </div>
-        <div id="thu-stack-display" class="stack-display"></div>
-        
-        <div class="desc-area">
-            <select id="thu-dropdown" class="input-std"></select>
-            <input type="text" id="thu-text" class="input-std" placeholder="Nguồn tiền...">
-        </div>
-        
-        <div id="thu-message" class="status-msg"></div>
-        <button type="button" class="btn-submit btn-green" id="thu-submit" disabled>LƯU KHOẢN THU</button>
-    </div>
-
-    <script src="script.js"></script>
 </body>
 </html>
