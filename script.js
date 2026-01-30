@@ -1,7 +1,7 @@
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-_-I6LLrifbZZPscBDUN9jufEyYrtf2tIIjtGihIScCU2tFp-HtuIgLkw6NqU0mUfOsEe9lIBTnIc/pub?gid=1944311512&single=true&output=csv';
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec';
 
-const QUICK_DESC = ['Ăn sáng', 'Đi chợ', 'Nạp điện thoại', 'Tiền điện', 'Ti��n nước', 'Quà tết', 'Mua ccq', 'Tóc', 'Xăng xe', 'Cafe'];
+const QUICK_DESC = ['Ăn sáng', 'Đi chợ', 'Nạp điện thoại', 'Tiền điện', 'Tiền nước', 'Quà tết', 'Mua ccq', 'Tóc', 'Xăng xe', 'Cafe'];
 const DEFAULT_DROPDOWN = ['Lương', 'Thưởng', 'Lãi Tech', 'Lãi HD', 'Ba mẹ đưa', 'Hoàn tiền', 'Khác'];
 
 let chiStack = [], thuStack = [];
@@ -72,11 +72,13 @@ async function loadSheetData() {
                 const tVal = r[9] ? r[9].replace(/[\."]/g, '') : "0";
                 chi += parseFloat(cVal) || 0; thu += parseFloat(tVal) || 0;
             });
-            // Lấy dòng chi cuối
+            // Lấy dòng chi cuối và mô tả
             for (let i = rows.length - 1; i > 0; i--) {
                 const money = rows[i][3] ? parseFloat(rows[i][3].replace(/[\."]/g, '')) : 0;
                 if (money > 0) {
-                    lastChi = `Ghi nhận chi cuối: ${money.toLocaleString()} đ ngày ${rows[i][4].replace(/"/g, '')}`;
+                    const dateStr = rows[i][4] ? rows[i][4].replace(/"/g, '') : '';
+                    const desc = rows[i][1] ? rows[i][1].replace(/"/g, '').trim() : '';
+                    lastChi = `Ghi nhận chi cuối: ${money.toLocaleString()} đ ngày ${dateStr}${desc ? ' - ' + desc : ''}`;
                     break;
                 }
             }
