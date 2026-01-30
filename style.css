@@ -6,7 +6,7 @@
 }
 body { background-color: var(--bg-color); font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 50px; }
 
-/* KHỬ NÚT DƯ TRONG BẢN ĐỒ NGÀY */
+/* ẨN CÁC NÚT DƯ TRONG DATE PICKER (QUAN TRỌNG) */
 input[type="date"]::-webkit-inner-spin-button,
 input[type="date"]::-webkit-calendar-picker-indicator { display: block; opacity: 0; position: absolute; left: 0; top: 0; width: 100%; height: 100%; cursor: pointer; }
 input[type="date"]::-webkit-clear-button { display: none; -webkit-appearance: none; }
@@ -19,6 +19,7 @@ input[type="date"]::-webkit-clear-button { display: none; -webkit-appearance: no
 .card { background: var(--card-bg); margin: 15px; border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
 .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 
+/* Nút ngày đồng bộ 44px */
 .date-navigation { display: flex; gap: 8px; margin-bottom: 15px; height: 44px; }
 .btn-nav { width: 44px; height: 44px; background: #E5E5EA; border: none; border-radius: 12px; color: var(--ios-blue); font-weight: 800; cursor: pointer; flex-shrink: 0; }
 .date-display-wrapper { flex: 1; position: relative; background: #F2F2F7; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
