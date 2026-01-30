@@ -18,17 +18,18 @@
     <div class="card">
         <div class="card-header">
             <span class="card-title red-text">CHI TIÊU</span>
-            <button type="button" class="btn-sm" onclick="resetForm('chi')">Xóa Hết</button>
+            <button type="button" class="btn-sm" id="chi-reset">Xóa Hết</button>
         </div>
         
         <div class="date-row">
-            <button type="button" class="btn-date-nav" onclick="changeDate('chi', -1)"> << </button>
-            <input type="date" id="chi-date" class="date-input" onchange="this.blur()">
-            <button type="button" class="btn-date-nav" onclick="changeDate('chi', 1)"> >> </button>
+            <div class="date-picker-container">
+                <input type="date" id="chi-date">
+            </div>
+            <button type="button" class="btn-back-date" onclick="handleBackDate('chi')"> < Tiền nhiệm </button>
         </div>
 
         <div class="input-group">
-            <input type="number" id="chi-amount" placeholder="x 1000" inputmode="decimal">
+            <input type="number" id="chi-amount" placeholder="Nhập tiền (vd: 25)" inputmode="decimal">
             <button type="button" class="btn-add" id="chi-btn-plus">+</button>
         </div>
         <div id="chi-stack-display" class="stack-display"></div>
@@ -46,17 +47,18 @@
     <div class="card">
         <div class="card-header">
             <span class="card-title green-text">THU NHẬP</span>
-            <button type="button" class="btn-sm" onclick="resetForm('thu')">Xóa Hết</button>
+            <button type="button" class="btn-sm" id="thu-reset">Xóa Hết</button>
         </div>
 
         <div class="date-row">
-            <button type="button" class="btn-date-nav" onclick="changeDate('thu', -1)"> << </button>
-            <input type="date" id="thu-date" class="date-input" onchange="this.blur()">
-            <button type="button" class="btn-date-nav" onclick="changeDate('thu', 1)"> >> </button>
+            <div class="date-picker-container">
+                <input type="date" id="thu-date">
+            </div>
+            <button type="button" class="btn-back-date" onclick="handleBackDate('thu')"> < Tiền nhiệm </button>
         </div>
 
         <div class="input-group">
-            <input type="number" id="thu-amount" placeholder="x 1000" inputmode="decimal">
+            <input type="number" id="thu-amount" placeholder="Nhập tiền (vd: 500)" inputmode="decimal">
             <button type="button" class="btn-add btn-green-bg" id="thu-btn-plus">+</button>
         </div>
         <div id="thu-stack-display" class="stack-display"></div>
