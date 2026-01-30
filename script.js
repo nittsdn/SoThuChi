@@ -61,17 +61,24 @@ function changeDate(type, delta) {
 // --- LOAD DATA ---
 async function loadSheetData() {
     try {
-        const res = await fetch(CSV_URL + '?t=' + Date.now());
-        const text = await res.text();
-        const rows = text
-            .split(/\r?\n/)
-            .map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+        // Tạm thời comment fetch để test view cố định
+        // const res = await fetch(CSV_URL + '?t=' + Date.now());
+        // const text = await res.text();
+        // const rows = text.split(/\r?\n/).map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
 
+        // Giả lập dữ liệu view
+        const lastChiStr = "Chi tiêu cuối: ăn sáng, đi chợ ngày 30.01.2026 tổng 156.000 vnđ";
+        const balance = "1.500.000 đ"; // Giả lập số dư
+
+        document.getElementById('balance').innerText = balance;
+        document.getElementById('last-trans').innerText = lastChiStr;
+
+        // Uncomment để quay lại load thật sau khi test
+        /*
         let thu = 0, chi = 0;
         let lastChiStr = "Chưa có dữ liệu";
 
         if (rows.length > 1) {
-            // Tổng thu / chi (GIỮ NGUYÊN)
             rows.slice(1).forEach(r => {
                 const chiFull = r[3] ? parseFloat(r[3].replace(/[\."]/g, '')) : 0;
                 const thuFull = r[9] ? parseFloat(r[9].replace(/[\."]/g, '')) : 0;
@@ -79,60 +86,37 @@ async function loadSheetData() {
                 thu += thuFull || 0;
             });
 
-            // ==== LẤY CHI TIÊU CUỐI (ĐÃ FIX) ====
             for (let i = rows.length - 1; i > 0; i--) {
                 const r = rows[i];
-
-                // Sử dụng r[3] cho kVal (cột *1000, số đầy đủ)
                 const kVal = parseFloat((r[3] || '').replace(/[\."]/g, ''));
                 if (!kVal || kVal <= 0) continue;
-
                 const desc = (r[1] || '').replace(/"/g, '').trim();
                 if (!desc) continue;
-
                 const dateObj = new Date(r[4]);
                 if (isNaN(dateObj)) continue;
-
                 const days = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
-                const dateLabel =
-                    `${days[dateObj.getDay()]} ngày ` +
-                    `${String(dateObj.getDate()).padStart(2, '0')}.` +
-                    `${String(dateObj.getMonth() + 1).padStart(2, '0')}.` +
-                    `${dateObj.getFullYear()}`;
-
-                // Sử dụng r[2] cho detail (cột Số tiền, có thể có +)
+                const dateLabel = `${days[dateObj.getDay()]} ngày ${String(dateObj.getDate()).padStart(2, '0')}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${dateObj.getFullYear()}`;
                 const detail = (r[2] || '').replace(/"/g, '').trim();
                 let moneyStr = '';
-
-                // Nếu có nhiều khoản cộng (detail chứa +)
                 if (detail.includes('+')) {
-                    const parts = detail
-                        .split('+')
-                        .map(v => parseFloat(v.replace(/[\."]/g, '')))
-                        .filter(v => !isNaN(v) && v > 0);
-
+                    const parts = detail.split('+').map(v => parseFloat(v.replace(/[\."]/g, ''))).filter(v => !isNaN(v) && v > 0);
                     if (parts.length > 1) {
-                        const partStr = parts
-                            .map(v => (v * 1000).toLocaleString('vi-VN'))
-                            .join(' + ');
+                        const partStr = parts.map(v => (v * 1000).toLocaleString('vi-VN')).join(' + ');
                         const totalStr = kVal.toLocaleString('vi-VN');
                         moneyStr = `${partStr} = ${totalStr} vnđ`;
                     }
                 }
-
-                // Fallback: chỉ 1 số hoặc không có +
                 if (!moneyStr) {
                     moneyStr = `${kVal.toLocaleString('vi-VN')} vnđ`;
                 }
-
                 lastChiStr = `Chi tiêu cuối ${desc} ${dateLabel}: ${moneyStr}`;
                 break;
             }
         }
 
-        document.getElementById('balance').innerText =
-            (thu - chi).toLocaleString('vi-VN') + ' đ';
+        document.getElementById('balance').innerText = (thu - chi).toLocaleString('vi-VN') + ' đ';
         document.getElementById('last-trans').innerText = lastChiStr;
+        */
 
     } catch (e) {
         console.error(e);
