@@ -6,35 +6,6 @@ const DEFAULT_DROPDOWN = ['Lương', 'Thưởng', 'Lãi Tech', 'Lãi HD', 'Ba m�
 
 let chiStack = [], thuStack = [];
 
-// Helper: Format date to Vietnamese (DD/MM/YYYY)
-function formatDateVN(dateStr) {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-// Update date text display
-function updateDateDisplay(type) {
-    const input = document.getElementById(`${type}-date`);
-    const text = document.getElementById(`${type}-date-text`);
-    text.textContent = formatDateVN(input.value);
-}
-
-// Change date by delta (for navigation buttons)
-function changeDate(type, delta) {
-    const input = document.getElementById(`${type}-date`);
-    const d = new Date(input.value);
-    d.setDate(d.getDate() + delta);
-    input.value = d.toISOString().split('T')[0];
-    updateDateDisplay(type);
-    checkSubmitState(type); // Re-check if needed
-}
-
-// Handle manual date change
-function handleDateChange(type) {
-    updateDateDisplay(type);
-    checkSubmitState(type); // Re-check if needed
-}
-
 // Force update (reload page)
 function forceUpdate() {
     window.location.reload();
@@ -51,8 +22,6 @@ function initDates() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('chi-date').value = today;
     document.getElementById('thu-date').value = today;
-    updateDateDisplay('chi');
-    updateDateDisplay('thu');
 }
 
 function handleBackDate(type) {
@@ -72,13 +41,16 @@ async function loadSheetData() {
                 const tVal = r[9] ? r[9].replace(/[\."]/g, '') : "0";
                 chi += parseFloat(cVal) || 0; thu += parseFloat(tVal) || 0;
             });
-            // Lấy dòng chi cuối và mô tả
+            // Lấy dòng chi cuối và format theo yêu cầu
             for (let i = rows.length - 1; i > 0; i--) {
                 const money = rows[i][3] ? parseFloat(rows[i][3].replace(/[\."]/g, '')) : 0;
                 if (money > 0) {
                     const dateStr = rows[i][4] ? rows[i][4].replace(/"/g, '') : '';
+                    const d = new Date(dateStr);
+                    const weekday = d.toLocaleDateString('vi-VN', { weekday: 'long' });
+                    const formattedDate = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.');
                     const desc = rows[i][1] ? rows[i][1].replace(/"/g, '').trim() : '';
-                    lastChi = `Ghi nhận chi cuối: ${money.toLocaleString()} đ ngày ${dateStr}${desc ? ' - ' + desc : ''}`;
+                    lastChi = `Chi tiêu cuối ${weekday} ngày ${formattedDate}: ${desc} tổng ${money.toLocaleString()} đ`;
                     break;
                 }
             }
@@ -123,6 +95,7 @@ async function submitData(type) {
     const btn = document.getElementById(`${type}-submit`);
     const msg = document.getElementById(`${type}-message`);
     const amountInput = document.getElementById(`${type}-amount`);
+    const dateVal = document.getElementById(`${type}-date`).value;
     
     let stack = type === 'chi' ? [...chiStack] : [...thuStack];
     if (parseFloat(amountInput.value) > 0) stack.push(parseFloat(amountInput.value));
