@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSheetData();
 });
 
-// --- LOGIC DATE UI ---
+// --- LOGIC UI NGÀY THÁNG ---
 function initDates() {
     const today = new Date().toISOString().split('T')[0];
     ['chi', 'thu'].forEach(type => {
@@ -94,64 +94,74 @@ function checkSubmitState(type) {
     document.getElementById(`${type}-submit`).disabled = !hasData;
 }
 
-// --- HÀM LOAD SHEET DATA (Đã revert về code cũ & fix lỗi cache iPhone) ---
+// --- HÀM TẢI DỮ LIỆU ĐÃ FIX LỖI LOGIC & IPHONE ---
 async function loadSheetData() {
     try {
-        // THÊM: '?t=' + Date.now() để iPhone không bị cache file cũ
         const res = await fetch(CSV_URL + '?t=' + Date.now());
         const text = await res.text();
         
-        // Code cũ: Split regex đơn giản, hiệu quả
-        const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+        // Tách dòng an toàn cho cả Win/Linux/Mac/iOS
+        const rows = text.split(/\r\n|\n/).map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+        
         let thu = 0, chi = 0, lastChiStr = "Chưa có dữ liệu";
 
         if (rows.length > 1) {
-            // 1. Tính tổng Thu - Chi
+            // 1. TÍNH SỐ DƯ
             rows.slice(1).forEach(r => {
-                // Cột D (Index 3) là Chi Full, Cột J (Index 9) là Thu Full
-                const cVal = r[3] ? r[3].replace(/[",\.]/g, '') : "0";
-                const tVal = r[9] ? r[9].replace(/[",\.]/g, '') : "0";
-                chi += parseFloat(cVal) || 0; 
+                if (r.length < 3) return;
+                // Dùng Cột C (Index 2) cho Chi: Chứa số thuần túy 55
+                const cK = r[2] ? r[2].replace(/[",\.]/g, '') : "0";
+                // Cột J (Index 9) cho Thu
+                const tVal = r[9] ? r[9].replace(/[",\.]/g, '') : "0"; 
+                
+                chi += (parseFloat(cK) || 0) * 1000; 
                 thu += parseFloat(tVal) || 0;
             });
 
-            // 2. Tìm dòng chi tiêu cuối (Duyệt từ dưới lên)
+            // 2. TÌM CHI TIÊU CUỐI (Duyệt từ dưới lên)
             for (let i = rows.length - 1; i > 0; i--) {
                 const r = rows[i];
-                // Lấy tiền ở cột D (Index 3), xóa dấu chấm/phẩy
-                const rawMoney = r[3] ? r[3].replace(/[",\.]/g, '') : "0";
-                const moneyFull = parseFloat(rawMoney);
+                if (r.length < 3) continue;
 
-                if (moneyFull > 0) {
-                    // Lấy các trường thông tin theo code cũ
+                // QUAN TRỌNG: Check Cột C (Index 2) chứa "55" -> Là SỐ
+                const rawK = r[2] ? r[2].replace(/[",\.]/g, '') : "0";
+                const moneyK = parseFloat(rawK);
+
+                if (moneyK > 0) {
                     const desc = r[1] ? r[1].replace(/"/g, '') : "Không tên"; // Cột B
-                    const dateRaw = r[4] ? r[4].replace(/"/g, '') : "";       // Cột E
-                    
-                    // Format lại ngày cho đẹp (dùng hàm hỗ trợ ở dưới)
+                    const dateRaw = r[4] ? r[4].replace(/"/g, '') : "";       // Cột E (Ngày)
+                    const formulaRaw = r[3] ? r[3] : "";                      // Cột D (Công thức)
+
+                    // Hiển thị chi tiết từ công thức nếu có
+                    let detailStr = moneyK + "k";
+                    if (formulaRaw && formulaRaw.includes("=(")) {
+                         const match = formulaRaw.match(/\=\((.*?)\)/);
+                         if (match && match[1]) {
+                             detailStr = match[1].replace(/\+/g, ' + ') + " = " + moneyK + "k";
+                         }
+                    }
+
                     const dateDisplay = formatVNDateFromDB(dateRaw);
-                    
-                    // Format hiển thị: "Chi tiêu cuối: [Mô tả] tổng [Tiền]k [Ngày]"
-                    lastChiStr = `Chi tiêu cuối: ${desc} tổng ${(moneyFull/1000).toLocaleString()}k ${dateDisplay}`;
-                    break;
+                    lastChiStr = `Chi tiêu cuối: ${desc} tổng ${detailStr} ${dateDisplay}`;
+                    break; 
                 }
             }
         }
+        
         document.getElementById('balance').innerText = (thu - chi).toLocaleString('vi-VN') + ' đ';
         document.getElementById('last-trans').innerText = lastChiStr;
+        
     } catch (e) { 
         console.error(e); 
-        // Nếu lỗi mạng hoặc lỗi khác vẫn hiện text này
-        document.getElementById('last-trans').innerText = "Lỗi tải dữ liệu (iPhone check mạng)";
+        document.getElementById('last-trans').innerText = "Lỗi đọc dữ liệu";
     }
 }
 
-// Hàm hỗ trợ format ngày (giữ lại để hiển thị đẹp như bạn muốn)
+// Hàm format ngày (giữ lại vì code cũ hiển thị xấu)
 function formatVNDateFromDB(dateStr) {
     if (!dateStr) return "";
-    // Nếu trong CSDL đã là dạng "Thứ..." thì trả về luôn
     if (dateStr.toLowerCase().includes('thứ') || dateStr.toLowerCase().includes('thu')) return dateStr;
     
-    // Nếu là dạng 2026-01-30 hoặc 30/01/2026 thì parse ra
     let d = new Date(dateStr);
     if (isNaN(d.getTime()) && dateStr.includes('/')) {
         const parts = dateStr.split('/');
