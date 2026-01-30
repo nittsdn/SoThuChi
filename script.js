@@ -83,10 +83,13 @@ async function loadSheetData() {
             for (let i = rows.length - 1; i > 0; i--) {
                 const r = rows[i];
 
-                const kVal = parseFloat((r[2] || '').replace(/"/g, ''));
+                // Sử dụng r[3] cho kVal (cột *1000, số đầy đủ)
+                const kVal = parseFloat((r[3] || '').replace(/[\."]/g, ''));
                 if (!kVal || kVal <= 0) continue;
 
                 const desc = (r[1] || '').replace(/"/g, '').trim();
+                if (!desc) continue;
+
                 const dateObj = new Date(r[4]);
                 if (isNaN(dateObj)) continue;
 
@@ -97,28 +100,29 @@ async function loadSheetData() {
                     `${String(dateObj.getMonth() + 1).padStart(2, '0')}.` +
                     `${dateObj.getFullYear()}`;
 
-                const detail = (r[3] || '').replace(/"/g, '').trim();
+                // Sử dụng r[2] cho detail (cột Số tiền, có thể có +)
+                const detail = (r[2] || '').replace(/"/g, '').trim();
                 let moneyStr = '';
 
-                // có nhiều khoản cộng
+                // Nếu có nhiều khoản cộng (detail chứa +)
                 if (detail.includes('+')) {
                     const parts = detail
                         .split('+')
-                        .map(v => parseFloat(v))
-                        .filter(v => !isNaN(v));
+                        .map(v => parseFloat(v.replace(/[\."]/g, '')))
+                        .filter(v => !isNaN(v) && v > 0);
 
                     if (parts.length > 1) {
                         const partStr = parts
                             .map(v => (v * 1000).toLocaleString('vi-VN'))
                             .join(' + ');
-                        const totalStr = (kVal * 1000).toLocaleString('vi-VN');
+                        const totalStr = kVal.toLocaleString('vi-VN');
                         moneyStr = `${partStr} = ${totalStr} vnđ`;
                     }
                 }
 
-                // fallback: chỉ 1 số
+                // Fallback: chỉ 1 số hoặc không có +
                 if (!moneyStr) {
-                    moneyStr = `${(kVal * 1000).toLocaleString('vi-VN')} vnđ`;
+                    moneyStr = `${kVal.toLocaleString('vi-VN')} vnđ`;
                 }
 
                 lastChiStr = `Chi tiêu cuối ${desc} ${dateLabel}: ${moneyStr}`;
