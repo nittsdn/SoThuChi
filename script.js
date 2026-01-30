@@ -6,14 +6,16 @@ const DEFAULT_DROPDOWN = ['Lương', 'Thưởng', 'Lãi Tech', 'Lãi HD', 'Ba m�
 
 let chiStack = [], thuStack = [];
 
-// HÀM BUỘC CẬP NHẬT MỚI (XỬ LÝ CACHE)
+// HÀM LÀM MỚI APP (Xóa cache và Load lại)
 function forceUpdate() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-            for (let registration of registrations) registration.unregister();
-        });
+    if (confirm("Làm mới ứng dụng và xóa cache?")) {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(regs => {
+                for (let r of regs) r.unregister();
+            });
+        }
+        window.location.reload(true);
     }
-    window.location.reload(true);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -36,8 +38,6 @@ function updateDateText(type, dateStr) {
     const days = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
     const d = new Date(dateStr);
     const p = dateStr.split('-');
-    const label = `${days[d.getDay()]} ngày ${p[2]}.${p[1]}.${p[2] === p[0] ? '' : p[0]}`; // Rút gọn năm nếu cần
-    // Để chính xác tuyệt đối như yêu cầu:
     const fullLabel = `${days[d.getDay()]} ngày ${p[2]}.${p[1]}.${p[0]}`;
     document.getElementById(`${type}-date-text`).innerText = fullLabel;
 }
@@ -56,7 +56,7 @@ function changeDate(type, delta) {
 
 function renderStaticUI() {
     document.getElementById('chi-checkboxes').innerHTML = QUICK_DESC.map(d => `<label class="cb-chip"><input type="checkbox" value="${d}"> ${d}</label>`).join('');
-    const opt = '<option value="">-- Chọn danh mục --</option>' + DEFAULT_DROPDOWN.map(d => `<option value="${d}">${d}</option>`).join('');
+    const opt = '<option value="">-- Danh mục --</option>' + DEFAULT_DROPDOWN.map(d => `<option value="${d}">${d}</option>`).join('');
     document.getElementById('chi-dropdown').innerHTML = opt;
     document.getElementById('thu-dropdown').innerHTML = opt;
 }
@@ -91,6 +91,13 @@ function checkSubmitState(type) {
     document.getElementById(`${type}-submit`).disabled = !hasData;
 }
 
+function getVNInfo(dateStr) {
+    const d = new Date(dateStr);
+    const days = ["chủ nhật", "thứ 2", "thứ 3", "thứ 4", "thứ 5", "thứ 6", "thứ 7"];
+    const [y, m, day] = dateStr.split('-');
+    return `${days[d.getDay()]} ngày ${day}.${m}.${y}`;
+}
+
 async function submitData(type) {
     const btn = document.getElementById(`${type}-submit`);
     const msg = document.getElementById(`${type}-message`);
@@ -111,12 +118,13 @@ async function submitData(type) {
 
     btn.disabled = true; btn.innerText = "ĐANG LƯU...";
     try {
-        const payload = type === 'chi' ? [[0, desc, totalK, `=(${stack.join('+')})*1000`, dateVal]] : [[`=(${stack.join('+')})*1000`, dateVal, desc]];
+        const formulaFull = stack.length > 1 ? `=(${stack.join('+')})*1000` : totalK * 1000;
+        const payload = type === 'chi' ? [[0, desc, totalK, formulaFull, dateVal]] : [[formulaFull, dateVal, desc]];
         const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ type, data: payload }) });
         const result = await res.json();
         if (result.status === 'success') {
-            const moneyDetail = stack.map(v => (v * 1000).toLocaleString('vi-VN')).join(' + ');
-            msg.innerHTML = `✅ Đã lưu: ${desc ? desc + ': ' : ''}${moneyDetail} = ${(totalK*1000).toLocaleString('vi-VN')} đ<br><small>${document.getElementById(`${type}-date-text`).innerText}</small>`;
+            const moneyLine = stack.map(v => (v * 1000).toLocaleString('vi-VN')).join(' + ');
+            msg.innerHTML = `✅ Đã lưu: ${desc ? desc + ': ' : ''}${moneyLine}${stack.length > 1 ? ' = ' + (totalK*1000).toLocaleString('vi-VN') : ''} đ<br><small>${getVNInfo(dateVal)}</small>`;
             msg.className = "status-msg success";
             resetForm(type);
             setTimeout(loadSheetData, 2000);
@@ -142,15 +150,43 @@ function resetForm(type) {
 
 async function loadSheetData() {
     try {
-        const res = await fetch(CSV_URL);
+        const res = await fetch(CSV_URL + '&cache_bust=' + Date.now());
         const text = await res.text();
         const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
-        let total = 0;
+        let total = 0, lastChiStr = "Chưa có dữ liệu";
+
         if (rows.length > 1) {
+            // Duyệt từ dưới lên để tìm dòng chi tiêu cuối cùng
+            for (let i = rows.length - 1; i > 0; i--) {
+                const r = rows[i];
+                const chiK = r[2] ? r[2].replace(/"/g, '') : ""; // Cột C (Tiền k)
+                const chiFull = r[3] ? r[3].replace(/[\."]/g, '') : ""; // Cột D (Công thức)
+                const desc = r[1] ? r[1].replace(/"/g, '') : ""; // Cột B (Mô tả)
+                const date = r[4] ? r[4].replace(/"/g, '').trim() : ""; // Cột E (Ngày)
+
+                if (chiK && !isNaN(parseFloat(chiK)) && parseFloat(chiK) > 0) {
+                    let phepTinh = "";
+                    if (chiFull.startsWith('=(')) {
+                        phepTinh = chiFull.replace('=(', '').split(')*')[0].replace(/\+/g, ' + ');
+                    } else {
+                        phepTinh = chiK;
+                    }
+                    lastChiStr = `Chi tiêu cuối: ${desc} tổng ${phepTinh} = ${parseFloat(chiK)}k ${getVNInfo(date)}`;
+                    break;
+                }
+            }
+
+            // Tính số dư tổng
             rows.slice(1).forEach(r => {
-                total += (parseFloat(r[9]?.replace(/[\."]/g, '')) || 0) - (parseFloat(r[3]?.replace(/[\."]/g, '')) || 0);
+                const chiValue = parseFloat(r[3]?.replace(/[\."]/g, '')) || 0;
+                const thuValue = parseFloat(r[9]?.replace(/[\."]/g, '')) || 0;
+                total += (thuValue - chiValue);
             });
         }
         document.getElementById('balance').innerText = total.toLocaleString('vi-VN') + ' đ';
-    } catch (e) { console.log("Balance Error"); }
+        document.getElementById('last-trans').innerText = lastChiStr;
+    } catch (e) { 
+        console.log("Load error", e);
+        document.getElementById('last-trans').innerText = "Lỗi tải dữ liệu";
+    }
 }

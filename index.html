@@ -9,11 +9,8 @@
 <body>
     <div class="header">
         <div class="header-top">
-            <div class="header-left">
-                <h1>Sổ Thu Chi</h1>
-                <button type="button" class="btn-refresh-app" onclick="forceUpdate()">Làm mới App</button>
-            </div>
-            <span id="balance" class="balance-tag">Loading...</span>
+            <h1>Sổ Thu Chi</h1>
+            <span id="balance" class="balance-tag">...</span>
         </div>
         <div id="last-trans" class="last-trans-static">Đang tải dữ liệu...</div>
     </div>
@@ -21,7 +18,7 @@
     <div class="card">
         <div class="card-header">
             <span class="card-title red-text">CHI TIÊU</span>
-            <button type="button" class="btn-icon-reset" onclick="resetForm('chi')">
+            <button type="button" class="btn-icon-reset" onclick="forceUpdate()" title="Làm mới App">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
             </button>
         </div>
@@ -29,7 +26,7 @@
         <div class="date-navigation">
             <button type="button" class="btn-nav" onclick="changeDate('chi', -1)"> << </button>
             <div class="date-display-wrapper">
-                <span id="chi-date-text" class="date-text-display">Đang tải...</span>
+                <span id="chi-date-text" class="date-text-display">...</span>
                 <input type="date" id="chi-date" onchange="handleDateChange('chi')">
             </div>
             <button type="button" class="btn-nav" onclick="changeDate('chi', 1)"> >> </button>
@@ -54,7 +51,7 @@
     <div class="card">
         <div class="card-header">
             <span class="card-title green-text">THU NHẬP</span>
-            <button type="button" class="btn-icon-reset" onclick="resetForm('thu')">
+            <button type="button" class="btn-icon-reset" onclick="forceUpdate()" title="Làm mới App">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
             </button>
         </div>
@@ -62,7 +59,7 @@
         <div class="date-navigation">
             <button type="button" class="btn-nav" onclick="changeDate('thu', -1)"> << </button>
             <div class="date-display-wrapper">
-                <span id="thu-date-text" class="date-text-display">Đang tải...</span>
+                <span id="thu-date-text" class="date-text-display">...</span>
                 <input type="date" id="thu-date" onchange="handleDateChange('thu')">
             </div>
             <button type="button" class="btn-nav" onclick="changeDate('thu', 1)"> >> </button>
