@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSheetData();
 });
 
-// --- PHẦN XỬ LÝ NGÀY THÁNG UI (Giữ nguyên cái mới đẹp) ---
+// --- LOGIC DATE UI ---
 function initDates() {
     const today = new Date().toISOString().split('T')[0];
     ['chi', 'thu'].forEach(type => {
@@ -44,7 +44,7 @@ function updateDateText(type, dateStr) {
 function handleDateChange(type) {
     const input = document.getElementById(`${type}-date`);
     updateDateText(type, input.value);
-    input.blur(); // Tự đóng bản đồ
+    input.blur();
 }
 
 function changeDate(type, delta) {
@@ -56,7 +56,7 @@ function changeDate(type, delta) {
     updateDateText(type, newVal);
 }
 
-// --- PHẦN GIAO DIỆN NHẬP LIỆU ---
+// --- LOGIC NHẬP LIỆU ---
 function renderStaticUI() {
     document.getElementById('chi-checkboxes').innerHTML = QUICK_DESC.map(d => `<label class="cb-chip"><input type="checkbox" value="${d}"> ${d}</label>`).join('');
     const opt = '<option value="">-- Danh mục --</option>' + DEFAULT_DROPDOWN.map(d => `<option value="${d}">${d}</option>`).join('');
@@ -94,45 +94,44 @@ function checkSubmitState(type) {
     document.getElementById(`${type}-submit`).disabled = !hasData;
 }
 
-// --- HÀM TẢI DỮ LIỆU (Đã sửa theo yêu cầu của bạn) ---
+// --- HÀM LOAD SHEET DATA (Đã revert về code cũ & fix lỗi cache iPhone) ---
 async function loadSheetData() {
     try {
-        // Thêm cache busting để luôn lấy dữ liệu mới
+        // THÊM: '?t=' + Date.now() để iPhone không bị cache file cũ
         const res = await fetch(CSV_URL + '?t=' + Date.now());
         const text = await res.text();
         
-        // Dùng Regex tách CSV cũ (bạn xác nhận là chuẩn)
+        // Code cũ: Split regex đơn giản, hiệu quả
         const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
         let thu = 0, chi = 0, lastChiStr = "Chưa có dữ liệu";
 
         if (rows.length > 1) {
-            // Tính toán số dư
+            // 1. Tính tổng Thu - Chi
             rows.slice(1).forEach(r => {
+                // Cột D (Index 3) là Chi Full, Cột J (Index 9) là Thu Full
                 const cVal = r[3] ? r[3].replace(/[",\.]/g, '') : "0";
                 const tVal = r[9] ? r[9].replace(/[",\.]/g, '') : "0";
                 chi += parseFloat(cVal) || 0; 
                 thu += parseFloat(tVal) || 0;
             });
 
-            // Tìm dòng chi tiêu cuối cùng
+            // 2. Tìm dòng chi tiêu cuối (Duyệt từ dưới lên)
             for (let i = rows.length - 1; i > 0; i--) {
-                // Kiểm tra cột D (Tiền full) > 0
-                const rawMoney = rows[i][3] ? rows[i][3].replace(/[",\.]/g, '') : "0";
-                if (parseFloat(rawMoney) > 0) {
-                    
-                    // Lấy Mô tả (Cột B - Index 1)
-                    const desc = rows[i][1] ? rows[i][1].replace(/"/g, '') : "Không mô tả";
-                    
-                    // Lấy Tiền K (Cột C - Index 2)
-                    // Nếu cột C trống hoặc lỗi thì lấy cột D chia 1000
-                    let moneyK = rows[i][2] ? parseFloat(rows[i][2].replace(/[",\.]/g, '')) : 0;
-                    if (!moneyK) moneyK = parseFloat(rawMoney) / 1000;
+                const r = rows[i];
+                // Lấy tiền ở cột D (Index 3), xóa dấu chấm/phẩy
+                const rawMoney = r[3] ? r[3].replace(/[",\.]/g, '') : "0";
+                const moneyFull = parseFloat(rawMoney);
 
-                    // Lấy Ngày (Cột E - Index 4) và Format
-                    const rawDate = rows[i][4] ? rows[i][4].replace(/"/g, '') : "";
-                    const dateDisplay = formatVNDateFromDB(rawDate);
-
-                    lastChiStr = `Chi tiêu cuối: ${desc} tổng ${moneyK.toLocaleString()}k ${dateDisplay}`;
+                if (moneyFull > 0) {
+                    // Lấy các trường thông tin theo code cũ
+                    const desc = r[1] ? r[1].replace(/"/g, '') : "Không tên"; // Cột B
+                    const dateRaw = r[4] ? r[4].replace(/"/g, '') : "";       // Cột E
+                    
+                    // Format lại ngày cho đẹp (dùng hàm hỗ trợ ở dưới)
+                    const dateDisplay = formatVNDateFromDB(dateRaw);
+                    
+                    // Format hiển thị: "Chi tiêu cuối: [Mô tả] tổng [Tiền]k [Ngày]"
+                    lastChiStr = `Chi tiêu cuối: ${desc} tổng ${(moneyFull/1000).toLocaleString()}k ${dateDisplay}`;
                     break;
                 }
             }
@@ -141,40 +140,30 @@ async function loadSheetData() {
         document.getElementById('last-trans').innerText = lastChiStr;
     } catch (e) { 
         console.error(e); 
-        document.getElementById('last-trans').innerText = "Lỗi tải dữ liệu";
+        // Nếu lỗi mạng hoặc lỗi khác vẫn hiện text này
+        document.getElementById('last-trans').innerText = "Lỗi tải dữ liệu (iPhone check mạng)";
     }
 }
 
-// Hàm format ngày thông minh, tránh lỗi "undefined"
+// Hàm hỗ trợ format ngày (giữ lại để hiển thị đẹp như bạn muốn)
 function formatVNDateFromDB(dateStr) {
     if (!dateStr) return "";
+    // Nếu trong CSDL đã là dạng "Thứ..." thì trả về luôn
+    if (dateStr.toLowerCase().includes('thứ') || dateStr.toLowerCase().includes('thu')) return dateStr;
     
-    // Nếu trong CSDL đã có chữ "Thứ", trả về nguyên gốc (User: "ngày trong csdl là chuẩn nhé")
-    if (dateStr.toLowerCase().includes('thứ')) return dateStr;
-
-    // Nếu không, cố gắng parse
+    // Nếu là dạng 2026-01-30 hoặc 30/01/2026 thì parse ra
     let d = new Date(dateStr);
-    
-    // Xử lý trường hợp ngày kiểu Việt Nam dd/mm/yyyy
     if (isNaN(d.getTime()) && dateStr.includes('/')) {
-        const parts = dateStr.split('/'); // 30/01/2026
-        if (parts.length === 3) {
-            d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-        }
+        const parts = dateStr.split('/');
+        if (parts.length === 3) d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
     }
-
-    if (isNaN(d.getTime())) return dateStr; // Không parse được thì trả về chuỗi gốc
+    if (isNaN(d.getTime())) return dateStr;
 
     const days = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
-    const dayName = days[d.getDay()];
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-
-    return `${dayName} ngày ${day}.${month}.${year}`;
+    return `${days[d.getDay()]} ngày ${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
 }
 
-// --- HÀM GỬI DỮ LIỆU (Giữ nguyên) ---
+// --- HÀM GỬI DỮ LIỆU ---
 async function submitData(type) {
     const btn = document.getElementById(`${type}-submit`);
     const msg = document.getElementById(`${type}-message`);
@@ -197,8 +186,10 @@ async function submitData(type) {
     try {
         const formulaFull = stack.length > 1 ? `=(${stack.join('+')})*1000` : totalK * 1000;
         const payload = type === 'chi' ? [[0, desc, totalK, formulaFull, dateVal]] : [[formulaFull, dateVal, desc]];
+        
         const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ type, data: payload }) });
         const result = await res.json();
+        
         if (result.status === 'success') {
             const moneyLine = stack.map(v => (v * 1000).toLocaleString('vi-VN')).join(' + ');
             const dateDisplay = document.getElementById(`${type}-date-text`).innerText;
