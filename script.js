@@ -6,13 +6,10 @@ const DEFAULT_DROPDOWN = ['Lương', 'Thưởng', 'Lãi Tech', 'Lãi HD', 'Ba m�
 
 let chiStack = [], thuStack = [];
 
-// HÀM LÀM MỚI APP (Xóa cache và Load lại)
 function forceUpdate() {
     if (confirm("Làm mới ứng dụng và xóa cache?")) {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(regs => {
-                for (let r of regs) r.unregister();
-            });
+            navigator.serviceWorker.getRegistrations().then(regs => { for (let r of regs) r.unregister(); });
         }
         window.location.reload(true);
     }
@@ -43,15 +40,18 @@ function updateDateText(type, dateStr) {
 }
 
 function handleDateChange(type) {
-    updateDateText(type, document.getElementById(`${type}-date`).value);
+    const input = document.getElementById(`${type}-date`);
+    updateDateText(type, input.value);
+    input.blur(); // Tự đóng bản đồ ngày
 }
 
 function changeDate(type, delta) {
     const input = document.getElementById(`${type}-date`);
     const d = new Date(input.value);
     d.setDate(d.getDate() + delta);
-    input.value = d.toISOString().split('T')[0];
-    updateDateText(type, input.value);
+    const newVal = d.toISOString().split('T')[0];
+    input.value = newVal;
+    updateDateText(type, newVal);
 }
 
 function renderStaticUI() {
@@ -91,11 +91,26 @@ function checkSubmitState(type) {
     document.getElementById(`${type}-submit`).disabled = !hasData;
 }
 
-function getVNInfo(dateStr) {
-    const d = new Date(dateStr);
-    const days = ["chủ nhật", "thứ 2", "thứ 3", "thứ 4", "thứ 5", "thứ 6", "thứ 7"];
-    const [y, m, day] = dateStr.split('-');
-    return `${days[d.getDay()]} ngày ${day}.${m}.${y}`;
+// Hàm format ngày từ CSDL sang "Thứ... ngày..." [cite: 1]
+function formatVNDateFromDB(rawDate) {
+    if (!rawDate) return "";
+    // Xử lý các định dạng ngày phổ biến (dd/mm/yy hoặc yyyy-mm-dd) [cite: 1, 16]
+    let d;
+    if (rawDate.includes('/')) {
+        const parts = rawDate.split(/[\/\-]/);
+        // Ưu tiên định dạng dd/mm/yyyy trong CSDL của bạn
+        d = new Date(`20${parts[2].split(' ')[0]}-${parts[1]}-${parts[0]}`); 
+    } else {
+        d = new Date(rawDate);
+    }
+    
+    if (isNaN(d.getTime())) return rawDate; // Nếu không parse được thì trả về chuỗi gốc
+
+    const days = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${days[d.getDay()]} ngày ${dd}.${mm}.${yyyy}`;
 }
 
 async function submitData(type) {
@@ -124,7 +139,8 @@ async function submitData(type) {
         const result = await res.json();
         if (result.status === 'success') {
             const moneyLine = stack.map(v => (v * 1000).toLocaleString('vi-VN')).join(' + ');
-            msg.innerHTML = `✅ Đã lưu: ${desc ? desc + ': ' : ''}${moneyLine}${stack.length > 1 ? ' = ' + (totalK*1000).toLocaleString('vi-VN') : ''} đ<br><small>${getVNInfo(dateVal)}</small>`;
+            const dateDisplay = document.getElementById(`${type}-date-text`).innerText;
+            msg.innerHTML = `✅ Đã lưu: ${desc ? desc + ': ' : ''}${moneyLine}${stack.length > 1 ? ' = ' + (totalK*1000).toLocaleString('vi-VN') : ''} đ<br><small>${dateDisplay}</small>`;
             msg.className = "status-msg success";
             resetForm(type);
             setTimeout(loadSheetData, 2000);
@@ -150,43 +166,40 @@ function resetForm(type) {
 
 async function loadSheetData() {
     try {
-        const res = await fetch(CSV_URL + '&cache_bust=' + Date.now());
+        const res = await fetch(CSV_URL + '?t=' + Date.now());
         const text = await res.text();
+        // Regex bóc tách CSV tránh lỗi dấu phẩy trong ngoặc
         const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
         let total = 0, lastChiStr = "Chưa có dữ liệu";
 
         if (rows.length > 1) {
-            // Duyệt từ dưới lên để tìm dòng chi tiêu cuối cùng
+            // Lấy dòng chi tiêu cuối (Cột B: Chi tiêu, Cột C: Số tiền, Cột E: Ngày)
             for (let i = rows.length - 1; i > 0; i--) {
                 const r = rows[i];
-                const chiK = r[2] ? r[2].replace(/"/g, '') : ""; // Cột C (Tiền k)
-                const chiFull = r[3] ? r[3].replace(/[\."]/g, '') : ""; // Cột D (Công thức)
-                const desc = r[1] ? r[1].replace(/"/g, '') : ""; // Cột B (Mô tả)
-                const date = r[4] ? r[4].replace(/"/g, '').trim() : ""; // Cột E (Ngày)
-
-                if (chiK && !isNaN(parseFloat(chiK)) && parseFloat(chiK) > 0) {
-                    let phepTinh = "";
-                    if (chiFull.startsWith('=(')) {
-                        phepTinh = chiFull.replace('=(', '').split(')*')[0].replace(/\+/g, ' + ');
-                    } else {
-                        phepTinh = chiK;
-                    }
-                    lastChiStr = `Chi tiêu cuối: ${desc} tổng ${phepTinh} = ${parseFloat(chiK)}k ${getVNInfo(date)}`;
+                const rawMoney = r[2] ? r[2].replace(/[",\.]/g, '') : "0"; 
+                const moneyK = parseFloat(rawMoney);
+                
+                if (moneyK > 0) {
+                    const desc = r[1] ? r[1].replace(/"/g, '') : "Không mô tả";
+                    const rawDate = r[4] ? r[4].replace(/"/g, '') : "";
+                    const formattedDate = formatVNDateFromDB(rawDate);
+                    
+                    lastChiStr = `Chi tiêu cuối: ${desc} tổng ${moneyK.toLocaleString()}k ${formattedDate}`;
                     break;
                 }
             }
 
-            // Tính số dư tổng
+            // Tính số dư tổng (Cột D: Chi, Cột J: Thu)
             rows.slice(1).forEach(r => {
-                const chiValue = parseFloat(r[3]?.replace(/[\."]/g, '')) || 0;
-                const thuValue = parseFloat(r[9]?.replace(/[\."]/g, '')) || 0;
-                total += (thuValue - chiValue);
+                const cVal = r[3] ? r[3].replace(/[",\.]/g, '') : "0";
+                const tVal = r[9] ? r[9].replace(/[",\.]/g, '') : "0";
+                total += (parseFloat(tVal) || 0) - (parseFloat(cVal) || 0);
             });
         }
         document.getElementById('balance').innerText = total.toLocaleString('vi-VN') + ' đ';
         document.getElementById('last-trans').innerText = lastChiStr;
     } catch (e) { 
-        console.log("Load error", e);
+        console.error(e);
         document.getElementById('last-trans').innerText = "Lỗi tải dữ liệu";
     }
 }
