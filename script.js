@@ -71,7 +71,7 @@ async function loadSheetData() {
         let lastChiStr = "Chưa có dữ liệu";
 
         if (rows.length > 1) {
-            // Tổng thu / chi (giữ nguyên logic cũ)
+            // Tổng thu / chi (GIỮ NGUYÊN)
             rows.slice(1).forEach(r => {
                 const chiFull = r[3] ? parseFloat(r[3].replace(/[\."]/g, '')) : 0;
                 const thuFull = r[9] ? parseFloat(r[9].replace(/[\."]/g, '')) : 0;
@@ -79,36 +79,45 @@ async function loadSheetData() {
                 thu += thuFull || 0;
             });
 
-            // ---- LẤY CHI TIÊU CUỐI (LOGIC MỚI) ----
+            // ==== LẤY CHI TIÊU CUỐI (ĐÃ FIX) ====
             for (let i = rows.length - 1; i > 0; i--) {
                 const r = rows[i];
 
-                const kRaw = r[2] ? r[2].replace(/"/g, '') : '';
-                const kVal = parseFloat(kRaw);
-
+                const kVal = parseFloat((r[2] || '').replace(/"/g, ''));
                 if (!kVal || kVal <= 0) continue;
 
-                const desc = r[1] ? r[1].replace(/"/g, '') : '';
+                const desc = (r[1] || '').replace(/"/g, '').trim();
                 const dateObj = new Date(r[4]);
+                if (isNaN(dateObj)) continue;
+
                 const days = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
-                const dateLabel = `${days[dateObj.getDay()]} ngày ${String(dateObj.getDate()).padStart(2, '0')}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${dateObj.getFullYear()}`;
+                const dateLabel =
+                    `${days[dateObj.getDay()]} ngày ` +
+                    `${String(dateObj.getDate()).padStart(2, '0')}.` +
+                    `${String(dateObj.getMonth() + 1).padStart(2, '0')}.` +
+                    `${dateObj.getFullYear()}`;
 
+                const detail = (r[3] || '').replace(/"/g, '').trim();
                 let moneyStr = '';
-                const formulaFull = r[3] ? r[3].replace(/"/g, '') : '';
 
-                // Có nhiều khoản cộng
-                if (formulaFull.startsWith('=(') && formulaFull.includes('+')) {
-                    const inside = formulaFull
-                        .replace(/^=\(/, '')
-                        .replace(/\)\*1000$/, '');
+                // có nhiều khoản cộng
+                if (detail.includes('+')) {
+                    const parts = detail
+                        .split('+')
+                        .map(v => parseFloat(v))
+                        .filter(v => !isNaN(v));
 
-                    const parts = inside.split('+').map(n => parseFloat(n));
-                    const partStr = parts.map(n => (n * 1000).toLocaleString('vi-VN')).join(' + ');
-                    const totalStr = (kVal * 1000).toLocaleString('vi-VN');
+                    if (parts.length > 1) {
+                        const partStr = parts
+                            .map(v => (v * 1000).toLocaleString('vi-VN'))
+                            .join(' + ');
+                        const totalStr = (kVal * 1000).toLocaleString('vi-VN');
+                        moneyStr = `${partStr} = ${totalStr} vnđ`;
+                    }
+                }
 
-                    moneyStr = `${partStr} = ${totalStr} vnđ`;
-                } else {
-                    // Chỉ 1 số
+                // fallback: chỉ 1 số
+                if (!moneyStr) {
                     moneyStr = `${(kVal * 1000).toLocaleString('vi-VN')} vnđ`;
                 }
 
