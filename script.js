@@ -1,10 +1,44 @@
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-_-I6LLrifbZZPscBDUN9jufEyYrtf2tIIjtGihIScCU2tFp-HtuIgLkw6NqU0mUfOsEe9lIBTnIc/pub?gid=1944311512&single=true&output=csv';
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec';
 
-const QUICK_DESC = ['Ăn sáng', 'Đi chợ', 'Nạp điện thoại', 'Tiền điện', 'Tiền nước', 'Quà tết', 'Mua ccq', 'Tóc', 'Xăng xe', 'Cafe'];
+const QUICK_DESC = ['Ăn sáng', 'Đi chợ', 'Nạp điện thoại', 'Tiền điện', 'Ti��n nước', 'Quà tết', 'Mua ccq', 'Tóc', 'Xăng xe', 'Cafe'];
 const DEFAULT_DROPDOWN = ['Lương', 'Thưởng', 'Lãi Tech', 'Lãi HD', 'Ba mẹ đưa', 'Hoàn tiền', 'Khác'];
 
 let chiStack = [], thuStack = [];
+
+// Helper: Format date to Vietnamese (DD/MM/YYYY)
+function formatDateVN(dateStr) {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+// Update date text display
+function updateDateDisplay(type) {
+    const input = document.getElementById(`${type}-date`);
+    const text = document.getElementById(`${type}-date-text`);
+    text.textContent = formatDateVN(input.value);
+}
+
+// Change date by delta (for navigation buttons)
+function changeDate(type, delta) {
+    const input = document.getElementById(`${type}-date`);
+    const d = new Date(input.value);
+    d.setDate(d.getDate() + delta);
+    input.value = d.toISOString().split('T')[0];
+    updateDateDisplay(type);
+    checkSubmitState(type); // Re-check if needed
+}
+
+// Handle manual date change
+function handleDateChange(type) {
+    updateDateDisplay(type);
+    checkSubmitState(type); // Re-check if needed
+}
+
+// Force update (reload page)
+function forceUpdate() {
+    window.location.reload();
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     initDates();
@@ -17,13 +51,12 @@ function initDates() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('chi-date').value = today;
     document.getElementById('thu-date').value = today;
+    updateDateDisplay('chi');
+    updateDateDisplay('thu');
 }
 
 function handleBackDate(type) {
-    const input = document.getElementById(`${type}-date`);
-    const d = new Date(input.value);
-    d.setDate(d.getDate() - 1);
-    input.value = d.toISOString().split('T')[0];
+    changeDate(type, -1); // Reuse changeDate
 }
 
 async function loadSheetData() {
@@ -88,7 +121,6 @@ async function submitData(type) {
     const btn = document.getElementById(`${type}-submit`);
     const msg = document.getElementById(`${type}-message`);
     const amountInput = document.getElementById(`${type}-amount`);
-    const dateVal = document.getElementById(`${type}-date`).value;
     
     let stack = type === 'chi' ? [...chiStack] : [...thuStack];
     if (parseFloat(amountInput.value) > 0) stack.push(parseFloat(amountInput.value));
