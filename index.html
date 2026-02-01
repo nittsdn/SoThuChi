@@ -3,6 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Sổ Thu Chi">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007aff">
+    <title>Sổ Thu Chi</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap">
+</head>
+<body>
+    <!-- Header -->
+    <div class="ios-header">
+        <div class="header-content">
+            <div class="draw-info">
+                <h1>💰 Sổ Thu Chi</h1>
+                <p id="current-balance">Số dư hiện tại: <span id="balance-amount">Đang tải...</span></p>
+            </div>
+            <button class="settings-btn" onclick="openSettings()">⚙️</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <!-- Phần Chi (Expenses) -->
+        <section class="section-card">
+            <h2 class="section-title">📉 Phần Chi</h2>
+            <div class="input-group">
+                <input type="number" id="expense-amount" placeholder="Nhập số tiền (VD: 25)" class="amount-input" aria-label="Nhập số tiền chi">
+                <button class="add-btn" id="expense-add-btn" onclick="addExpenseToList()">+</button>
+            </div>
+            <div id="expense-list" class="temp-list"></div>
+            <button class="clear-btn" onclick="clearExpenseList()">Xoá hết</button>
+            
+            <div class="description-section">
+                <h3>Chọn mô tả:</h3>
+                <div id="expense-checkboxes" class="checkbox-group"></div>
+                <select id="expense-dropdown" class="description-dropdown">
+                    <option value="">-- Chọn từ danh sách --</option>
+                </select>
+                <input type="text" id="expense-custom" placeholder="Hoặc nhập mô tả tùy chỉnh" class="custom-input">
+            </div>
+            
+            <button class="submit-btn" onclick="submitExpenses()">Thêm Chi</button>
+            <div id="expense-message" class="message"></div>
+        </section>
+
+        <!-- Phần Thu (Income) -->
+        <section class="section-card">
+            <h2 class="section-title">📈 Phần Thu</h2>
+            <div class="input-group">
+                <input type="number" id="income-amount" placeholder="Nhập số tiền" class="amount-input" aria-label="Nhập số tiền thu">
+                <button class="add-btn" id="income-add-btn" onclick="addIncomeToList()">+</button>
+            </div>
+            <div id="income-list" class="temp-list"></div>
+            <button class="clear-btn" onclick="clearIncomeList()">Xoá hết</button>
+            
+            <div class="description-section">
+                <h3>Mô tả:</h3>
+                <select id="income-dropdown" class="description-dropdown">
+                    <option value="">-- Chọn từ danh sách --</option>
+                </select>
+                <input type="text" id="income-custom" placeholder="Hoặc nhập mô tả tùy chỉnh" class="custom-input">
+            </div>
+            
+            <button class="submit-btn" onclick="submitIncome()">Thêm Thu</button>
+            <div id="income-message" class="message"></div>
+        </section>
+
+        <!-- Phần Tổng kết (Summary) -->
+        <section class="section-card">
+            <h2 class="section-title">📊 Phần Tổng kết</h2>
+            <div id="last-summary" class="summary-display">
+                <p>Đang tải tổng kết cuối cùng...</p>
+            </div>
+            <button class="submit-btn" onclick="createNewSummary()">Tổng kết mới</button>
+            <div id="summary-message" class="message"></div>
+        </section>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Cài đặt</h2>
+                <button class="close-btn" onclick="closeSettings()">×</button>
+            </div>
+            <div class="modal-body">
+                <h3>Chọn 8 mô tả chi phí phổ biến:</h3>
+                <div id="settings-checkboxes" class="settings-checkbox-group"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="submit-btn" onclick="saveSettings()">Lưu cài đặt</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
     <title>Sổ Thu Chi 2026</title>
     <link rel="stylesheet" href="style.css">
 </head>
