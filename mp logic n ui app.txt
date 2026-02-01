@@ -1,9 +1,9 @@
-Ok, mình **đã chỉnh lại MP cho ĐÚNG 100% với CSDL hiện tại của bạn** và **đóng MP ở trạng thái “đủ để code – không phải quay lại sửa”**.
-Dưới đây là **MP FINAL (đã đồng bộ Chi / Thu / TK / loai_chi / nguon_tien)**. Bạn có thể **copy lưu lại làm tài liệu gốc**.
+Ok, mình **đã chỉnh lại MP cho ĐÚNG 100% với CSDL mới** (thêm IDChi/IDThu tự sinh, cập nhật header Chi/Thu) và **đóng MP ở trạng thái “đủ để code – không phải quay lại sửa”**.
+Dưới đây là **MP FINAL (đã đồng bộ Chi / Thu / TK / loai_chi / nguon_tien với CSDL mới)**. Bạn có thể **copy lưu lại làm tài liệu gốc**.
 
 ---
 
-# MASTER PLAN APP SỔ THU CHI – FINAL (SYNC WITH CSDL)
+# MASTER PLAN APP SỔ THU CHI – FINAL (SYNC WITH CSDL MỚI)
 
 > **Nguyên tắc xuyên suốt**
 >
@@ -36,6 +36,11 @@ Dưới đây là **MP FINAL (đã đồng bộ Chi / Thu / TK / loai_chi / nguo
 * `tk_session`
 * `tk_detail`
 
+### Header cập nhật:
+
+- **Chi_Tieu_2026**: IDChi (tự sinh), Chi tiêu, Loại chi, Nguồn tiền, Số tiền (/1000), Số tiền vnđ, Ngày, Số dư lý thuyết
+- **Thu_2026**: Thu, Ngày, Mô tả, Nguồn tiền, Loại thu, Tổng thu, IDThu (tự sinh)
+
 ---
 
 ## 3️⃣ QUY ƯỚC DỮ LIỆU CHUNG (RẤT QUAN TRỌNG)
@@ -51,6 +56,10 @@ Dưới đây là **MP FINAL (đã đồng bộ Chi / Thu / TK / loai_chi / nguo
 * `Chi_Tieu_2026.Loại chi`
 * **= loai_chi.ten_loai_chi**
 * Dropdown từ `loai_chi_active` (active = TRUE)
+
+### 🔒 ID tự sinh
+
+* IDChi/IDThu: Sheet/GAS tự tạo (e.g., C1, T1), app không gửi
 
 ---
 
@@ -123,23 +132,23 @@ App gửi:
 👉 Sheet:
 
 * tự tính số dư lý thuyết
-* app **không gửi, không tính**
+* tự sinh IDChi
 
 ---
 
 ## C. PHẦN THU NHẬP (INCOME)
 
-### Giống Chi 95%
+⚠️ **Giống Chi 95%**
 
 Khác:
 
-* Có **Loại thu**
-* Có **Nguồn tiền (bắt buộc)**
+* Có:
 
-### Dòng đặc biệt
+  * Nguồn tiền (bắt buộc)
+  * Loại thu
+* Có thể có dòng đặc biệt:
 
-* “Số dư đầu năm / dư năm trước”
-* Chỉ dùng khi khởi tạo
+  * “Khởi tạo số dư / dư năm trước”
 
 ### Submit Thu
 
@@ -148,352 +157,114 @@ App gửi:
 * `ngay`
 * `so_tien`
 * `mo_ta`
-* `loai_thu`
 * `nguon_tien`
+* `loai_thu`
 
-👉 Sheet tự tính `Tổng thu`
+👉 Sheet:
+
+* tự tính tổng thu
+* tự sinh IDThu
 
 ---
 
-## D. PHẦN TỔNG KẾT (SUMMARY – SNAPSHOT)
+## D. PHẦN TỔNG KẾT (SUMMARY – ĐÃ CHUẨN HOÁ)
 
 ### 1. Load dữ liệu
 
 * Load:
 
-  * `so_du_lt` (từ Sheet)
-  * danh sách `nguon_tien (active)`
+  * số dư lý thuyết (từ Sheet)
+  * danh sách nguồn tiền (active)
 
-### 2. Render UI
+### 2. Render UI động
 
-* Với mỗi nguồn tiền:
+* Với mỗi `nguon_tien`:
 
-  * icon
-  * 1 input **số dư thực**
-* App auto cộng:
+  * 1 input số dư thực
+* App:
 
-  ```
-  so_du_tt = sum(all inputs)
-  ```
+  * auto cộng `so_du_tt`
 
-### 3. Hiển thị
+### 3. Tính toán
 
-* `chenh_lech = so_du_lt - so_du_tt`
-* Hiển thị realtime
+* `chenhlech = so_du_lt - so_du_tt`
+* Hiển thị ngay
 
 ### 4. Submit Tổng kết
 
-App ghi:
+Khi nhấn:
 
-* 1 dòng → `tk_session`
-* N dòng → `tk_detail`
+* ghi:
 
-❌ **KHÔNG sinh Thu**
-❌ **KHÔNG sinh Chi**
-
-👉 Nếu lệch → quay lại sửa Chi / Thu
+  * 1 dòng `tk_session`
+  * N dòng `tk_detail`
+* **KHÔNG sửa Chi / Thu**
 
 ---
 
-## 5️⃣ STATE MANAGEMENT (APP)
+## 4. LOGIC KỸ THUẬT (UPDATED)
 
-* `tempList` – calculator
-* `editingIndex`
-* `selectedLoaiChi`
-* `selectedNguonTien`
-* `tkInputs = { nguon_tien: so_du_tt }`
+### 4.1 State Management
 
----
-
-## 6️⃣ NGUYÊN TẮC VÀNG (ĐÓNG MP)
-
-* Sheet lo công thức
-* App chỉ gửi dữ liệu gốc
-* Không suy đoán
-* Không hardcode nguồn tiền / loại chi
-* Mọi dropdown đều load từ Sheet
+* tempList (Chi / Thu)
+* editingIndex
+* selectedNguonTien
+* tkInputs = { nguon_tien: so_du }
 
 ---
 
-## ✅ TRẠNG THÁI CUỐI
+### 4.2 Nguyên tắc vàng
 
-* ✔ MP đã **đồng bộ hoàn toàn với CSDL**
-* ✔ Không dư tính năng
-* ✔ Không mâu thuẫn
-* ✔ Code theo là chạy, **không phải quay lại sửa MP**
+* Sheet:
 
-👉 **MP CHÍNH THỨC ĐÓNG Ở ĐÂY.**
+  * lo công thức
+* App:
 
----
+  * chỉ gửi dữ liệu gốc
+* TK:
 
-### Bước tiếp theo hợp lý nhất
-
-👉 **Viết payload spec FINAL** cho:
-
-* Chi
-* Thu
-* Tổng kết (TK)
-
-Nếu bạn ok, chỉ cần nói:
-**“viết payload spec”**
-mình sẽ làm ngay, đúng theo MP này.
-
-Ok, mình viết **PAYLOAD SPEC FINAL** đúng **100% theo MP + CSDL hiện tại**, để bạn **đưa thẳng cho front-end + GAS code**, không suy đoán, không lệch cột.
-
-Mình chia rõ **3 payload**: **Chi – Thu – Tổng kết (TK)**.
-Đây là bản **CHỐT**, sau này chỉ mở rộng, **không sửa ngược**.
+  * snapshot, không suy diễn
 
 ---
 
-# 📦 PAYLOAD SPEC – FINAL
+## ✅ KẾT LUẬN CUỐI
 
-## NGUYÊN TẮC CHUNG (ÁP DỤNG CHO TẤT CẢ)
+* MP mới:
 
-* App **chỉ gửi dữ liệu gốc**
-* App **không gửi cột có công thức**
-* App **không gửi icon / id phụ**
-* Mọi dropdown:
+  * ✔ khớp CSDL
+  * ✔ không dư tính năng
+  * ✔ không mâu thuẫn logic
+* Từ giờ:
 
-  * lấy từ Sheet
-  * gửi **string đúng chuẩn**
-
----
-
-# 1️⃣ PAYLOAD: CHI TIÊU
-
-### 🎯 Mục tiêu
-
-Ghi **1 dòng** vào sheet `Chi_Tieu_2026`
+  * **MP đã đóng**
+  * code theo MP, không suy diễn thêm
 
 ---
 
-### 📌 Payload (JSON)
+### Bước tiếp theo hợp lý nhất:
 
-```json
-{
-  "type": "chi",
-  "payload": {
-    "ngay": "2026-01-20",
-    "so_tien": 55000,
-    "mo_ta": "đi chợ + tiền nước",
-    "loai_chi": "Ăn uống",
-    "nguon_tien": "Tech Mèo"
-  }
-}
-```
+* Viết **API contract (payload)**:
+
+  * Chi
+  * Thu
+  * TK
+    → để code front & GAS không lệch nhau.
+
+Nếu bạn muốn, nói **“viết payload spec”**, mình làm ngay.
 
 ---
 
-### 📄 Map sang CSDL
+## 1️⃣ Payload Spec Chi
 
-| Field payload | Sheet `Chi_Tieu_2026` | Ghi chú                       |
-| ------------- | --------------------- | ----------------------------- |
-| ngay          | Ngày                  | Date                          |
-| so_tien       | Số tiền               | **giá trị gốc**               |
-| mo_ta         | Mô tả                 | Đã gộp                        |
-| loai_chi      | Loại chi              | Dropdown từ `loai_chi_active` |
-| nguon_tien    | Nguồn tiền            | Dropdown từ `nguon_tien`      |
-| ❌             | Số dư LT              | **Sheet tự tính**             |
-
----
-
-### 🔒 Validation (app-side)
-
-* `so_tien > 0`
-* `loai_chi` ∈ `loai_chi_active`
-* `nguon_tien` ∈ `nguon_tien.active`
-* `mo_ta` ≠ rỗng
-
----
-
-# 2️⃣ PAYLOAD: THU NHẬP
-
-### 🎯 Mục tiêu
-
-Ghi **1 dòng** vào sheet `Thu_2026`
-
----
-
-### 📌 Payload (JSON)
-
-```json
-{
-  "type": "thu",
-  "payload": {
-    "ngay": "2026-01-20",
-    "so_tien": 200000,
-    "mo_ta": "lãi tech",
-    "loai_thu": "Ngân hàng",
-    "nguon_tien": "Tech Mèo"
-  }
-}
-```
-
----
-
-### 📄 Map sang CSDL
-
-| Field payload | Sheet `Thu_2026` | Ghi chú           |
-| ------------- | ---------------- | ----------------- |
-| ngay          | Ngày             | Date              |
-| so_tien       | Thu              | Giá trị gốc       |
-| mo_ta         | Mô tả            | Text              |
-| loai_thu      | Loại thu         | String            |
-| nguon_tien    | Nguồn tiền       | Dropdown          |
-| ❌             | Tổng thu         | **Sheet tự tính** |
-
----
-
-### 📌 Dòng đặc biệt (khởi tạo)
-
-```json
-{
-  "type": "thu",
-  "payload": {
-    "ngay": "2026-01-04",
-    "so_tien": 191616700,
-    "mo_ta": "dư năm trước",
-    "loai_thu": "Dư năm trước",
-    "nguon_tien": "Số dư đầu năm"
-  }
-}
-```
-
----
-
-# 3️⃣ PAYLOAD: TỔNG KẾT (TK)
-
-### 🎯 Mục tiêu
-
-* Ghi **1 dòng** vào `tk_session`
-* Ghi **N dòng** vào `tk_detail`
-* **KHÔNG sinh Thu / Chi**
-
----
-
-### 📌 Payload (JSON)
-
-```json
-{
-  "type": "tk",
-  "payload": {
-    "session_id": "s4",
-    "ngay_tk": "2026-01-20",
-    "so_du_lt": 1408747185,
-    "chi_tiet": [
-      { "nguon_tien": "Tech Mèo", "so_du_tt": 653251022 },
-      { "nguon_tien": "ACB Mèo", "so_du_tt": 238050000 },
-      { "nguon_tien": "Tiền mặt Boé", "so_du_tt": 8000000 }
-    ],
-    "note": "tổng kết tuần 3"
-  }
-}
-```
-
----
-
-### 📄 Map sang CSDL
-
-#### Sheet `tk_session`
-
-| Field      | Cột                                    |
-| ---------- | -------------------------------------- |
-| session_id | session_id                             |
-| ngay_tk    | ngay_tk                                |
-| so_du_lt   | so_du_lt                               |
-| so_du_tt   | so_du_tt *(app tính tổng)*             |
-| chenh_lech | chenh_lech *(Sheet hoặc app đều được)* |
-| status     | status = `"confirmed"`                 |
-| note       | note                                   |
-
-#### Sheet `tk_detail`
-
-| Field      | Cột        |
-| ---------- | ---------- |
-| session_id | session_id |
-| nguon_tien | nguon_tien |
-| so_du_tt   | so_du_tt   |
-
----
-
-### 🔒 Validation
-
-* `session_id` **duy nhất**
-* `nguon_tien` ∈ `nguon_tien.active`
-* `so_du_tt ≥ 0`
-* `chi_tiet.length ≥ 1`
-
----
-
-# 4️⃣ GỢI Ý API ENDPOINT (GAS)
-
-```
-POST /append
-```
-
-Body:
-
-```json
-{ type, payload }
-```
-
-GAS:
-
-```js
-switch(type) {
-  case "chi": appendChi(payload); break;
-  case "thu": appendThu(payload); break;
-  case "tk":  appendTK(payload);  break;
-}
-```
-
----
-
-# ✅ TRẠNG THÁI CUỐI
-
-* ✔ Payload **khớp 1–1 với CSDL**
-* ✔ Không gửi dư cột
-* ✔ Không phụ thuộc công thức app
-* ✔ Code theo là chạy, **không cần hỏi lại**
-
----
-
-
-Ok, mình viết **INTERFACE FINAL (TypeScript)** đúng **payload spec + MP + CSDL**.
-Bạn copy dùng thẳng cho frontend (React/Vue/JS thuần đều ok).
-
----
-
-# 📐 TYPE / INTERFACE – FINAL
-
-> Nguyên tắc:
->
-> * 1 interface = 1 payload
-> * Không field thừa
-> * Không field công thức
-> * String = đúng chuẩn trong Sheet
-
----
-
-## 1️⃣ ENUM / TYPE DÙNG CHUNG
-
-```ts
-export type PayloadType = "chi" | "thu" | "tk";
-```
-
----
-
-## 2️⃣ CHI TIÊU (Expense)
-
-### Payload gửi đi
+### Payload chi
 
 ```ts
 export interface ChiPayload {
   ngay: string;        // YYYY-MM-DD
-  so_tien: number;     // > 0
-  mo_ta: string;       // gộp, không rỗng
-  loai_chi: string;    // từ loai_chi.ten_loai_chi
-  nguon_tien: string; // từ nguon_tien.ten_nguon_tien
+  so_tien: number;     // > 0 (tổng nghìn)
+  mo_ta: string;
+  loai_chi: string;    // từ loai_chi
+  nguon_tien: string;  // từ nguon_tien
 }
 ```
 
@@ -506,19 +277,17 @@ export interface ChiRequest {
 }
 ```
 
----
+## 2️⃣ Payload Spec Thu
 
-## 3️⃣ THU NHẬP (Income)
-
-### Payload gửi đi
+### Payload thu
 
 ```ts
 export interface ThuPayload {
   ngay: string;        // YYYY-MM-DD
-  so_tien: number;     // > 0
+  so_tien: number;     // > 0 (VNĐ, app *1000)
   mo_ta: string;
-  loai_thu: string;    // string tự do (Ngân hàng, Nhà trọ...)
-  nguon_tien: string; // từ nguon_tien
+  loai_thu: string;    // string tự do
+  nguon_tien: string;  // từ nguon_tien
 }
 ```
 
@@ -531,16 +300,14 @@ export interface ThuRequest {
 }
 ```
 
----
-
-## 4️⃣ TỔNG KẾT – SNAPSHOT (TK)
+## 3️⃣ Payload Spec TK
 
 ### Chi tiết từng nguồn tiền
 
 ```ts
 export interface TKDetail {
   nguon_tien: string; // từ nguon_tien
-  so_du_tt: number;   // >= 0
+  so_du_tt: number;   // >= 0 (VNĐ)
 }
 ```
 
@@ -550,7 +317,7 @@ export interface TKDetail {
 export interface TKPayload {
   session_id: string;     // vd: s4
   ngay_tk: string;        // YYYY-MM-DD
-  so_du_lt: number;       // load từ Sheet
+  so_du_lt: number;       // load từ Sheet (VNĐ)
   chi_tiet: TKDetail[];   // >= 1 dòng
   note?: string;          // optional
 }
@@ -630,7 +397,7 @@ const req: ChiRequest = {
   type: "chi",
   payload: {
     ngay: "2026-01-20",
-    so_tien: 55000,
+    so_tien: 55,  // nghìn
     mo_ta: "đi chợ + tiền nước",
     loai_chi: "Ăn uống",
     nguon_tien: "Tech Mèo"
@@ -648,6 +415,3 @@ const req: ChiRequest = {
 * ✔ Sau này thêm icon / meta **không cần sửa interface gửi API**
 
 ---
-
-
-
