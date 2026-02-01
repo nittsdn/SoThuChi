@@ -4,131 +4,74 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sổ Thu Chi 2026</title>
-
-    <!-- APP VERSION (timestamp) -->
-    <script>
-        window.APP_VERSION = Date.now();
-        console.log("APP VERSION:", window.APP_VERSION);
-    </script>
-
-    <!-- CSS -->
-    <link rel="stylesheet" href="style.css" id="main-style">
-    <script>
-        document.getElementById("main-style").href =
-            "style.css?v=" + window.APP_VERSION;
-    </script>
-
-    <!-- Loại bỏ script Kaspersky nếu không cần (có thể gây chậm trên mobile) -->
-    <!-- <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js" charset="UTF-8"></script> -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <div class="header">
         <div class="header-top">
             <h1>Sổ Thu Chi</h1>
-            <span id="balance" class="balance-tag">...</span>
+            <span id="balance" class="balance-tag">Loading...</span>
         </div>
-
-        <div id="last-trans" class="last-trans-static">
-            Đang tải dữ liệu...
-        </div>
-
-        <!-- VERSION HIỂN THỊ (debug) -->
-        <div id="app-version"
-             style="font-size:11px;opacity:0.5;margin-top:4px;">
-            v: ...
-        </div>
+        <div id="last-trans" class="last-trans-static">Đang tải dữ liệu...</div>
     </div>
 
-    <!-- ===== PHẦN CHI ===== -->
     <div class="card">
         <div class="card-header">
             <span class="card-title red-text">CHI TIÊU</span>
-            <button type="button" class="btn-icon-reset" onclick="forceUpdate()" title="Làm mới App">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 6h18"></path>
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                </svg>
-            </button>
+            <button type="button" class="btn-sm" id="chi-reset">Xóa Hết</button>
         </div>
-
-        <div class="date-navigation">
-            <button type="button" class="btn-nav" onclick="changeDate('chi', -1)"> &lt;&lt; </button>
-            <input type="date" id="chi-date" onchange="handleDateChange('chi')">
-            <button type="button" class="btn-nav" onclick="changeDate('chi', 1)"> &gt;&gt; </button>
+        
+        <div class="date-row">
+            <div class="date-picker-container">
+                <input type="date" id="chi-date">
+            </div>
+            <button type="button" class="btn-back-date" onclick="handleBackDate('chi')"> < Tiền nhiệm </button>
         </div>
 
         <div class="input-group">
-            <input type="number" id="chi-amount" placeholder="x 1000" inputmode="decimal">
+            <input type="number" id="chi-amount" placeholder="Nhập tiền (vd: 25)" inputmode="decimal">
             <button type="button" class="btn-add" id="chi-btn-plus">+</button>
         </div>
-
         <div id="chi-stack-display" class="stack-display"></div>
-
-        <div class="desc-area">
-            <div id="chi-checkboxes" class="checkbox-container"></div>
-            <select id="chi-dropdown" class="input-std"></select>
-            <input type="text" id="chi-text" class="input-std" placeholder="Ghi chú thêm...">
+        
+        <div class="desc-area-visible">
+            <div id="chi-checkboxes" class="checkbox-container">Loading...</div>
+            <div class="desc-row"><select id="chi-dropdown" class="input-std"></select></div>
+            <div class="desc-row"><input type="text" id="chi-text" class="input-std" placeholder="Ghi chú thêm..."></div>
         </div>
-
+        
         <div id="chi-message" class="status-msg"></div>
-        <button type="button" class="btn-submit btn-red" id="chi-submit" disabled>
-            LƯU KHOẢN CHI
-        </button>
+        <button type="button" class="btn-submit btn-red" id="chi-submit" disabled>LƯU KHOẢN CHI</button>
     </div>
 
-    <!-- ===== PHẦN THU ===== -->
     <div class="card">
         <div class="card-header">
             <span class="card-title green-text">THU NHẬP</span>
-            <button type="button" class="btn-icon-reset" onclick="forceUpdate()" title="Làm mới App">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 6h18"></path>
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                </svg>
-            </button>
+            <button type="button" class="btn-sm" id="thu-reset">Xóa Hết</button>
         </div>
 
-        <div class="date-navigation">
-            <button type="button" class="btn-nav" onclick="changeDate('thu', -1)"> &lt;&lt; </button>
-            <input type="date" id="thu-date" onchange="handleDateChange('thu')">
-            <button type="button" class="btn-nav" onclick="changeDate('thu', 1)"> &gt;&gt; </button>
+        <div class="date-row">
+            <div class="date-picker-container">
+                <input type="date" id="thu-date">
+            </div>
+            <button type="button" class="btn-back-date" onclick="handleBackDate('thu')"> < Tiền nhiệm </button>
         </div>
 
         <div class="input-group">
-            <input type="number" id="thu-amount" placeholder="x 1000" inputmode="decimal">
+            <input type="number" id="thu-amount" placeholder="Nhập tiền (vd: 500)" inputmode="decimal">
             <button type="button" class="btn-add btn-green-bg" id="thu-btn-plus">+</button>
         </div>
-
         <div id="thu-stack-display" class="stack-display"></div>
-
-        <div class="desc-area">
-            <select id="thu-dropdown" class="input-std"></select>
-            <input type="text" id="thu-text" class="input-std" placeholder="Nguồn tiền...">
+        
+        <div class="desc-area-visible">
+            <div class="desc-row"><select id="thu-dropdown" class="input-std"></select></div>
+            <div class="desc-row"><input type="text" id="thu-text" class="input-std" placeholder="Nguồn tiền..."></div>
         </div>
-
+        
         <div id="thu-message" class="status-msg"></div>
-        <button type="button" class="btn-submit btn-green" id="thu-submit" disabled>
-            LƯU KHOẢN THU
-        </button>
+        <button type="button" class="btn-submit btn-green" id="thu-submit" disabled>LƯU KHOẢN THU</button>
     </div>
 
-    <!-- JS -->
-    <script src="script.js" id="main-script"></script>
-    <script>
-        document.getElementById("main-script").src =
-            "script.js?v=" + window.APP_VERSION;
-
-        // hiển thị version ra UI
-        document.getElementById("app-version").innerText =
-            "v: " + window.APP_VERSION;
-    </script>
-
+    <script src="script.js"></script>
 </body>
 </html>
