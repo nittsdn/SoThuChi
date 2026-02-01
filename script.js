@@ -13,38 +13,76 @@ async function loadSheetData() {
                 const tVal = r[9] ? r[9].replace(/[\."]/g, '') : "0";
                 chi += parseFloat(cVal) || 0; thu += parseFloat(tVal) || 0;
             });
-            // Lấy dòng chi cuối và format theo yêu cầu
+            
+            // Tìm ngày cuối cùng có chi tiêu và lấy tất cả chi tiêu trong ngày đó
+            let lastDate = null;
+            let lastDateTransactions = [];
+            
             for (let i = rows.length - 1; i > 0; i--) {
                 const money = rows[i][3] ? parseFloat(rows[i][3].replace(/[\."]/g, '')) : 0;
                 if (money > 0) {
                     const dateStr = rows[i][4] ? rows[i][4].replace(/"/g, '').trim() : '';
-                    let d = null;
-                    if (dateStr) {
-                        // Parse dateStr dạng dd/mm/yyyy (ví dụ "30/01/2026")
-                        const parts = dateStr.split('/');
-                        if (parts.length === 3) {
-                            const day = parseInt(parts[0], 10);
-                            const month = parseInt(parts[1], 10) - 1; // JS month 0-based
-                            const year = parseInt(parts[2], 10);
-                            d = new Date(year, month, day);
-                        }
+                    
+                    if (!lastDate) {
+                        lastDate = dateStr;
                     }
-                    let formattedWeekday = 'Không xác định';
-                    let formattedDate = 'Không xác định';
-                    if (d && !isNaN(d.getTime())) {
-                        formattedWeekday = d.toLocaleDateString('vi-VN', { weekday: 'long' });
-                        const datePart = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                        formattedDate = datePart.replace(/\//g, '.');
+                    
+                    // Nếu cùng ngày cuối cùng, thêm vào mảng
+                    if (dateStr === lastDate) {
+                        const desc = rows[i][1] ? rows[i][1].replace(/"/g, '').trim() : '';
+                        lastDateTransactions.unshift({ desc, money }); // unshift để giữ thứ tự đúng
+                    } else {
+                        break; // Đã qua ngày khác
                     }
-                    const desc = rows[i][1] ? rows[i][1].replace(/"/g, '').trim() : '';
-                    lastChi = `Chi tiêu cuối ${formattedWeekday} ngày ${formattedDate}: ${desc} tổng ${money.toLocaleString()} đ`;
-                    break;
                 }
             }
+            
+            // Format hiển thị
+            if (lastDateTransactions.length > 0) {
+                // Parse date từ format "Thứ Hai- 05/1/26"
+                let formattedWeekday = 'Không xác định';
+                let formattedDate = 'Không xác định';
+                
+                if (lastDate) {
+                    const dateParts = lastDate.split('- ');
+                    if (dateParts.length === 2) {
+                        formattedWeekday = dateParts[0].trim();
+                        
+                        // Parse dd/mm/yy
+                        const dmyParts = dateParts[1].split('/');
+                        if (dmyParts.length === 3) {
+                            const day = dmyParts[0].padStart(2, '0');
+                            const month = dmyParts[1].padStart(2, '0');
+                            let year = dmyParts[2];
+                            // Nếu năm 2 số, chuyển thành 4 số
+                            if (year.length === 2) {
+                                year = '20' + year;
+                            }
+                            formattedDate = `${day}.${month}.${year}`;
+                        }
+                    }
+                }
+                
+                // Tạo danh sách mô tả
+                const descriptions = lastDateTransactions.map(t => t.desc).join(', ');
+                
+                // Tạo danh sách số tiền
+                const amounts = lastDateTransactions.map(t => t.money.toLocaleString()).join(' + ');
+                
+                // Tính tổng
+                const total = lastDateTransactions.reduce((sum, t) => sum + t.money, 0);
+                
+                // Format cuối cùng
+                lastChi = `Chi tiêu cuối ${formattedWeekday} ngày ${formattedDate}: ${descriptions} ${amounts} = ${total.toLocaleString()} vnđ`;
+            }
         }
+        
         document.getElementById('balance').innerText = (thu - chi).toLocaleString('vi-VN') + ' đ';
         document.getElementById('last-trans').innerText = lastChi;
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error(e); 
+        document.getElementById('last-trans').innerText = "Lỗi tải dữ liệu";
+    }
 }
 
 // ... (phần còn lại file giữ nguyên)
