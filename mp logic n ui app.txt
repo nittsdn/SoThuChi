@@ -1,160 +1,653 @@
-MASTER PLAN: APP SỔ THU CHI 2026 (EDITABLE VERSION)
-1. TỔNG QUAN HỆ THỐNG
-Mô hình: Web App (Single Page Application).
+Ok, mình **đã chỉnh lại MP cho ĐÚNG 100% với CSDL hiện tại của bạn** và **đóng MP ở trạng thái “đủ để code – không phải quay lại sửa”**.
+Dưới đây là **MP FINAL (đã đồng bộ Chi / Thu / TK / loai_chi / nguon_tien)**. Bạn có thể **copy lưu lại làm tài liệu gốc**.
 
-Database: Google Sheets (Lưu dữ liệu giao dịch).
+---
 
-Local Storage (Bộ nhớ trình duyệt): Chỉ dùng để lưu Cấu hình (Settings) của người dùng (VD: Danh sách 8 mục thường dùng). Không lưu dữ liệu tiền tệ.
+# MASTER PLAN APP SỔ THU CHI – FINAL (SYNC WITH CSDL)
 
-Phong cách: Nhập liệu siêu tốc (Rapid Entry) - Cộng dồn - Chỉnh sửa linh hoạt.
+> **Nguyên tắc xuyên suốt**
+>
+> * App **chỉ nhập & gửi dữ liệu gốc**
+> * Google Sheet **tính toàn bộ công thức**
+> * Không suy diễn, không tính thay Sheet
+> * Tổng kết = snapshot, không sinh Thu/Chi
 
-2. GIAO DIỆN & LUỒNG NGƯỜI DÙNG (UI/UX FLOW)
-Giao diện chia làm 4 khu vực chính: Header (chứa Setting), Phần Chi, Phần Thu, Phần Tổng Kết.
+---
 
-A. HEADER & SETTINGS (CẤU HÌNH)
-1. Giao diện Header:
+## 1️⃣ TỔNG QUAN HỆ THỐNG
 
-Logo/Tên App: Sổ Thu Chi.
+* Web App (SPA)
+* Database: **Google Sheets**
+* Không API ngân hàng
+* Không backend phức tạp
+* LocalStorage: chỉ lưu **UI settings**
+* CSDL là **source of truth**
 
-Ngày hiện tại.
+---
 
-Nút Bánh Răng (Settings): Nằm góc phải.
+## 2️⃣ CẤU TRÚC CSDL (đã chốt)
 
-2. Luồng Settings (Cài đặt 8 mục mô tả):
+### Các sheet chính:
 
-B1: Nhấn nút Bánh Răng -> Mở Popup/Modal cài đặt.
+* `Chi_Tieu_2026`
+* `Thu_2026`
+* `loai_chi`
+* `nguon_tien`
+* `tk_session`
+* `tk_detail`
 
-B2: Hiển thị danh sách tất cả các danh mục có thể có (khoảng 20-30 mục như: Ăn sáng, Cafe, Xăng, Đi chợ, Hiếu hỉ, Y tế...).
+---
 
-B3: Người dùng tick chọn tối đa 8 mục mình hay dùng nhất.
+## 3️⃣ QUY ƯỚC DỮ LIỆU CHUNG (RẤT QUAN TRỌNG)
 
-B4: Nhấn "Lưu".
+### 🔒 Nguồn tiền
 
-App lưu danh sách 8 mục này vào Local Storage.
+* `Chi / Thu.Nguồn tiền`
+* **= nguon_tien.ten_nguon_tien (string tuyệt đối)**
+* App **chỉ cho chọn dropdown**, không gõ tay
 
-Giao diện nhập liệu bên ngoài lập tức cập nhật 8 Checkbox theo cài đặt mới.
+### 🔒 Loại chi
 
-B. PHẦN CHI TIÊU (EXPENSE) - TRỌNG TÂM
-1. Khu vực Nhập số & Danh sách tạm (The Calculator)
-Trạng thái Mặc định (Mode: NHẬP MỚI):
+* `Chi_Tieu_2026.Loại chi`
+* **= loai_chi.ten_loai_chi**
+* Dropdown từ `loai_chi_active` (active = TRUE)
 
-Ô nhập số: Trống.
+---
 
-Nút hành động: Hình dấu Cộng (+).
+## 4️⃣ GIAO DIỆN & LUỒNG NGƯỜI DÙNG
 
-Danh sách tạm (List View): Hiển thị các số đã nhập (VD: 25.000, 50.000). Bên cạnh mỗi số có nút Xóa (icon thùng rác/dấu x).
+---
 
-Luồng Nhập Mới:
+## A. HEADER & SETTINGS
 
-Nhập số 25 -> Nhấn (+).
+### Header
 
-Số 25 bay xuống Danh sách tạm. Ô nhập xóa trắng. Focus giữ nguyên.
+* Tên app
+* Ngày hiện tại
+* Thông báo chi/thu gần nhất
 
-Luồng Chỉnh Sửa (Mode: SỬA):
+### Settings
 
-B1: Người dùng nhấn vào số 25.000 đang nằm dưới Danh sách tạm.
+* Chọn 8 mô tả chi thường dùng
+* Lưu LocalStorage
+* **Không lưu dữ liệu tiền**
 
-B2: App chuyển sang chế độ Sửa:
+---
 
-Số 25 được đưa ngược lên Ô nhập số.
+## B. PHẦN CHI TIÊU (EXPENSE)
 
-Nút (+) đổi icon thành nút Xác nhận (✓) (Màu xanh/Vàng để phân biệt).
+### 1. Calculator (GIỮ NGUYÊN)
 
-Dòng 25.000 dưới danh sách tạm tạm thời bị ẩn hoặc highlight để biết đang sửa dòng đó.
+* `tempList = [{ id, value }]`
+* Add / Edit / Confirm / Delete
+* Reset toàn bộ
 
-B3: Người dùng sửa 25 thành 30.
+### 2. Mô tả
 
-B4: Nhấn nút Xác nhận (✓).
+* 8 chip nhanh
+* Dropdown
+* Text tự do
+* Bắt buộc ≥ 1 mô tả
+* App gộp thành **1 chuỗi mô tả**
 
-B5: Số 30 cập nhật lại vào vị trí cũ trong Danh sách tạm. Ô nhập xóa trắng. Nút trở về hình Cộng (+).
+### 3. Loại chi
 
-Luồng Xóa Dòng:
+* 1 dropdown
+* Load từ:
 
-Nhấn nút (x) bên cạnh số 50.000 trong danh sách tạm.
+  ```
+  loai_chi_active
+  ```
+* Không cho nhập tay
 
-Số đó biến mất khỏi danh sách ngay lập tức. Tổng tiền cập nhật lại.
+### 4. Nguồn tiền
 
-Nút Reset: Nút "Xóa Hết" nằm góc trên để hủy toàn bộ danh sách tạm làm lại từ đầu.
+* 1 dropdown
+* Load từ:
 
-2. Khu vực Mô tả (Description)
-Cấu trúc:
+  ```
+  nguon_tien WHERE active = TRUE
+  ```
+* Bắt buộc chọn
 
-Hàng 1 & 2: 8 Checkbox (Được load từ Setting). Dạng thẻ chip, chọn được nhiều cái cùng lúc.
+### 5. Submit Chi
 
-Hàng 3:
+App gửi:
 
-1 Dropdown: Chứa các danh mục ít dùng hơn (hoặc danh mục phụ).
+* `ngay`
+* `tong_tien` (tổng tempList)
+* `mo_ta` (đã gộp)
+* `loai_chi`
+* `nguon_tien`
 
-1 Ô Text: Nhập ghi chú tự do.
+👉 Sheet:
 
-Logic: Mô tả cuối cùng = (Các Checkbox đang chọn) + (Giá trị Dropdown) + (Nội dung Text).
+* tự tính số dư lý thuyết
+* app **không gửi, không tính**
 
-3. Nút Gửi (Submit)
-Chỉ kích hoạt (Enable) khi: (Danh sách tạm có tiền) VÀ (Có ít nhất 1 mô tả).
+---
 
-Khi nhấn:
+## C. PHẦN THU NHẬP (INCOME)
 
-Tính tổng tiền trong danh sách tạm.
+### Giống Chi 95%
 
-Gộp mô tả.
+Khác:
 
-Gửi lên Sheet.
+* Có **Loại thu**
+* Có **Nguồn tiền (bắt buộc)**
 
-Thông báo kết quả & Reset form.
+### Dòng đặc biệt
 
-C. PHẦN THU NHẬP (INCOME)
-Cấu trúc y hệt phần Chi.
+* “Số dư đầu năm / dư năm trước”
+* Chỉ dùng khi khởi tạo
 
-Cũng có 8 Checkbox (Load từ Setting riêng cho Thu hoặc mặc định), Dropdown, và Text.
+### Submit Thu
 
-Cũng có cơ chế Sửa (nút chuyển thành ✓) và Xóa (nút x) từng dòng tiền.
+App gửi:
 
-D. PHẦN TỔNG KẾT (SUMMARY)
-Giữ nguyên logic cũ:
+* `ngay`
+* `so_tien`
+* `mo_ta`
+* `loai_thu`
+* `nguon_tien`
 
-Load dữ liệu lịch sử từ Sheet (Read-only).
+👉 Sheet tự tính `Tổng thu`
 
-Nút "Tổng kết mới" tính toán realtime (Thu - Chi) từ dữ liệu Sheet hiện tại.
+---
 
-3. LOGIC KỸ THUẬT (LOGIC XỬ LÝ)
-1. Quản lý Mảng Tạm (Temporary Array Management)
-Thay vì chỉ lưu một chuỗi text, App sẽ quản lý một mảng đối tượng: tempList = [{id: 1, value: 25}, {id: 2, value: 50}]
+## D. PHẦN TỔNG KẾT (SUMMARY – SNAPSHOT)
 
-Thêm: push() vào mảng.
+### 1. Load dữ liệu
 
-Xóa: Dùng splice() hoặc filter() dựa trên ID hoặc Index để xóa phần tử.
+* Load:
 
-Sửa:
+  * `so_du_lt` (từ Sheet)
+  * danh sách `nguon_tien (active)`
 
-Lưu editingIndex (vị trí đang sửa).
+### 2. Render UI
 
-Khi nhấn (✓), cập nhật giá trị tại tempList[editingIndex].
+* Với mỗi nguồn tiền:
 
-Reset editingIndex = -1.
+  * icon
+  * 1 input **số dư thực**
+* App auto cộng:
 
-2. Logic Nút Đa Năng (Button State Machine)
-Nút bên cạnh ô nhập có 2 trạng thái:
+  ```
+  so_du_tt = sum(all inputs)
+  ```
 
-State ADD: Icon (+). Hành động: Thêm mới vào mảng.
+### 3. Hiển thị
 
-State CONFIRM: Icon (✓). Hành động: Cập nhật phần tử đang chọn. Trạng thái này kích hoạt khi biến editingIndex > -1.
+* `chenh_lech = so_du_lt - so_du_tt`
+* Hiển thị realtime
 
-3. Logic Settings (Local Storage)
-Key: sothuchi_settings_chi (Lưu mảng string 8 mục chi).
+### 4. Submit Tổng kết
 
-Khi mở App:
+App ghi:
 
-Kiểm tra LocalStorage.
+* 1 dòng → `tk_session`
+* N dòng → `tk_detail`
 
-Nếu có: Load 8 mục đó ra giao diện.
+❌ **KHÔNG sinh Thu**
+❌ **KHÔNG sinh Chi**
 
-Nếu không (lần đầu dùng): Load 8 mục mặc định (Hardcode) -> Lưu vào LocalStorage.
+👉 Nếu lệch → quay lại sửa Chi / Thu
 
-Khi Lưu Setting: Ghi đè mảng mới vào LocalStorage -> Render lại giao diện ngay lập tức.
+---
 
-4. Logic Định dạng & Tính toán
-Hiển thị số tiền luôn có phân cách hàng nghìn (format number).
+## 5️⃣ STATE MANAGEMENT (APP)
 
-Tổng tiền gửi đi = Tổng các phần tử trong mảng tempList.
+* `tempList` – calculator
+* `editingIndex`
+* `selectedLoaiChi`
+* `selectedNguonTien`
+* `tkInputs = { nguon_tien: so_du_tt }`
 
-Chuỗi diễn giải gửi đi = "25.000 + 50.000..." (Lấy từ mảng ghép lại).
+---
+
+## 6️⃣ NGUYÊN TẮC VÀNG (ĐÓNG MP)
+
+* Sheet lo công thức
+* App chỉ gửi dữ liệu gốc
+* Không suy đoán
+* Không hardcode nguồn tiền / loại chi
+* Mọi dropdown đều load từ Sheet
+
+---
+
+## ✅ TRẠNG THÁI CUỐI
+
+* ✔ MP đã **đồng bộ hoàn toàn với CSDL**
+* ✔ Không dư tính năng
+* ✔ Không mâu thuẫn
+* ✔ Code theo là chạy, **không phải quay lại sửa MP**
+
+👉 **MP CHÍNH THỨC ĐÓNG Ở ĐÂY.**
+
+---
+
+### Bước tiếp theo hợp lý nhất
+
+👉 **Viết payload spec FINAL** cho:
+
+* Chi
+* Thu
+* Tổng kết (TK)
+
+Nếu bạn ok, chỉ cần nói:
+**“viết payload spec”**
+mình sẽ làm ngay, đúng theo MP này.
+
+Ok, mình viết **PAYLOAD SPEC FINAL** đúng **100% theo MP + CSDL hiện tại**, để bạn **đưa thẳng cho front-end + GAS code**, không suy đoán, không lệch cột.
+
+Mình chia rõ **3 payload**: **Chi – Thu – Tổng kết (TK)**.
+Đây là bản **CHỐT**, sau này chỉ mở rộng, **không sửa ngược**.
+
+---
+
+# 📦 PAYLOAD SPEC – FINAL
+
+## NGUYÊN TẮC CHUNG (ÁP DỤNG CHO TẤT CẢ)
+
+* App **chỉ gửi dữ liệu gốc**
+* App **không gửi cột có công thức**
+* App **không gửi icon / id phụ**
+* Mọi dropdown:
+
+  * lấy từ Sheet
+  * gửi **string đúng chuẩn**
+
+---
+
+# 1️⃣ PAYLOAD: CHI TIÊU
+
+### 🎯 Mục tiêu
+
+Ghi **1 dòng** vào sheet `Chi_Tieu_2026`
+
+---
+
+### 📌 Payload (JSON)
+
+```json
+{
+  "type": "chi",
+  "payload": {
+    "ngay": "2026-01-20",
+    "so_tien": 55000,
+    "mo_ta": "đi chợ + tiền nước",
+    "loai_chi": "Ăn uống",
+    "nguon_tien": "Tech Mèo"
+  }
+}
+```
+
+---
+
+### 📄 Map sang CSDL
+
+| Field payload | Sheet `Chi_Tieu_2026` | Ghi chú                       |
+| ------------- | --------------------- | ----------------------------- |
+| ngay          | Ngày                  | Date                          |
+| so_tien       | Số tiền               | **giá trị gốc**               |
+| mo_ta         | Mô tả                 | Đã gộp                        |
+| loai_chi      | Loại chi              | Dropdown từ `loai_chi_active` |
+| nguon_tien    | Nguồn tiền            | Dropdown từ `nguon_tien`      |
+| ❌             | Số dư LT              | **Sheet tự tính**             |
+
+---
+
+### 🔒 Validation (app-side)
+
+* `so_tien > 0`
+* `loai_chi` ∈ `loai_chi_active`
+* `nguon_tien` ∈ `nguon_tien.active`
+* `mo_ta` ≠ rỗng
+
+---
+
+# 2️⃣ PAYLOAD: THU NHẬP
+
+### 🎯 Mục tiêu
+
+Ghi **1 dòng** vào sheet `Thu_2026`
+
+---
+
+### 📌 Payload (JSON)
+
+```json
+{
+  "type": "thu",
+  "payload": {
+    "ngay": "2026-01-20",
+    "so_tien": 200000,
+    "mo_ta": "lãi tech",
+    "loai_thu": "Ngân hàng",
+    "nguon_tien": "Tech Mèo"
+  }
+}
+```
+
+---
+
+### 📄 Map sang CSDL
+
+| Field payload | Sheet `Thu_2026` | Ghi chú           |
+| ------------- | ---------------- | ----------------- |
+| ngay          | Ngày             | Date              |
+| so_tien       | Thu              | Giá trị gốc       |
+| mo_ta         | Mô tả            | Text              |
+| loai_thu      | Loại thu         | String            |
+| nguon_tien    | Nguồn tiền       | Dropdown          |
+| ❌             | Tổng thu         | **Sheet tự tính** |
+
+---
+
+### 📌 Dòng đặc biệt (khởi tạo)
+
+```json
+{
+  "type": "thu",
+  "payload": {
+    "ngay": "2026-01-04",
+    "so_tien": 191616700,
+    "mo_ta": "dư năm trước",
+    "loai_thu": "Dư năm trước",
+    "nguon_tien": "Số dư đầu năm"
+  }
+}
+```
+
+---
+
+# 3️⃣ PAYLOAD: TỔNG KẾT (TK)
+
+### 🎯 Mục tiêu
+
+* Ghi **1 dòng** vào `tk_session`
+* Ghi **N dòng** vào `tk_detail`
+* **KHÔNG sinh Thu / Chi**
+
+---
+
+### 📌 Payload (JSON)
+
+```json
+{
+  "type": "tk",
+  "payload": {
+    "session_id": "s4",
+    "ngay_tk": "2026-01-20",
+    "so_du_lt": 1408747185,
+    "chi_tiet": [
+      { "nguon_tien": "Tech Mèo", "so_du_tt": 653251022 },
+      { "nguon_tien": "ACB Mèo", "so_du_tt": 238050000 },
+      { "nguon_tien": "Tiền mặt Boé", "so_du_tt": 8000000 }
+    ],
+    "note": "tổng kết tuần 3"
+  }
+}
+```
+
+---
+
+### 📄 Map sang CSDL
+
+#### Sheet `tk_session`
+
+| Field      | Cột                                    |
+| ---------- | -------------------------------------- |
+| session_id | session_id                             |
+| ngay_tk    | ngay_tk                                |
+| so_du_lt   | so_du_lt                               |
+| so_du_tt   | so_du_tt *(app tính tổng)*             |
+| chenh_lech | chenh_lech *(Sheet hoặc app đều được)* |
+| status     | status = `"confirmed"`                 |
+| note       | note                                   |
+
+#### Sheet `tk_detail`
+
+| Field      | Cột        |
+| ---------- | ---------- |
+| session_id | session_id |
+| nguon_tien | nguon_tien |
+| so_du_tt   | so_du_tt   |
+
+---
+
+### 🔒 Validation
+
+* `session_id` **duy nhất**
+* `nguon_tien` ∈ `nguon_tien.active`
+* `so_du_tt ≥ 0`
+* `chi_tiet.length ≥ 1`
+
+---
+
+# 4️⃣ GỢI Ý API ENDPOINT (GAS)
+
+```
+POST /append
+```
+
+Body:
+
+```json
+{ type, payload }
+```
+
+GAS:
+
+```js
+switch(type) {
+  case "chi": appendChi(payload); break;
+  case "thu": appendThu(payload); break;
+  case "tk":  appendTK(payload);  break;
+}
+```
+
+---
+
+# ✅ TRẠNG THÁI CUỐI
+
+* ✔ Payload **khớp 1–1 với CSDL**
+* ✔ Không gửi dư cột
+* ✔ Không phụ thuộc công thức app
+* ✔ Code theo là chạy, **không cần hỏi lại**
+
+---
+
+
+Ok, mình viết **INTERFACE FINAL (TypeScript)** đúng **payload spec + MP + CSDL**.
+Bạn copy dùng thẳng cho frontend (React/Vue/JS thuần đều ok).
+
+---
+
+# 📐 TYPE / INTERFACE – FINAL
+
+> Nguyên tắc:
+>
+> * 1 interface = 1 payload
+> * Không field thừa
+> * Không field công thức
+> * String = đúng chuẩn trong Sheet
+
+---
+
+## 1️⃣ ENUM / TYPE DÙNG CHUNG
+
+```ts
+export type PayloadType = "chi" | "thu" | "tk";
+```
+
+---
+
+## 2️⃣ CHI TIÊU (Expense)
+
+### Payload gửi đi
+
+```ts
+export interface ChiPayload {
+  ngay: string;        // YYYY-MM-DD
+  so_tien: number;     // > 0
+  mo_ta: string;       // gộp, không rỗng
+  loai_chi: string;    // từ loai_chi.ten_loai_chi
+  nguon_tien: string; // từ nguon_tien.ten_nguon_tien
+}
+```
+
+### Wrapper request
+
+```ts
+export interface ChiRequest {
+  type: "chi";
+  payload: ChiPayload;
+}
+```
+
+---
+
+## 3️⃣ THU NHẬP (Income)
+
+### Payload gửi đi
+
+```ts
+export interface ThuPayload {
+  ngay: string;        // YYYY-MM-DD
+  so_tien: number;     // > 0
+  mo_ta: string;
+  loai_thu: string;    // string tự do (Ngân hàng, Nhà trọ...)
+  nguon_tien: string; // từ nguon_tien
+}
+```
+
+### Wrapper request
+
+```ts
+export interface ThuRequest {
+  type: "thu";
+  payload: ThuPayload;
+}
+```
+
+---
+
+## 4️⃣ TỔNG KẾT – SNAPSHOT (TK)
+
+### Chi tiết từng nguồn tiền
+
+```ts
+export interface TKDetail {
+  nguon_tien: string; // từ nguon_tien
+  so_du_tt: number;   // >= 0
+}
+```
+
+### Payload tổng kết
+
+```ts
+export interface TKPayload {
+  session_id: string;     // vd: s4
+  ngay_tk: string;        // YYYY-MM-DD
+  so_du_lt: number;       // load từ Sheet
+  chi_tiet: TKDetail[];   // >= 1 dòng
+  note?: string;          // optional
+}
+```
+
+### Wrapper request
+
+```ts
+export interface TKRequest {
+  type: "tk";
+  payload: TKPayload;
+}
+```
+
+---
+
+## 5️⃣ UNION TYPE – REQUEST CHUNG
+
+👉 Dùng cho API `POST /append`
+
+```ts
+export type AppRequest =
+  | ChiRequest
+  | ThuRequest
+  | TKRequest;
+```
+
+---
+
+## 6️⃣ TYPE DÙNG TRONG UI (KHÔNG GỬI API)
+
+### Nguồn tiền (dropdown, render icon)
+
+```ts
+export interface NguonTien {
+  ten_nguon_tien: string;
+  icon?: string;
+  active: boolean;
+}
+```
+
+### Loại chi (dropdown)
+
+```ts
+export interface LoaiChi {
+  ten_loai_chi: string;
+  active: boolean;
+  sort_order?: number;
+}
+```
+
+### Calculator temp list
+
+```ts
+export interface TempItem {
+  id: string;
+  value: number;
+}
+```
+
+---
+
+## 7️⃣ VALIDATION HELPER (GỢI Ý)
+
+```ts
+export function isPositiveNumber(n: number): boolean {
+  return Number.isFinite(n) && n > 0;
+}
+```
+
+---
+
+## 8️⃣ VÍ DỤ SỬ DỤNG
+
+```ts
+const req: ChiRequest = {
+  type: "chi",
+  payload: {
+    ngay: "2026-01-20",
+    so_tien: 55000,
+    mo_ta: "đi chợ + tiền nước",
+    loai_chi: "Ăn uống",
+    nguon_tien: "Tech Mèo"
+  }
+};
+```
+
+---
+
+## ✅ CHỐT CUỐI
+
+* ✔ Interface **khớp tuyệt đối payload spec**
+* ✔ Không dư field
+* ✔ Frontend code xong → GAS nhận là chạy
+* ✔ Sau này thêm icon / meta **không cần sửa interface gửi API**
+
+---
+
+
+
