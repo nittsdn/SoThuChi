@@ -30,7 +30,7 @@
         <section class="section-card">
             <h2 class="section-title">📉 Phần Chi</h2>
             <div class="input-group">
-                <input type="number" id="expense-amount" placeholder="Nhập số tiền (VD: 25)" class="amount-input">
+                <input type="number" id="expense-amount" placeholder="Nhập số tiền (VD: 25)" class="amount-input" aria-label="Nhập số tiền chi">
                 <button class="add-btn" id="expense-add-btn" onclick="addExpenseToList()">+</button>
             </div>
             <div id="expense-list" class="temp-list"></div>
@@ -53,7 +53,7 @@
         <section class="section-card">
             <h2 class="section-title">📈 Phần Thu</h2>
             <div class="input-group">
-                <input type="number" id="income-amount" placeholder="Nhập số tiền" class="amount-input">
+                <input type="number" id="income-amount" placeholder="Nhập số tiền" class="amount-input" aria-label="Nhập số tiền thu">
                 <button class="add-btn" id="income-add-btn" onclick="addIncomeToList()">+</button>
             </div>
             <div id="income-list" class="temp-list"></div>

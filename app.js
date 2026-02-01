@@ -1,6 +1,7 @@
 // Configuration
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-_-I6LLrifbZZPscBDUN9jufEyYrtf2tIIjtGihIScCU2tFp-HtuIgLkw6NqU0mUfOsEe9lIBTnIc/pub?gid=1944311512&single=true&output=csv';
 const DEFAULT_CHECKBOXES = ['ăn sáng', 'đi chợ', 'nạp điện thoại', 'tiền điện', 'tiền nước', 'quà tết', 'mua ccq', 'tóc'];
+const MAX_CHECKBOXES = 8;
 
 // State management
 let expenseList = [];
@@ -48,19 +49,52 @@ async function loadSheetData() {
 // Parse CSV data
 function parseCSV(csv) {
     const lines = csv.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
+    const headers = parseCSVLine(lines[0]);
     const data = [];
     
     for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',');
+        const values = parseCSVLine(lines[i]);
         const row = {};
         headers.forEach((header, index) => {
-            row[header] = values[index] ? values[index].trim() : '';
+            row[header] = values[index] || '';
         });
         data.push(row);
     }
     
     return data;
+}
+
+// Parse a single CSV line handling quoted fields with commas
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+        
+        if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+                // Escaped quote
+                current += '"';
+                i++;
+            } else {
+                // Toggle quote state
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            // Field separator
+            result.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    
+    // Add last field
+    result.push(current.trim());
+    return result;
 }
 
 // Extract unique descriptions from sheet
@@ -160,7 +194,7 @@ function displayExpenseList() {
     expenseList.forEach((expense, index) => {
         const item = document.createElement('div');
         item.className = 'list-item';
-        item.innerHTML = `Chi : ${formatCurrency(expense.amount)}`;
+        item.innerHTML = `Chi: ${formatCurrency(expense.amount)}`;
         item.onclick = () => editExpense(index);
         container.appendChild(item);
     });
@@ -249,7 +283,7 @@ function displayIncomeList() {
     incomeList.forEach((income, index) => {
         const item = document.createElement('div');
         item.className = 'list-item';
-        item.innerHTML = `Thu : ${formatCurrency(income.amount)}`;
+        item.innerHTML = `Thu: ${formatCurrency(income.amount)}`;
         item.onclick = () => editIncome(index);
         container.appendChild(item);
     });
@@ -434,8 +468,8 @@ function saveSettings() {
     const checkboxes = document.querySelectorAll('#settings-checkboxes input[type="checkbox"]:checked');
     const selected = Array.from(checkboxes).map(cb => cb.value);
     
-    if (selected.length !== 8) {
-        alert('Vui lòng chọn đúng 8 mô tả');
+    if (selected.length !== MAX_CHECKBOXES) {
+        alert(`Vui lòng chọn đúng ${MAX_CHECKBOXES} mô tả`);
         return;
     }
     
