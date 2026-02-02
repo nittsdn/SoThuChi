@@ -537,7 +537,7 @@ function changeDate(type, delta) {
 
 function updateDateDisplay(type) {
   const btn = document.getElementById(`current-day${type === 'thu' ? '-thu' : ''}`);
-  btn.textContent = `Hôm nay (Chọn ngày) - ${formatDate(state[type === 'chi' ? 'selectedDateChi' : 'selectedDateThu'])}`;
+  btn.textContent = formatDate(state[type === 'chi' ? 'selectedDateChi' : 'selectedDateThu']);
 }
 
 function showDatePicker(type) {
