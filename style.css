@@ -37,6 +37,7 @@ header {
 
 main {
     padding: 16px;
+    padding-bottom: 80px;
     flex: 1;
 }
 
@@ -52,6 +53,7 @@ main {
     margin-bottom: 12px;
     display: flex;
     align-items: center;
+    gap: 8px;
 }
 
 input, select {
@@ -64,26 +66,58 @@ input, select {
 }
 
 button {
-    padding: 12px;
+    padding: 12px 16px;
     border-radius: 10px;
     border: none;
     background: #007aff;
     color: #fff;
     font-size: 16px;
     cursor: pointer;
+    white-space: nowrap;
+    min-width: fit-content;
 }
 
     button:disabled {
         background: #ccc;
     }
 
+/* Main action buttons */
+#btn-add-chi,
+#btn-add-thu,
+#btn-check-tk,
+#btn-confirm-tk {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 8px;
+}
+
+/* Buttons in rows with inputs */
+.row button {
+    flex: 0 0 auto;
+}
+
+/* Special handling for add/clear buttons in chi screen */
+#add-temp,
+#clear-last,
+#clear-all,
+#add-new-mota-chi,
+#add-new-mota-thu,
+#manage-quick-chi,
+#manage-quick-thu,
+#manage-quick-loai-thu,
+#reset-settings {
+    padding: 10px 16px;
+}
+
 .chip {
     display: inline-block;
-    padding: 6px 12px;
+    padding: 8px 16px;
     border-radius: 999px;
     background: #e5e5ea;
     margin: 4px 4px 0 0;
     cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
 }
 
     .chip.active {
@@ -91,9 +125,18 @@ button {
         color: #fff;
     }
 
-.date-selector button {
+.date-selector {
+    gap: 4px;
+}
+
+.date-selector button:first-child,
+.date-selector button:last-child {
+    flex: 0 0 auto;
+    min-width: 50px;
+}
+
+.date-selector button:nth-child(2) {
     flex: 1;
-    margin: 0 4px;
 }
 
 .tab-bar {
@@ -178,6 +221,82 @@ body.dark {
         body.dark button:disabled {
             background: #3a3a3c;
         }
+
+/* Section styling for settings */
+.section {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #ddd;
+}
+
+.section:last-child {
+    border-bottom: none;
+}
+
+.section h4 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #666;
+}
+
+body.dark .section {
+    border-color: #3a3a3c;
+}
+
+body.dark .section h4 {
+    color: #999;
+}
+
+.section label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.section input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: auto;
+}
+
+/* Chip container layout */
+#chi-chips,
+#thu-chips,
+#loai-thu-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 40px;
+}
+
+/* Preview text styling */
+#chi-preview {
+    font-size: 16px;
+    font-weight: 600;
+    color: #007aff;
+    min-height: 24px;
+}
+
+body.dark #chi-preview {
+    color: #0a84ff;
+}
+
+/* Last expense/income display */
+#last-expense,
+#last-income {
+    background: #f9f9f9;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+body.dark #last-expense,
+body.dark #last-income {
+    background: #2c2c2e;
+}
 
 /* Responsive for PC */
 @media (min-width: 768px) {
