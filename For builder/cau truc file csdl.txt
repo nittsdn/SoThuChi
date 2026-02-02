@@ -1,0 +1,40 @@
+Sheet_ID	Sheet_Name	Column_Index	Column_Name
+0	Chi_Tieu_2026	1	IDChi
+0	Chi_Tieu_2026	2	mo_ta_chi
+0	Chi_Tieu_2026	3	Nguồn tiền
+0	Chi_Tieu_2026	4	Nghìn VND
+0	Chi_Tieu_2026	5	Số tiền vnđ
+0	Chi_Tieu_2026	6	Ngày
+0	Chi_Tieu_2026	7	Số dư lý thuyết
+1	Thu_2026	1	Thu
+1	Thu_2026	2	Ngày
+1	Thu_2026	3	Mô tả
+1	Thu_2026	4	Nguồn tiền
+1	Thu_2026	5	Loại thu
+1	Thu_2026	6	Tổng thu
+1	Thu_2026	7	IDThu
+2	tk_detail	1	session_id
+2	tk_detail	2	ngay_tk
+2	tk_detail	3	nguon_tien
+2	tk_detail	4	so_tien
+3	tk_session	1	session_id
+3	tk_session	2	ngay_tk
+3	tk_session	3	so_du_lt
+3	tk_session	4	so_du_tt
+3	tk_session	5	chenhlech
+3	tk_session	6	status
+3	tk_session	7	note
+4	loai_chi	1	id_chi
+4	loai_chi	2	mo_ta_chi
+4	loai_chi	3	phan_loai
+4	loai_chi	4	nhom
+4	loai_chi	5	icon
+4	loai_chi	6	active
+4	loai_chi	7	sort_order
+4	loai_chi	8	note
+5	nguon_tien	1	nguon_tien
+5	nguon_tien	2	nguoi
+5	nguon_tien	3	nhom
+5	nguon_tien	4	icon
+5	nguon_tien	5	active
+5	nguon_tien	6	note
