@@ -61,11 +61,31 @@ document.body.classList.toggle('dark', state.darkMode);
 init();
 
 async function init() {
-  await loadLoaiChi();
-  await loadNguonTien();
-  await loadLastChi();
-  await loadLastThu();
-  await loadTkSummary();
+  try {
+    await loadLoaiChi();
+  } catch (e) {
+    console.error('Failed to load expense categories (loai chi):', e);
+  }
+  try {
+    await loadNguonTien();
+  } catch (e) {
+    console.error('Failed to load payment sources (nguon tien):', e);
+  }
+  try {
+    await loadLastChi();
+  } catch (e) {
+    console.error('Failed to load last expense (chi):', e);
+  }
+  try {
+    await loadLastThu();
+  } catch (e) {
+    console.error('Failed to load last income (thu):', e);
+  }
+  try {
+    await loadTkSummary();
+  } catch (e) {
+    console.error('Failed to load summary (tong ket):', e);
+  }
   renderQuickChi();
   renderQuickThu();
   renderQuickLoaiThu();
