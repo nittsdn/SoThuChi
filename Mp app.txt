@@ -1,0 +1,305 @@
+# MASTER PLAN APP SỔ THU CHI – FINAL (CẬP NHẬT SETTINGS CHO CẢ THU)
+
+> **Nguyên tắc xuyên suốt**  
+> * App chỉ nhập & gửi dữ liệu gốc (ưu tiên flow viết tay cho Chi)  
+> * Google Sheet tính toàn bộ công thức (id, số dư LT, tổng thu, số tiền vnđ)  
+> * Settings lưu LocalStorage, không lưu dữ liệu tiền  
+> * Phong cách UI: iOS-like 2026, tab bar, navigation mượt, format số: . cho hàng nghìn, , cho thập phân (hiển thị), gửi nội bộ dùng . thập phân
+
+---
+
+## 1️⃣ TỔNG QUAN HỆ THỐNG
+
+* Web App (SPA, phong cách iOS: tab bar, navigation, swipe gestures)
+* Database: **Google Sheets** (sync qua GAS)
+* Không API ngân hàng
+* Không backend phức tạp
+* LocalStorage: lưu **UI settings** (8 mô tả chi thường dùng)
+* CSDL là **source of truth**
+
+---
+
+## 2️⃣ CẤU TRÚC CSDL (KHỚP HOÀN TOÀN VỚI FILE EXCEL MỚI)
+
+### Các sheet chính:
+
+* `Chi_Tieu_2026`
+* `Thu_2026`
+* `loai_chi`
+* `nguon_tien`
+* `tk_session`
+* `tk_detail`
+
+### Header cập nhật (khớp Excel):
+
+- **Chi_Tieu_2026**: IDChi (tự sinh), mo_ta_chi, Nguồn tiền, Nghìn VND, Số tiền vnđ (formula), Ngày, Số dư lý thuyết (formula)
+- **Thu_2026**: Thu, Ngày, Mô tả, Nguồn tiền, Loại thu, Tổng thu (formula), IDThu (tự sinh)
+- **loai_chi**: id_chi (tự sinh), mo_ta_chi, phan_loai, nhom, icon, active, sort_order, note
+- **nguon_tien**: nguon_tien, nguoi, nhom, icon, active, note
+- **tk_session**: session_id (tự sinh), ngay_tk, so_du_lt, so_du_tt, chenhlech (formula), status, note
+- **tk_detail**: session_id, ngay_tk, nguon_tien, so_tien
+
+### Ngày tháng:
+- CSDL: số serial (e.g., 46027 = 01/01/2026)
+- App: hiển thị DD/MM/YYYY (e.g., 30/01/2026), gửi YYYY-MM-DD cho GAS (GAS convert sang serial)
+
+---
+
+## 3️⃣ QUY ƯỚC DỮ LIỆU CHUNG (RẤT QUAN TRỌNG, KHỚP FLOW)
+
+### 🔒 mo_ta_chi (trong Chi_Tieu_2026)
+* = loai_chi.mo_ta_chi (string từ dropdown/8 nút nhanh)
+* App **chỉ cho chọn 1** (theo flow: "chỉ được chọn 1 mô tả")
+* Nếu thêm mới: app gửi insertLoaiChi (mo_ta_chi mới, phan_loai, nhom, icon mặc định, active=true, sort_order max+1)
+
+### 🔒 Nguồn tiền
+* = nguon_tien.nguon_tien (string từ dropdown)
+* App **chỉ cho chọn**, không gõ tay, lọc active=true
+
+### 🔒 Loại thu (trong Thu_2026)
+* String tự do (e.g., "Ngân hàng", "Nhà trọ")
+
+### 🔒 ID tự sinh
+* IDChi/IDThu/session_id: Sheet/GAS tự tạo (e.g., c1, t1, s1), app không gửi
+
+### 🔒 Số tiền
+* Chi: Nghìn VND = công thức string (e.g., "=25+35"), app gộp từ tempList
+* Thu: Thu = number VNĐ đầy đủ (e.g., 60000, app *1000 từ input)
+
+---
+
+## 4️⃣ GIAO DIỆN & LUỒNG NGƯỜI DÙNG (ƯU TIÊN FLOW VIẾT TAY)
+
+---
+
+## A. HEADER & SETTINGS
+
+### Mở app (Home Screen)
+* Hiển thị thông báo chi cuối: "Chi cuối <mo_ta_chi> Thứ <thứ từ ngày> ngày <DD/MM> tổng <công thức Nghìn VND> = <Số tiền vnđ format .,,>, số dư <Số dư lý thuyết format .,,>"
+* Tab bar: Chi | Thu | Tổng kết | Settings
+
+### Settings (màn hình chính – tổ chức rõ ràng, hỗ trợ cả Chi & Thu)
+
+Cấu trúc Settings chia thành các section rõ ràng, dễ scroll:
+
+1. **Mô tả Chi thường dùng** (Quick Chips cho phần Chi)
+   - Chọn tối đa 8 mo_ta_chi từ danh sách loai_chi (active=true, sort by sort_order)
+   - Hiển thị dạng grid 2x4 hoặc carousel ngang
+   - Nút "Quản lý" → mở list đầy đủ để chọn/thay đổi thứ tự
+   - Lưu vào LocalStorage: array<string> (8 mo_ta_chi)
+
+2. **Mô tả Thu thường dùng** (Quick Chips cho phần Thu) – **MỚI**
+   - Tương tự phần Chi: chọn tối đa 8 mô tả thu nhập thường dùng (text tự do)
+   - Người dùng nhập tay hoặc chọn từ lịch sử Thu gần đây (nếu có)
+   - Hiển thị grid 2x4
+   - Lưu LocalStorage: array<string> (8 mo_ta thường dùng cho Thu)
+
+3. **Loại thu thường dùng** (Quick select cho phần Thu) – **MỚI**
+   - Chọn tối đa 5–8 loại thu phổ biến (ví dụ: "Ngân hàng", "Nhà trọ", "Cho mượn", "Khác", "Lãi suất", "Bán đồ cũ"...)
+   - Có thể nhập tay hoặc lấy từ lịch sử
+   - Hiển thị dạng tag/chip, dễ chọn nhanh trong phần Thu
+   - Lưu LocalStorage: array<string>
+
+4. **Cài đặt chung**
+   - Locale & Format số (mặc định VN: . nghìn, , thập phân)
+   - Dark/Light mode
+   - Thông báo push (nếu có sau này)
+   - Backup/Export sheet link
+   - Reset settings (xóa LocalStorage)
+
+5. **Dữ liệu nền (read-only, xem để tham khảo)**
+   - Danh sách tất cả nguon_tien (active)
+   - Danh sách tất cả loai_chi (active)
+
+→ **Lợi ích**: Settings giờ đối xứng hoàn toàn giữa Chi và Thu → người dùng có thể cấu hình nhanh cả hai phần mà không cần vào màn hình Chi/Thu riêng lẻ.
+
+---
+
+## B. PHẦN CHI TIÊU (EXPENSE) – KHỚP FLOW
+
+### 1. Chọn ngày
+* 3 nút: << (lùi ngày), [Ngày hiện tại – nhấn mở date picker], >> (tiến ngày)
+* Mặc định: hôm nay (YYYY-MM-DD)
+
+### 2. Nhập số tiền (Calculator – hỗ trợ +)
+* Ghi chú: "x 1000" (hiển thị dưới textbox)
+* Textbox nhập: gõ số/thập phân (dùng , cho thập phân, app convert sang . nội bộ)
+* Nhấn +: thêm vào tempList, hiển thị ngay dưới: "25.000 + 35.000 = 60.000" (format . .)
+* Sửa: nhấn vào "25.000" → load 25 vào textbox, quét khối sẵn, sửa → update tempList
+* Nếu blur textbox mà không thay đổi: xác nhận
+* Nút Xóa: xóa tempItem cuối
+* Nút Reset: xóa hết tempList (không reset mo_ta_chi/nguồn)
+* Nội bộ: tempList = [{id: uuid, value: number}]
+
+### 3. Chọn mo_ta_chi
+* 8 nút nhanh (chip, từ settings, icon từ loai_chi.icon)
+* Dropdown: các mo_ta_chi còn lại (active=true, sort_order)
+* Chỉ chọn 1 (nút độc quyền)
+* Nút "Thêm mới": popup với fields: mo_ta_chi (text), phan_loai (dropdown từ distinct loai_chi.phan_loai), nhom (dropdown từ distinct loai_chi.nhom)
+* Nút Thêm enable khi đủ → gửi insertLoaiChi qua GAS, refresh dropdown
+
+### 4. Chọn nguồn tiền
+* Dropdown: nguon_tien.nguon_tien (active=true, render icon)
+* Bắt buộc chọn
+
+### 5. Submit Chi
+* Nút "Thêm chi tiêu" enable khi: tempList >=1, mo_ta_chi, nguồn tiền
+* App gộp: so_tien_nghin = "=" + tempList.map(v => v.value).join("+")
+* Gửi payload Chi qua GAS
+* Thông báo: "Đã thêm vào chi tiêu <mo_ta_chi> <tempList format .000 + ...> = <tổng vnđ> nguồn <nguồn tiền> Thứ <thứ> ngày <DD/MM/YYYY> thành công"
+* Reload chi cuối, reset form chờ nhập mới
+
+---
+
+## C. PHẦN THU NHẬP (INCOME) – ĐƯỢC CẢI THIỆN NHỜ SETTINGS
+
+* Ngày: 3 nút <<, Ngày hiện tại (date picker), >>
+* Số tiền: 1 textbox lớn (VNĐ đầy đủ), tự format . cho hàng nghìn khi gõ (ví dụ gõ 60000 → "60.000")
+* Mô tả: 
+  - 8 quick chips (từ Settings phần "Mô tả Thu thường dùng")
+  - Dropdown các mô tả cũ (từ lịch sử Thu)
+  - Text tự do nếu không chọn quick
+* Loại thu:
+  - Quick chips/tags từ Settings phần "Loại thu thường dùng" (5–8 cái)
+  - Dropdown lịch sử hoặc text tự do
+* Nguồn tiền: dropdown (active=true, icon)
+* Nút "Thêm thu nhập" enable khi đủ fields
+* Submit → thông báo: "Đã thêm thu <Mô tả> <số tiền format> nguồn <nguồn> Thứ <thứ> ngày <DD/MM/YYYY> thành công"
+* Reload thu cuối (nếu muốn hiển thị tương tự chi cuối), reset form
+
+→ Phần Thu giờ nhanh tương đương Chi nhờ quick chips từ Settings.
+
+---
+
+## D. PHẦN TỔNG KẾT (SUMMARY) – KHỚP FLOW
+
+### 1. Nhấn "Làm tổng kết"
+* Load: so_du_lt (từ Sheet Chi cuối), danh sách nguon_tien (active=true)
+
+### 2. Nhập số dư thực tế
+* Với mỗi nguon_tien: 1 textbox (format tự động: gõ 1253251157 → "1.253.251,157" nếu thập phân, nhưng thường nguyên)
+* App tính so_du_tt = sum tất cả input
+
+### 3. Kiểm tra & Chỉnh sửa
+* Nút "Kiểm tra" enable khi đủ input
+* Tính chenhlech = so_du_lt - so_du_tt (hiển thị ngay)
+* Hiển thị: "Từ ngày <ngày tk trước +1> đến ngày hiện tại\nSố dư LT: <format>\nSố dư TT: <format>\nChênh lệch: <format> (Thiếu/Thừa)"
+* Bảng chi tiết chi theo nguồn: "Nguồn A: <tổng chi từ nguồn A trong kỳ> [nút xem chi tiết]"
+* Nút xem: load list Chi từ nguồn đó (trong kỳ: từ ngày tk trước +1 đến nay)
+  - List: mo_ta_chi, Nghìn VND (công thức), Số tiền vnđ, Ngày
+  - Cho sửa Nghìn VND (công thức, như calculator)
+  - Nút "Xác nhận sửa": gửi updateChi qua GAS, reload tổng kết, update chenhlech
+
+### 4. Submit Tổng kết
+* Khi ổn → nhấn "Xác nhận tổng kết"
+* App sinh session_id = max +1 (e.g., s4)
+* Gửi payload TK (tk_session + tk_detail rows)
+* Thông báo: "Đã tổng kết thành công kỳ từ ngày - ngày... số dư LT:... TT:... chênh lệch...."
+* Status = "confirmed"
+
+---
+
+## 5️⃣ LOGIC KỸ THUẬT (CẬP NHẬT)
+
+### 5.1 State Management
+* tempList: TempItem[] (cho Chi)
+* selectedMoTaChi: string
+* selectedNguonTien: string
+* tkInputs: { [nguon_tien: string]: number } (so_du_tt)
+* quickMoTaChi: string[] (từ LocalStorage, max 8)
+* quickMoTaThu: string[] (từ LocalStorage, max 8)
+* quickLoaiThu: string[] (từ LocalStorage, max 8)
+
+### 5.2 Load Settings
+- Khi mở app: đọc LocalStorage → nếu chưa có, gợi ý mặc định (ví dụ 8 mo_ta_chi phổ biến từ loai_chi sort_order thấp nhất)
+
+### 5.3 Nguyên tắc vàng
+* Sheet: lo công thức, id
+* App: gửi dữ liệu gốc, format hiển thị riêng
+* TK: snapshot + hỗ trợ sửa Chi (qua GAS updateChi)
+
+---
+
+## ✅ KẾT LUẬN CUỐI
+
+* MP đã chỉnh khớp CSDL mới + ưu tiên flow viết tay
+* Thêm hỗ trợ sửa Chi trong tổng kết (không mâu thuẫn, vì update qua GAS)
+* Settings đã được tổ chức **đầy đủ và đối xứng** cho cả Chi và Thu: quick chips mô tả + loại thu → làm cho phần Thu nhanh, tiện lợi tương tự Chi.
+* Phần Thu giờ nhanh tương đương Chi nhờ quick chips từ Settings.
+* MP đóng, sẵn sàng code front-end (React/Vue + Tailwind cho iOS style) và GAS backend.
+
+---
+
+## 6️⃣ PAYLOAD SPEC (KHỚP GAS & CSDL)
+
+### ChiPayload
+```ts
+export interface ChiPayload {
+  ngay: string;          // YYYY-MM-DD
+  so_tien_nghin: string; // "=25+35" (công thức)
+  mo_ta_chi: string;     // từ loai_chi.mo_ta_chi
+  nguon_tien: string;    // từ nguon_tien
+}
+```
+
+### ThuPayload
+```ts
+export interface ThuPayload {
+  ngay: string;       // YYYY-MM-DD
+  so_tien: number;    // VNĐ đầy đủ (>0)
+  mo_ta: string;      // text tự do
+  loai_thu: string;   // text tự do
+  nguon_tien: string;
+}
+```
+
+### TKDetail
+```ts
+export interface TKDetail {
+  nguon_tien: string;
+  so_tien: number;    // so_du_tt VNĐ
+}
+```
+
+### TKPayload
+```ts
+export interface TKPayload {
+  ngay_tk: string;     // YYYY-MM-DD
+  so_du_lt: number;    // từ Sheet
+  chi_tiet: TKDetail[];
+  note?: string;
+}
+```
+
+### Union Request (POST /append)
+```ts
+export type AppRequest =
+  | { type: "chi"; payload: ChiPayload }
+  | { type: "thu"; payload: ThuPayload }
+  | { type: "tk"; payload: TKPayload }
+  | { type: "insert_loai_chi"; payload: { mo_ta_chi: string; phan_loai: string; nhom: string; icon?: string } }  // Thêm mới
+  | { type: "update_chi"; payload: { idChi: string; so_tien_nghin: string } };  // Sửa trong TK
+```
+
+### Validation Helper
+```ts
+export function isPositiveNumber(n: number): boolean {
+  return Number.isFinite(n) && n > 0;
+}
+```
+
+---
+
+## 7️⃣ VÍ DỤ SỬ DỤNG
+
+```ts
+const chiReq: AppRequest = {
+  type: "chi",
+  payload: {
+    ngay: "2026-01-30",
+    so_tien_nghin: "=25+35",
+    mo_ta_chi: "Đi chợ",
+    nguon_tien: "Tech Mèo"
+  }
+};
+```
