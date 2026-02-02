@@ -145,7 +145,7 @@ async function loadLastChi() {
   // Fetch last row from Chi_Tieu_2026 (gid=2 for Chi sheet)
   const res = await fetch(`${SHEET_BASE}?gid=2&single=true&output=csv`);
   const text = await res.text();
-  const rows = text.split('\n').filter(row => row.trim() !== ''); // Filter empty rows
+  const rows = parseCSVRows(text);
   const last = rows[rows.length - 1].split(',');
   state.lastChi = {
     moTa: last[1],
@@ -163,7 +163,7 @@ async function loadLastThu() {
   // Fetch last row from Thu_2026 (gid=1 for Thu sheet)
   const res = await fetch(`${SHEET_BASE}?gid=1&single=true&output=csv`);
   const text = await res.text();
-  const rows = text.split('\n').filter(row => row.trim() !== ''); // Filter empty rows
+  const rows = parseCSVRows(text);
   const last = rows[rows.length - 1].split(',');
   state.lastThu = {
     moTa: last[2],
@@ -179,7 +179,7 @@ async function loadTkSummary() {
   // Fetch tk_session last row for lastTkDate and soDuLT (gid=3 for tk_session sheet)
   const res = await fetch(`${SHEET_BASE}?gid=3&single=true&output=csv`);
   const text = await res.text();
-  const rows = text.split('\n').filter(row => row.trim() !== ''); // Filter empty rows
+  const rows = parseCSVRows(text);
   const last = rows[rows.length - 1].split(',');
   state.lastTkDate = serialToDate(last[1]);
   state.soDuLT = parseFloat(last[2]);
@@ -200,6 +200,10 @@ async function loadTkSummary() {
 /***********************
  * HELPERS
  ***********************/
+function parseCSVRows(text) {
+  return text.split('\n').filter(row => row.trim() !== '');
+}
+
 function formatNumber(num) {
   if (isNaN(num)) return '0';
   const [int, dec] = num.toString().split('.');
