@@ -142,10 +142,10 @@ async function loadNguonTien() {
 }
 
 async function loadLastChi() {
-  // Fetch last row from Chi_Tieu_2026 (gid assume 0 for Chi)
-  const res = await fetch(`${SHEET_BASE}?gid=0&single=true&output=csv`); // Adjust gid if needed
+  // Fetch last row from Chi_Tieu_2026 (gid=2 for Chi sheet)
+  const res = await fetch(`${SHEET_BASE}?gid=2&single=true&output=csv`);
   const text = await res.text();
-  const rows = text.split('\n');
+  const rows = text.split('\n').filter(row => row.trim() !== ''); // Filter empty rows
   const last = rows[rows.length - 1].split(',');
   state.lastChi = {
     moTa: last[1],
@@ -160,10 +160,10 @@ async function loadLastChi() {
 }
 
 async function loadLastThu() {
-  // Similar to loadLastChi, adjust gid for Thu_2026
-  const res = await fetch(`${SHEET_BASE}?gid=1&single=true&output=csv`); // Assume gid=1
+  // Fetch last row from Thu_2026 (gid=1 for Thu sheet)
+  const res = await fetch(`${SHEET_BASE}?gid=1&single=true&output=csv`);
   const text = await res.text();
-  const rows = text.split('\n');
+  const rows = text.split('\n').filter(row => row.trim() !== ''); // Filter empty rows
   const last = rows[rows.length - 1].split(',');
   state.lastThu = {
     moTa: last[2],
@@ -176,10 +176,10 @@ async function loadLastThu() {
 }
 
 async function loadTkSummary() {
-  // Fetch tk_session last row for lastTkDate and soDuLT
-  const res = await fetch(`${SHEET_BASE}?gid=3&single=true&output=csv`); // Assume gid=3 for tk_session
+  // Fetch tk_session last row for lastTkDate and soDuLT (gid=3 for tk_session sheet)
+  const res = await fetch(`${SHEET_BASE}?gid=3&single=true&output=csv`);
   const text = await res.text();
-  const rows = text.split('\n');
+  const rows = text.split('\n').filter(row => row.trim() !== ''); // Filter empty rows
   const last = rows[rows.length - 1].split(',');
   state.lastTkDate = serialToDate(last[1]);
   state.soDuLT = parseFloat(last[2]);
