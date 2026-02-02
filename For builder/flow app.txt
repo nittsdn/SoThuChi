@@ -1,0 +1,26 @@
+cần app sothuchi dùng cá nhân có giao diện phong cách ios 26, flow như sau:
+Tôi mở app, thấy thông báo chi cuối: Chi cuối <mo_ta_chi> Thứ <thứ suy ra từ ngày> ngày <ngày chi> tổng <Nghìn vnd> = <số tiền vnd>, số dư <số dư lý thuyết>
+Phần chi
+	3 nút chọn ngày: << (lùi ngày) <nút hiện ngày hiện tại, nhấn mở map chọn ngày bất kì>, >> (nút tiến ngày)
+Số tiền: ghi chú: x 1000, nhập vd 25 thì bên dưới hiện liền 25.000, nhấn nút + kế bên, app xoá text box nhập và đưa trỏ về ngay, nhập tiếp 35, app hiện 25.000 + 35.000 = 60.000. Cần sửa thì nhấn vào vd 25.000, app load 25 lên text box, quét khối sẵn, sửa là đổi theo. Nếu ko nhập gì khác mà nhấn chỗ khác thì coi như xác nhận, nếu đổi thì app đổi theo. Có nút xoá để xoá từng số đã chọn và nút xoá hết làm lại (reset phần mô tả nếu đã chọn)
+Bên dưới là phần chọn mo_ta_chi với 8 mục (được lựa chọn trong setting) dạng nút, chỉ được chọn 1 mô tả, các mô tả còn lại nằm trong dropdown list ngay dưới, và có nút thêm mô tả nếu cần thêm mới mô tả. Nếu nhấn thêm mới thì hiện cửa sổ nhỏ, cho điền các thông tin như mô tả, chọn loại chi và nút thêm enable khi đủ đk.
+Phần chọn nguồn tiền cũng tương tự như mô tả chi
+khi đã có số tiền vd 25.000 + 35.000 = 60.000 và mô tả, nguồn tiền  thì nút Thêm chi tiêu được enable, nhấn vào, app đưa dữ liệu cho google sheet (đảm bảo các cột id, có công thức...còn lại tự sinh ra dữ liệu tương ứng) app trả thông báo: Đã thêm vào chi tiêu đi chợ 25.000 + 35.000 = 60.000 nguồn <nguồn tiền> Thứ hai ngày 30/01/2026 thành công. App load lại chi tiêu cuối và trở về trạng thái chờ nhập chi mới
+
+Phần thu làm tương tự, lưu ý là bảng thu truyền dữ liệu hơi khác.
+
+Phần tổng kết: tôi nhất nút Làm tổng kết, app hiện các text box cho nhập các số dư tk tương ứng (app load từ csdl các loại tk) mỗi tk là 1 text box riêng, khi nhập số sẽ hiển thị dạng như vd: 1.253.251,157. App tự sinh dấu phân cách, thập phân thì tôi đánh dấu , 
+khi nhập đủ số lượng tk, nút kiểm tra sẽ enable, nhấn vào, app sẽ tính chênh lệch = số dư lý thuyết - số dư thực tế. và thống kê ra tổng chi từ các nguồn tiền để đối chiếu vd:
+Kết quả: Từ ngày <ngày làm tk trước đó +1> đến ngày hiện tại
+
+số dư lý thuyết 1000 
+Số dư thực tế 900
+Thiếu 100
+Bảng chi tiết chi:
+Nguồn a: 200 <nút xem chi tiết, nhấn vào load các chi từ nguồn a trong thời gian chọn làm tk, khi load lên cho phép sửa số tiền ở dữ liệu đã load> nút xác nhận sửa, nhấn nút cập nhật lại và update chênh lệch lại. 
+Nguồn b: 300......
+....
+Sau khi đã kiểm tra và chỉnh sửa và chấp nhận số bản tổng kết với số chênh lệch trong khoảng tôi thấy ổn thì nhấn nút xác nhận tổng kết, app đưa dữ liệu lên csdl và thông báo Đã tổng kết thành công kì từ ngày - ngày...số dư lý thuyết:...số dư thực...chênh lệch....
+---
+
+---
