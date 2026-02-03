@@ -1,7 +1,60 @@
-/**************************************************
- * HELPER CHUNG
- **************************************************/
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetName = e.parameter.sheet; // App gửi lên tham số ?sheet=Chi_Tieu_2026
+  
+  // 1. Xử lý nếu không gửi tên sheet hoặc gửi sai
+  if (!sheetName) {
+    return responseJSON({ "status": "error", "message": "Thiếu tham số 'sheet'" });
+  }
+  
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    return responseJSON({ "status": "error", "message": "Sheet không tồn tại: " + sheetName });
+  }
 
+  // 2. Lấy toàn bộ dữ liệu
+  var data = sheet.getDataRange().getValues();
+  
+  // Nếu sheet trống
+  if (data.length === 0) {
+    return responseJSON({ "status": "success", "data": [] });
+  }
+
+  // 3. Tách Header (dòng 1) và Body
+  var headers = data.shift(); // Lấy dòng đầu làm mảng key
+  var result = [];
+
+  // 4. Map dữ liệu thành mảng Object JSON
+  // Ví dụ: [{ "IDChi": "c1", "mo_ta_chi": "Đi chợ", ... }, ...]
+  data.forEach(function(row) {
+    var item = {};
+    for (var i = 0; i < headers.length; i++) {
+      // Ép kiểu dữ liệu Date về String chuẩn ISO để App dễ parse nếu cần
+      if (row[i] instanceof Date) {
+        item[headers[i]] = Utilities.formatDate(row[i], Session.getScriptTimeZone(), "yyyy-MM-dd");
+      } else {
+        item[headers[i]] = row[i];
+      }
+    }
+    result.push(item);
+  });
+
+  return responseJSON({ 
+    "status": "success", 
+    "sheet": sheetName,
+    "total_rows": result.length,
+    "data": result 
+  });
+}
+
+// Hàm phụ trợ trả về JSON
+function responseJSON(object) {
+  return ContentService.createTextOutput(JSON.stringify(object))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+/************************************************** Phần ghi
+ * HELPER: LẤY ID TIẾP THEO (c1, c2 / t1, t2)
+ **************************************************/
 function getNextId(sheet, colIndex, prefix) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return prefix + '1';
@@ -14,159 +67,90 @@ function getNextId(sheet, colIndex, prefix) {
 
   if (values.length === 0) return prefix + '1';
 
-  const maxNum = Math.max(...values.map(v => Number(v.replace(prefix, ''))));
+  const maxNum = Math.max(
+    ...values.map(v => Number(v.replace(prefix, '')))
+  );
+
   return prefix + (maxNum + 1);
 }
 
-function findRowById(sheet, id, colIndex) {
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) throw new Error('Sheet empty');
-
-  const data = sheet
-    .getRange(2, colIndex, lastRow - 1, 1)
-    .getValues()
-    .flat();
-
-  const idx = data.findIndex(v => v === id);
-  if (idx === -1) throw new Error('ID not found: ' + id);
-
-  return idx + 2;
-}
-
 /**************************************************
- * CHI TIÊU – Sheet: Chi_Tieu_2026
+ * INSERT CHI – Sheet: Chi_Tieu_2026
+ * Cột:
  * A IDChi
- * B Mô tả
- * C Nguồn tiền
- * D Nghìn VND          <-- FORMULA
- * E Số tiền vnđ        <-- FORMULA
- * F Ngày
- * G Số dư LT           <-- FORMULA
+ * B Chi tiêu (mô tả)
+ * C Loại chi
+ * D Nguồn tiền
+ * E Số tiền (/1000)  <-- FORMULA
+ * F Số tiền vnđ      <-- công thức
+ * G Ngày
+ * H Số dư LT         <-- công thức
  **************************************************/
-
 function insertChi(payload) {
   const sh = SpreadsheetApp.getActive().getSheetByName('Chi_Tieu_2026');
   const r = sh.getLastRow() + 1;
-  const id = getNextId(sh, 1, 'c');
 
-  sh.getRange(r, 1).setValue(id);
-  sh.getRange(r, 2).setValue(payload.moTa);
-  sh.getRange(r, 3).setValue(payload.nguon);
-  sh.getRange(r, 4).setFormula(payload.soTienNghinVND);
-  sh.getRange(r, 6).setValue(payload.ngay);
-}
+  const idChi = getNextId(sh, 1, 'c');
 
-function updateChi(payload) {
-  const sh = SpreadsheetApp.getActive().getSheetByName('Chi_Tieu_2026');
-  const r = findRowById(sh, payload.idChi, 1);
-
-  sh.getRange(r, 2).setValue(payload.moTa);
-  sh.getRange(r, 3).setValue(payload.nguon);
-  sh.getRange(r, 4).setFormula(payload.soTienNghinVND);
-  sh.getRange(r, 6).setValue(payload.ngay);
-}
-
-function deleteChi(idChi) {
-  const sh = SpreadsheetApp.getActive().getSheetByName('Chi_Tieu_2026');
-  const r = findRowById(sh, idChi, 1);
-  sh.deleteRow(r);
+  sh.getRange(r, 1).setValue(idChi);             // A
+  sh.getRange(r, 2).setValue(payload.moTa);      // B
+  sh.getRange(r, 3).setValue(payload.loaiChi);   // C
+  sh.getRange(r, 4).setValue(payload.nguon);     // D
+  sh.getRange(r, 5).setFormula(payload.soTien1000); // E
+  sh.getRange(r, 7).setValue(payload.ngay);      // G
 }
 
 /**************************************************
- * THU – Sheet: Thu_2026
- * A Thu (VNĐ – app đã nhân)
- * B Ngày
- * C Mô tả
- * D Nguồn tiền
- * E Loại thu
- * F Tổng thu           <-- FORMULA
- * G IDThu
+ * UPDATE CHI – theo IDChi
  **************************************************/
+function updateChiById(payload) {
+  const sh = SpreadsheetApp.getActive().getSheetByName('Chi_Tieu_2026');
+  const data = sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).getValues();
 
+  const idx = data.findIndex(r => r[0] === payload.idChi);
+  if (idx === -1) throw new Error('IDChi not found');
+
+  const r = idx + 2;
+
+  sh.getRange(r, 2).setValue(payload.moTa);
+  sh.getRange(r, 3).setValue(payload.loaiChi);
+  sh.getRange(r, 4).setValue(payload.nguon);
+  sh.getRange(r, 5).setFormula(payload.soTien1000);
+  sh.getRange(r, 7).setValue(payload.ngay);
+}
+
+/**************************************************
+ * INSERT THU – Sheet: Thu_2026
+ * Thu (VNĐ) đã nhân ở app
+ **************************************************/
 function insertThu(payload) {
   const sh = SpreadsheetApp.getActive().getSheetByName('Thu_2026');
   const r = sh.getLastRow() + 1;
-  const id = getNextId(sh, 7, 't');
+  const idThu = getNextId(sh, 7, 't');
+
+  sh.getRange(r, 1).setValue(payload.soTienVND); // A
+  sh.getRange(r, 2).setValue(payload.ngay);      // B
+  sh.getRange(r, 3).setValue(payload.moTa);      // C
+  sh.getRange(r, 4).setValue(payload.nguon);     // D
+  sh.getRange(r, 5).setValue(payload.loaiThu);   // E
+  sh.getRange(r, 7).setValue(idThu);              // G
+}
+
+/**************************************************
+ * UPDATE THU – theo IDThu
+ **************************************************/
+function updateThuById(payload) {
+  const sh = SpreadsheetApp.getActive().getSheetByName('Thu_2026');
+  const data = sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).getValues();
+
+  const idx = data.findIndex(r => r[6] === payload.idThu);
+  if (idx === -1) throw new Error('IDThu not found');
+
+  const r = idx + 2;
 
   sh.getRange(r, 1).setValue(payload.soTienVND);
   sh.getRange(r, 2).setValue(payload.ngay);
   sh.getRange(r, 3).setValue(payload.moTa);
   sh.getRange(r, 4).setValue(payload.nguon);
   sh.getRange(r, 5).setValue(payload.loaiThu);
-  sh.getRange(r, 7).setValue(id);
-}
-
-function updateThu(payload) {
-  const sh = SpreadsheetApp.getActive().getSheetByName('Thu_2026');
-  const r = findRowById(sh, payload.idThu, 7);
-
-  sh.getRange(r, 1).setValue(payload.soTienVND);
-  sh.getRange(r, 2).setValue(payload.ngay);
-  sh.getRange(r, 3).setValue(payload.moTa);
-  sh.getRange(r, 4).setValue(payload.nguon);
-  sh.getRange(r, 5).setValue(payload.loaiThu);
-}
-
-function deleteThu(idThu) {
-  const sh = SpreadsheetApp.getActive().getSheetByName('Thu_2026');
-  const r = findRowById(sh, idThu, 7);
-  sh.deleteRow(r);
-}
-
-/**************************************************
- * LOẠI CHI – Sheet: loai_chi
- * (KHÔNG XOÁ – dữ liệu nền)
- **************************************************/
-
-function insertLoaiChi(payload) {
-  const sh = SpreadsheetApp.getActive().getSheetByName('loai_chi');
-  sh.appendRow([
-    payload.id,
-    payload.ten,
-    payload.nhom,
-    payload.icon,
-    payload.active,
-    payload.sort
-  ]);
-}
-
-function updateLoaiChi(payload) {
-  const sh = SpreadsheetApp.getActive().getSheetByName('loai_chi');
-  const r = findRowById(sh, payload.id, 1);
-
-  sh.getRange(r, 2, 1, 5).setValues([[
-    payload.ten,
-    payload.nhom,
-    payload.icon,
-    payload.active,
-    payload.sort
-  ]]);
-}
-
-/**************************************************
- * NGUỒN TIỀN – Sheet: nguon_tien
- * (KHÔNG XOÁ – dữ liệu nền)
- **************************************************/
-
-function insertNguonTien(payload) {
-  const sh = SpreadsheetApp.getActive().getSheetByName('nguon_tien');
-  sh.appendRow([
-    payload.id,
-    payload.ten,
-    payload.chu,
-    payload.nhom,
-    payload.active
-  ]);
-}
-
-function updateNguonTien(payload) {
-  const sh = SpreadsheetApp.getActive().getSheetByName('nguon_tien');
-  const r = findRowById(sh, payload.id, 1);
-
-  sh.getRange(r, 2, 1, 4).setValues([[
-    payload.ten,
-    payload.chu,
-    payload.nhom,
-    payload.active
-  ]]);
 }

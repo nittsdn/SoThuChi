@@ -1,40 +1,71 @@
-Sheet_ID	Sheet_Name	Column_Index	Column_Name
-0	Chi_Tieu_2026	1	IDChi
-0	Chi_Tieu_2026	2	mo_ta_chi
-0	Chi_Tieu_2026	3	Nguồn tiền
-0	Chi_Tieu_2026	4	Nghìn VND
-0	Chi_Tieu_2026	5	Số tiền vnđ
-0	Chi_Tieu_2026	6	Ngày
-0	Chi_Tieu_2026	7	Số dư lý thuyết
-1	Thu_2026	1	Thu
-1	Thu_2026	2	Ngày
-1	Thu_2026	3	Mô tả
-1	Thu_2026	4	Nguồn tiền
-1	Thu_2026	5	Loại thu
-1	Thu_2026	6	Tổng thu
-1	Thu_2026	7	IDThu
-2	tk_detail	1	session_id
-2	tk_detail	2	ngay_tk
-2	tk_detail	3	nguon_tien
-2	tk_detail	4	so_tien
-3	tk_session	1	session_id
-3	tk_session	2	ngay_tk
-3	tk_session	3	so_du_lt
-3	tk_session	4	so_du_tt
-3	tk_session	5	chenhlech
-3	tk_session	6	status
-3	tk_session	7	note
-4	loai_chi	1	id_chi
-4	loai_chi	2	mo_ta_chi
-4	loai_chi	3	phan_loai
-4	loai_chi	4	nhom
-4	loai_chi	5	icon
-4	loai_chi	6	active
-4	loai_chi	7	sort_order
-4	loai_chi	8	note
-5	nguon_tien	1	nguon_tien
-5	nguon_tien	2	nguoi
-5	nguon_tien	3	nhom
-5	nguon_tien	4	icon
-5	nguon_tien	5	active
-5	nguon_tien	6	note
+=== DATABASE SCHEMA CONFIGURATION ===
+Target Spreadsheet: Database_SoChiTieu.xlsx
+
+[SHEET 1]: Chi_Tieu_2026
+Mô tả: Bảng ghi chép chi tiêu hàng ngày
+-----------------------------------------------------
+Index | Column Name (Header) | Data Type (Gợi ý)
+0     | IDChi                | String (Primary Key)
+1     | mo_ta_chi            | String
+2     | Nguồn tiền           | String (Ref: nguon_tien)
+3     | Nghìn VND            | Float
+4     | Số tiền vnđ          | Integer
+5     | Ngày                 | Date (yyyy-MM-dd)
+6     | Số dư lý thuyết      | Integer
+
+[SHEET 2]: Thu_2026
+Mô tả: Bảng ghi chép các khoản thu nhập
+-----------------------------------------------------
+Index | Column Name (Header) | Data Type (Gợi ý)
+0     | Thu                  | Integer
+1     | Ngày                 | Date (yyyy-MM-dd)
+2     | Mô tả                | String
+3     | Nguồn tiền           | String (Ref: nguon_tien)
+4     | Loại thu             | String
+5     | Tổng thu             | Integer (Cumulative)
+6     | IDThu                | String (Primary Key)
+
+[SHEET 3]: tk_detail
+Mô tả: Chi tiết số dư từng nguồn tiền tại mỗi kỳ kiểm kê
+-----------------------------------------------------
+Index | Column Name (Header) | Data Type (Gợi ý)
+0     | session_id           | String (Ref: tk_session)
+1     | ngay_tk              | Date (yyyy-MM-dd)
+2     | nguon_tien           | String (Ref: nguon_tien)
+3     | so_tien              | Integer
+
+[SHEET 4]: tk_session
+Mô tả: Các phiên kiểm kê (chốt sổ)
+-----------------------------------------------------
+Index | Column Name (Header) | Data Type (Gợi ý)
+0     | session_id           | String (Primary Key)
+1     | ngay_tk              | Date (yyyy-MM-dd)
+2     | so_du_lt             | Integer (Lý thuyết)
+3     | so_du_tt             | Integer (Thực tế)
+4     | chenhlech            | Integer
+5     | status               | String (e.g., confirmed)
+6     | note                 | String
+
+[SHEET 5]: loai_chi
+Mô tả: Danh mục các loại chi tiêu (Category)
+-----------------------------------------------------
+Index | Column Name (Header) | Data Type (Gợi ý)
+0     | id_chi               | String (Primary Key)
+1     | mo_ta_chi            | String
+2     | phan_loai            | String (Group)
+3     | nhom                 | String (Sub-Group)
+4     | icon                 | String (Emoji/Image)
+5     | active               | Boolean (True/False)
+6     | sort_order           | Integer
+7     | note                 | String
+
+[SHEET 6]: nguon_tien
+Mô tả: Danh sách tài khoản/nguồn tiền
+-----------------------------------------------------
+Index | Column Name (Header) | Data Type (Gợi ý)
+0     | nguon_tien           | String (Primary Key)
+1     | nguoi                | String (Owner)
+2     | nhom                 | String (Bank/Cash/Wallet)
+3     | icon                 | String
+4     | active               | Boolean
+5     | note                 | String
