@@ -60,13 +60,20 @@ async function fetchData(sheet) {
   try {
     showLoading(true);
     const response = await fetch(`${API_URL}?sheet=${sheet}`);
-    const data = await response.json();
+    const result = await response.json();
     showLoading(false);
-    return data;
+    
+    // Check status and return data array
+    if (result.status === "success") {
+      return result.data || [];
+    } else {
+      showToast("Lỗi từ API: " + (result.message || "Unknown error"));
+      return [];
+    }
   } catch (error) {
     showLoading(false);
     showToast("Lỗi kết nối API: " + error.message);
-    return null;
+    return [];
   }
 }
 
