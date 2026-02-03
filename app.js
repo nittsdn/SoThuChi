@@ -117,15 +117,7 @@ function setDate(section, value) {
    CHI – INPUT TIỀN (STACK)
 ========================= */
 let chiStack = [];
-
-const chiInput = document.getElementById("chi-input");
-if (chiInput) {
-  chiInput.addEventListener("input", e => {
-    let raw = e.target.value.replace(/[^0-9,]/g, "").replace(/,/g, '.');
-    let num = parseFloat(raw);
-    e.target.value = isNaN(num) ? "" : formatVND(num * 1000);
-  });
-}
+let chiInput; // Will be initialized in DOMContentLoaded
 
 function addChiNumber() {
   const displayed = chiInput.value;
@@ -142,6 +134,12 @@ function addChiNumber() {
 
 function renderChiCalc() {
   const chiCalc = document.getElementById("chi-stack");
+  
+  if (chiStack.length === 0) {
+    chiCalc.innerHTML = "0";
+    return;
+  }
+  
   chiCalc.innerHTML = chiStack
     .map((v, i) => `<span data-i="${i}" class="calc-item">${formatVND(v * 1000)}</span>`)
     .join(" + ");
@@ -184,8 +182,9 @@ function resetChi() {
 ========================= */
 function renderChiDescChips() {
   const chipsEl = document.getElementById('chi-desc-chips');
-  const quick = getQuickSettings('chi-desc') || DB.moTaChi.slice(0, 8);
-  chipsEl.innerHTML = quick.map(desc => `<button class="chip" onclick="selectChip('chi-desc', '${desc}')">${desc}</button>`).join('');
+  const quick = getQuickSettings('chi-desc');
+  const items = (quick && quick.length > 0) ? quick : DB.moTaChi.slice(0, 8);
+  chipsEl.innerHTML = items.map(desc => `<button class="chip" onclick="selectChip('chi-desc', '${desc}')">${desc}</button>`).join('');
 }
 
 function selectChip(type, value) {
@@ -246,7 +245,7 @@ function submitChi() {
 
   DB.chi.push({
     ngay: chiDate,
-    tong,
+    tien: tong,
     moTa,
     nguon
   });
@@ -263,15 +262,7 @@ function submitChi() {
 /* =========================
    THU – INPUT
 ========================= */
-const thuInput = document.getElementById("thu-input");
-
-if (thuInput) {
-  thuInput.addEventListener("input", e => {
-    let raw = e.target.value.replace(/[^0-9,]/g, "").replace(/,/g, '.');
-    let num = parseFloat(raw);
-    e.target.value = isNaN(num) ? "" : formatVND(num);
-  });
-}
+let thuInput; // Will be initialized in DOMContentLoaded
 
 function validateThuInput() {
   const val = parseInput(thuInput.value);
@@ -296,14 +287,16 @@ function resetThu() {
 ========================= */
 function renderThuDescChips() {
   const chipsEl = document.getElementById('thu-desc-chips');
-  const quick = getQuickSettings('thu-desc') || DB.moTaThu.slice(0, 8);
-  chipsEl.innerHTML = quick.map(desc => `<button class="chip" onclick="selectChip('thu-desc', '${desc}')">${desc}</button>`).join('');
+  const quick = getQuickSettings('thu-desc');
+  const items = (quick && quick.length > 0) ? quick : DB.moTaThu.slice(0, 8);
+  chipsEl.innerHTML = items.map(desc => `<button class="chip" onclick="selectChip('thu-desc', '${desc}')">${desc}</button>`).join('');
 }
 
 function renderThuTypeChips() {
   const chipsEl = document.getElementById('thu-type-chips');
-  const quick = getQuickSettings('thu-type') || DB.loaiThu.slice(0, 8);
-  chipsEl.innerHTML = quick.map(type => `<button class="chip" onclick="selectChip('thu-type', '${type}')">${type}</button>`).join('');
+  const quick = getQuickSettings('thu-type');
+  const items = (quick && quick.length > 0) ? quick : DB.loaiThu.slice(0, 8);
+  chipsEl.innerHTML = items.map(type => `<button class="chip" onclick="selectChip('thu-type', '${type}')">${type}</button>`).join('');
 }
 
 function renderThuDescSelect() {
@@ -425,8 +418,13 @@ function setQuickSettings(key, arr) {
 
 function renderQuick(groupId, key) {
   const el = document.getElementById(groupId);
+  if (!el) return;
   const quick = getQuickSettings(key);
-  el.innerHTML = quick.map(q => `<div>${q}</div>`).join('');
+  if (quick && quick.length > 0) {
+    el.innerHTML = quick.map(q => `<div>${q}</div>`).join('');
+  } else {
+    el.innerHTML = '';
+  }
 }
 
 function manageQuick(type) {
@@ -447,6 +445,26 @@ function manageQuick(type) {
    INIT
 ========================= */
 document.addEventListener("DOMContentLoaded", () => {
+  // Initialize chiInput and add event listener
+  chiInput = document.getElementById("chi-input");
+  if (chiInput) {
+    chiInput.addEventListener("input", e => {
+      let raw = e.target.value.replace(/[^0-9,]/g, "").replace(/,/g, '.');
+      let num = parseFloat(raw);
+      e.target.value = isNaN(num) ? "" : formatVND(num * 1000);
+    });
+  }
+  
+  // Initialize thuInput and add event listener
+  thuInput = document.getElementById("thu-input");
+  if (thuInput) {
+    thuInput.addEventListener("input", e => {
+      let raw = e.target.value.replace(/[^0-9,]/g, "").replace(/,/g, '.');
+      let num = parseFloat(raw);
+      e.target.value = isNaN(num) ? "" : formatVND(num);
+    });
+  }
+  
   loadDBFromExcel();
   renderHeader();
   renderDateDisplay('chi');
@@ -464,5 +482,10 @@ document.addEventListener("DOMContentLoaded", () => {
   renderQuick('quick-thu-type', 'thu-type');
   document.getElementById('chi-date-picker').max = today();
   document.getElementById('thu-date-picker').max = today();
-  chiInput.focus();
+  
+  // Initialize stack displays
+  renderChiCalc();
+  
+  // Focus on chi input
+  if (chiInput) chiInput.focus();
 });
