@@ -1,199 +1,109 @@
 <!DOCTYPE html>
 <!--
   APP SỔ THU CHI CÁ NHÂN
-  VERSION: v1.1.0 (Merged UI/UX from old version)
-  BUILD: 2026-02-02
-  CHANGELOG v1.1.0:
-  - Native date picker (iOS/Android compatible)
-  - Gradient buttons design
-  - Improved chip selection UX
-  - Auto-hide messages
-  - Loading states
+  VERSION: v1.2.0 (GAS JSON API + UI Improvements)
+  BUILD: 2026-02-03
 -->
 <html lang="vi">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Sổ thu chi cá nhân</title>
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Sổ Thu Chi 2026</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-    <!-- Header -->
-    <header>
-        <div class="header-content">
-            <h1>Sổ thu chi cá nhân</h1>
-            <div class="version" id="app-version"></div>
-        </div>
-    </header>
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <h1>Sổ Thu Chi</h1>
+    <span id="app-version" class="balance-tag"></span>
+  </div>
+  <div id="last-trans" class="last-trans-static">Đang tải dữ liệu...</div>
+</div>
 
-    <!-- Main Content -->
-    <main id="main-content">
-        <!-- HOME/CHI Screen -->
-        <section id="chi-screen" class="screen active">
-            <div class="last-trans" id="last-expense">Đang tải chi cuối…</div>
-            <h3>Chi tiêu</h3>
+<!-- Card Chi -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title red-text">CHI TIÊU</span>
+    <button type="button" class="btn-sm" id="chi-reset">Xóa Hết</button>
+  </div>
+  
+  <!-- Date Selector -->
+  <div class="date-row">
+    <button type="button" class="btn-date-nav" id="chi-prev-day">&lt;</button>
+    <button type="button" class="btn-date-display" id="chi-date-btn">Hôm nay</button>
+    <button type="button" class="btn-date-nav" id="chi-next-day">&gt;</button>
+  </div>
+  <input type="date" id="chi-date-hidden" style="display: none;">
 
-            <!-- Ngày chọn (Native Date Picker) -->
-            <div class="date-row">
-                <input type="date" id="chi-date" class="date-input" />
-                <button type="button" class="btn-date-nav" id="chi-prev-day">&lt;</button>
-                <button type="button" class="btn-date-nav" id="chi-next-day">&gt;</button>
-            </div>
-
-            <!-- Nhập số tiền -->
-            <div class="input-row">
-                <input id="chi-input" placeholder="Nhập số (nghìn)" type="number" inputmode="decimal" />
-                <button type="button" id="add-temp" class="btn-add btn-chi">+</button>
-            </div>
-
-            <div class="stack-preview" id="chi-preview"></div>
-
-            <!-- Xoá -->
-            <div class="button-group">
-                <button type="button" id="clear-last" class="btn-secondary">Xoá cuối</button>
-                <button type="button" id="clear-all" class="btn-secondary">Xoá hết</button>
-            </div>
-
-            <!-- Mô tả chi (chips + dropdown) -->
-            <div class="chips-container" id="chi-chips"></div>
-            <div class="input-row">
-                <select id="chi-mota-select" class="select-input">
-                    <option value="">Chọn mô tả chi khác</option>
-                </select>
-            </div>
-
-            <!-- Nguồn tiền -->
-            <div class="input-row">
-                <select id="nguon-tien-chi" class="select-input">
-                    <option value="">Chọn nguồn tiền</option>
-                </select>
-            </div>
-
-            <div id="chi-message" class="status-message"></div>
-            <button type="button" id="btn-add-chi" class="btn-submit btn-chi" disabled>Thêm chi tiêu</button>
-        </section>
-
-        <!-- THU Screen -->
-        <section id="thu-screen" class="screen">
-            <div class="last-trans" id="last-income">Đang tải thu cuối…</div>
-            <h3>Thu nhập</h3>
-
-            <!-- Ngày chọn (Native Date Picker) -->
-            <div class="date-row">
-                <input type="date" id="thu-date" class="date-input" />
-                <button type="button" class="btn-date-nav" id="thu-prev-day">&lt;</button>
-                <button type="button" class="btn-date-nav" id="thu-next-day">&gt;</button>
-            </div>
-
-            <!-- Nhập số tiền (VNĐ đầy đủ) -->
-            <div class="input-row">
-                <input id="thu-input" placeholder="Nhập số tiền VNĐ" type="number" inputmode="decimal" />
-            </div>
-
-            <!-- Mô tả thu (chips + input) -->
-            <div class="chips-container" id="thu-chips"></div>
-            <div class="input-row">
-                <input id="thu-mota-input" placeholder="Mô tả thu nhập" class="text-input" />
-                <button type="button" id="add-new-mota-thu" class="btn-secondary-sm">+ Thêm</button>
-            </div>
-
-            <!-- Loại thu (chips + input) -->
-            <div class="chips-container" id="loai-thu-chips"></div>
-            <div class="input-row">
-                <input id="loai-thu-input" placeholder="Loại thu (tự do)" class="text-input" />
-            </div>
-
-            <!-- Nguồn tiền -->
-            <div class="input-row">
-                <select id="nguon-tien-thu" class="select-input">
-                    <option value="">Chọn nguồn tiền</option>
-                </select>
-            </div>
-
-            <div id="thu-message" class="status-message"></div>
-            <button type="button" id="btn-add-thu" class="btn-submit btn-thu" disabled>Thêm thu nhập</button>
-        </section>
-
-        <!-- TỔNG KẾT Screen -->
-        <section id="tk-screen" class="screen">
-            <h3>Tổng kết</h3>
-            <div id="tk-summary" class="summary-box">Đang tải...</div>
-
-            <!-- Input số dư TT cho từng nguồn -->
-            <div id="tk-inputs"></div>
-
-            <button type="button" id="btn-check-tk" class="btn-submit btn-primary" disabled>Kiểm tra</button>
-            <div id="tk-result" class="result-box"></div>
-            <div id="tk-detail-list"></div>
-            <button type="button" id="btn-confirm-tk" class="btn-submit btn-success" disabled>Xác nhận tổng kết</button>
-        </section>
-
-        <!-- SETTINGS Screen -->
-        <section id="settings-screen" class="screen">
-            <h3>Cài đặt</h3>
-
-            <!-- Quick Mô tả Chi -->
-            <div class="settings-section">
-                <h4>Mô tả Chi thường dùng (max 8)</h4>
-                <div id="quick-chi-list" class="quick-list"></div>
-                <button type="button" id="manage-quick-chi" class="btn-secondary">Quản lý</button>
-            </div>
-
-            <!-- Quick Mô tả Thu -->
-            <div class="settings-section">
-                <h4>Mô tả Thu thường dùng (max 8)</h4>
-                <div id="quick-thu-list" class="quick-list"></div>
-                <button type="button" id="manage-quick-thu" class="btn-secondary">Quản lý</button>
-            </div>
-
-            <!-- Quick Loại Thu -->
-            <div class="settings-section">
-                <h4>Loại Thu thường dùng (max 8)</h4>
-                <div id="quick-loai-thu-list" class="quick-list"></div>
-                <button type="button" id="manage-quick-loai-thu" class="btn-secondary">Quản lý</button>
-            </div>
-
-            <!-- Cài đặt chung -->
-            <div class="settings-section">
-                <h4>Cài đặt chung</h4>
-                <label class="setting-item">
-                    <span>Chế độ tối</span>
-                    <input type="checkbox" id="dark-mode" class="toggle-switch">
-                </label>
-                <button type="button" id="reset-settings" class="btn-danger">Reset cài đặt</button>
-            </div>
-        </section>
-    </main>
-
-    <!-- Tab Bar (iOS style) -->
-    <nav class="tab-bar">
-        <button type="button" data-tab="chi-screen" class="tab-btn active">
-            <span class="tab-icon">💸</span>
-            <span class="tab-label">Chi</span>
-        </button>
-        <button type="button" data-tab="thu-screen" class="tab-btn">
-            <span class="tab-icon">💰</span>
-            <span class="tab-label">Thu</span>
-        </button>
-        <button type="button" data-tab="tk-screen" class="tab-btn">
-            <span class="tab-icon">📊</span>
-            <span class="tab-label">Tổng kết</span>
-        </button>
-        <button type="button" data-tab="settings-screen" class="tab-btn">
-            <span class="tab-icon">⚙️</span>
-            <span class="tab-label">Settings</span>
-        </button>
-    </nav>
-
-    <!-- Modal (cho thêm mới, sửa chi) -->
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="modal-body"></div>
-        </div>
+  <!-- Input Amount -->
+  <div class="input-group">
+    <input type="number" id="chi-amount" placeholder="Nhập tiền (vd: 25)" inputmode="decimal">
+    <button type="button" class="btn-add" id="chi-btn-plus">+</button>
+  </div>
+  
+  <!-- Stack Display -->
+  <div id="chi-stack-display" class="stack-display"></div>
+  
+  <!-- Mô tả chips -->
+  <div class="desc-area-visible">
+    <div id="chi-checkboxes" class="checkbox-container">Đang tải...</div>
+    <div class="desc-row">
+      <select id="chi-dropdown" class="input-std">
+        <option value="">-- Chọn mô tả khác --</option>
+      </select>
     </div>
+    <div class="desc-row">
+      <select id="chi-nguon" class="input-std">
+        <option value="">-- Chọn nguồn tiền --</option>
+      </select>
+    </div>
+  </div>
+  
+  <div id="chi-message" class="status-msg"></div>
+  <button type="button" class="btn-submit btn-red" id="chi-submit" disabled>LƯU KHOẢN CHI</button>
+</div>
 
-    <script src="app.js"></script>
+<!-- Card Thu -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title green-text">THU NHẬP</span>
+    <button type="button" class="btn-sm" id="thu-reset">Xóa Hết</button>
+  </div>
+
+  <!-- Date Selector -->
+  <div class="date-row">
+    <button type="button" class="btn-date-nav" id="thu-prev-day">&lt;</button>
+    <button type="button" class="btn-date-display" id="thu-date-btn">Hôm nay</button>
+    <button type="button" class="btn-date-nav" id="thu-next-day">&gt;</button>
+  </div>
+  <input type="date" id="thu-date-hidden" style="display: none;">
+
+  <!-- Input Amount -->
+  <div class="input-group">
+    <input type="number" id="thu-amount" placeholder="Nhập tiền VND đầy đủ" inputmode="decimal">
+  </div>
+  
+  <!-- Mô tả -->
+  <div class="desc-area-visible">
+    <div class="desc-row">
+      <input type="text" id="thu-mota" class="input-std" placeholder="Mô tả thu nhập...">
+    </div>
+    <div class="desc-row">
+      <input type="text" id="thu-loai" class="input-std" placeholder="Loại thu (vd: Lương)...">
+    </div>
+    <div class="desc-row">
+      <select id="thu-nguon" class="input-std">
+        <option value="">-- Chọn nguồn tiền --</option>
+      </select>
+    </div>
+  </div>
+  
+  <div id="thu-message" class="status-msg"></div>
+  <button type="button" class="btn-submit btn-green" id="thu-submit" disabled>LƯU KHOẢN THU</button>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
