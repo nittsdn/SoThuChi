@@ -1,0 +1,306 @@
+
+---
+
+# FLOW APP SỔ THU CHI – ONE PAGE SCROLL (FINAL)
+
+## TINH THẦN CHUNG (CHỐT)
+
+* 1 trang duy nhất, scroll từ trên xuống
+* Thứ tự cố định:
+  **Header → Chi → Thu → Tổng kết → Setting**
+* Mỗi section:
+
+  * Có **ngày riêng**
+  * Giao diện & tính năng tương đồng (nếu cùng loại)
+* Không khoá cứng dữ liệu
+* Có cảnh báo khi thao tác “nguy hiểm”
+* App dùng cá nhân → ưu tiên **nhanh – rõ – không vòng vo**
+* Quy ước dấu . là phân cách hàng nghìn, dấu , là thập phân. Nếu đánh số tới hàng nghìn (ở mọi textbox) vd: 3000 app phải đưa ngay dấu . vào thành 3.000
+* cái nào user nhập số thì đưa công thức chứ ko đưa tổng cho gas
+---
+
+## 1️⃣ HEADER (READ-ONLY – LOAD THEO DATA)
+
+**Khi mở app, hiển thị ngay:**
+
+> **Chi cuối**
+> `<mo_ta_chi>`
+> Thứ `<thứ>` ngày `<ngày chi>`
+> Tổng `<Nghìn vnd>` = `<số tiền vnd>`
+> **Số dư lý thuyết:** `<số dư LT>`
+
+**Đặc điểm**
+
+* Sticky
+* Không input
+* Sau mỗi:
+
+  * Thêm chi
+  * Thêm thu
+  * Xác nhận tổng kết
+    → reload lại block này
+
+---
+
+## 2️⃣ SECTION CHI (FLOW CHÍNH – AUTO FOCUS)
+
+### 2.1 Trạng thái khi mở app
+
+* App **auto focus** vào:
+
+  > **ô text box nhập tiền của Chi**
+* Section Chi ở vị trí đầu tiên sau Header
+
+---
+
+### 2.2 Chi – Chọn ngày (RIÊNG)
+
+**UI**
+
+```
+<<   [ Thứ Hai 30/01/2026 ]   >>
+```
+
+**Logic**
+
+* Mỗi section có ngày riêng
+* Không ảnh hưởng Thu / Tổng kết
+* Không cho chọn ngày tương lai
+
+---
+
+### 2.3 Chi – Nhập số tiền (x1000, stack)
+
+**Hành vi chuẩn (giữ 100% flow cũ)**
+
+* Gõ `25` → hiện `25.000` ở phần thông báo tổng ngay bên dưới (lắng nghe input type và chỉ cho phép số)
+* Nhấn `+`
+
+  * Clear textbox
+  * Focus lại input
+* Gõ `35`
+
+  ```
+  25.000 + 35.000 = 60.000
+  ```
+
+#### Sửa số đã nhập
+
+* Nhấn `25.000`
+
+  * Load `25` vào textbox
+  * Quét khối
+* Không sửa → coi như xác nhận
+* Sửa → cập nhật lại phép tính
+
+#### Xoá
+
+* Xoá từng số
+* **Xoá hết**:
+
+  * Reset **toàn bộ section Chi về default**
+
+    * Số tiền
+    * Mô tả
+    * Nguồn tiền
+    * Trạng thái submit
+
+---
+
+### 2.4 Chi – Mô tả chi
+
+* 8 quick chip (từ Setting)
+* Chỉ chọn **1**
+* Các mô tả khác:
+
+  * Dropdown list
+* Nút **Thêm mô tả**
+
+  * Popup nhỏ
+  * Nhập:
+
+    * Tên mô tả
+    * Loại chi
+  * Nút thêm enable khi đủ điều kiện
+
+---
+
+### 2.5 Chi – Nguồn tiền
+
+* UI + hành vi **giống mô tả chi**
+* Chỉ chọn **1 nguồn**
+* Có dropdown + thêm mới
+
+---
+
+### 2.6 Chi – Thêm chi tiêu (SUBMIT)
+
+**Enable khi**
+
+* Có ≥1 số tiền
+* Có mô tả
+* Có nguồn tiền
+
+**Khi nhấn**
+
+* Gửi dữ liệu lên Google Sheet
+* Không phá:
+
+  * ID
+  * Cột công thức
+* Thông báo chi tiết:
+
+> Đã thêm vào chi tiêu **đi chợ**
+> 25.000 + 35.000 = 60.000
+> Nguồn `<nguồn tiền>`
+> Thứ Hai ngày 30/01/2026
+> **Thành công**
+
+**Sau submit**
+
+* Reload “Chi cuối” ở Header
+* Reset section Chi
+* Focus lại ô nhập tiền (sẵn sàng nhập tiếp)
+
+---
+
+## 3️⃣ SECTION THU (FLOW GIỐNG – NHẸ HƠN)
+
+> **Giao diện & hành vi tương đồng Chi**, nhưng logic đơn giản hơn.
+
+### 3.1 Thu – Ngày (RIÊNG)
+
+* Có bộ chọn ngày riêng
+* Không ảnh hưởng Chi / Tổng kết
+
+---
+
+### 3.2 Thu – Số tiền
+
+* Giống chức năng ở phần chi, chỉ lưu ý là sẽ đưa cho gas dạng công thức dạng: "=25000 + 30000" 
+* Auto format khi gõ (vd: `60.000`)
+
+---
+
+### 3.3 Thu – Mô tả & loại thu
+
+* Quick chip (từ Setting)
+* Dropdown
+* Chỉ chọn 1
+
+---
+
+### 3.4 Thu – Nguồn tiền & submit
+
+* Chọn nguồn
+* Nút **Thêm thu nhập**
+* Map dữ liệu theo **bảng Thu (khác Chi)**
+
+---
+
+## 4️⃣ SECTION TỔNG KẾT (FLOW KIỂM KÊ – BẢN TẠM)
+
+### 4.1 Làm tổng kết
+
+* Nhấn **Làm tổng kết**
+* App load:
+
+  * Danh sách tài khoản / nguồn tiền
+  * Mỗi nguồn = 1 textbox nhập số dư thực tế
+
+**Nhập số**
+
+* Auto format: `1.253.251,157`
+* `.` phân cách
+* `,` thập phân
+
+---
+
+### 4.2 Kiểm tra (BẢN TẠM)
+
+* Khi nhập đủ → enable **Kiểm tra**
+* App tính:
+
+  ```
+  Chênh lệch = Số dư LT - Số dư TT
+  ```
+
+Hiển thị:
+
+```
+Từ ngày <ngày TK trước + 1> đến <ngày hiện tại>
+
+Số dư LT: 1000
+Số dư TT: 900
+Thiếu: 100
+```
+
+---
+
+### 4.3 Bảng chi tiết theo nguồn (EDIT TẠM)
+
+Ví dụ:
+
+```
+Nguồn A: 200   [Xem chi tiết]
+```
+
+* Nhấn **Xem chi tiết**
+
+  * Load đầy đủ chi trong kỳ
+  * Cho phép **sửa số tiền**
+  * Khi sửa:
+
+    * App **tính lại số dư LT ngay**
+    * Nhưng **chưa ghi DB**
+
+⚠️ Nếu chi đã nằm trong vùng tổng kết:
+
+* Hiện **cảnh báo nhẹ**
+
+  > Chi này thuộc kỳ đã tổng kết, việc sửa có thể làm lệch số liệu
+
+---
+
+### 4.4 Xác nhận tổng kết (GHI THẬT)
+
+* Khi user chấp nhận chênh lệch
+* Nhấn **Xác nhận tổng kết**
+* App:
+
+  * Ghi dữ liệu tổng kết
+  * Ghi các chỉnh sửa chi (nếu có)
+* Thông báo:
+
+> Đã tổng kết thành công
+> Kỳ từ ngày … đến …
+> Số dư LT: …
+> Số dư TT: …
+> Chênh lệch: …
+
+---
+
+## 5️⃣ SECTION SETTING
+
+* Quản lý:
+
+  * Mô tả chi
+  * Mô tả thu
+  * Loại thu
+  * Nguồn tiền
+* Active / inactive
+* Version (read-only)
+
+---
+
+# TRẠNG THÁI HIỆN TẠI
+
+✅ Flow đã **đóng**
+✅ Có thể dùng trực tiếp để:
+
+* Chỉnh UI
+* Viết JS
+* Update MP
+* Debug logic
+
+

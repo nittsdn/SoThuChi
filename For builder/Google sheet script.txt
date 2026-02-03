@@ -52,8 +52,54 @@ function responseJSON(object) {
   return ContentService.createTextOutput(JSON.stringify(object))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
+//============================================
+// doPost – xử lý các action từ app
+//============================================
+function doPost(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const action = body.action;
+    const payload = body.payload;
+    
+    // Gọi các hàm dựa trên action
+    switch(action) {
+      case 'insert_chi':
+        insertChi(payload);
+        break;
+      case 'update_chi':
+        updateChiById(payload);
+        break;
+      case 'insert_thu':
+        insertThu(payload);
+        break;
+      case 'update_thu':
+        updateThuById(payload);
+        break;
+      case 'insert_loai_chi':
+        insertLoaiChi(payload);
+        break;
+      case 'update_loai_chi':
+        updateLoaiChi(payload);
+        break;
+      case 'delete_loai_chi':
+        deleteLoaiChi(payload);
+        break;
+      case 'insert_tk':
+        insertTongKet(payload);
+        break;
+      default:
+        throw new Error('Unknown action: ' + action);
+    }
+    
+    return responseJSON({ status: 'success' });
+  } catch (err) {
+    return responseJSON({ status: 'error', message: err.toString() });
+  }
+}
+
 /************************************************** Phần ghi
- * HELPER: LẤY ID TIẾP THEO (c1, c2 / t1, t2)
+ * HELPER: LẤY ID TIẾP THEO (c1, c2 / t1, t2 / s1, s2)
  **************************************************/
 function getNextId(sheet, colIndex, prefix) {
   const lastRow = sheet.getLastRow();
@@ -75,29 +121,20 @@ function getNextId(sheet, colIndex, prefix) {
 }
 
 /**************************************************
- * INSERT CHI – Sheet: Chi_Tieu_2026
- * Cột:
- * A IDChi
- * B Chi tiêu (mô tả)
- * C Loại chi
- * D Nguồn tiền
- * E Số tiền (/1000)  <-- FORMULA
- * F Số tiền vnđ      <-- công thức
- * G Ngày
- * H Số dư LT         <-- công thức
+ * INSERT CHI – Sheet: Chi_Tieu_2026 (7 cột)
  **************************************************/
 function insertChi(payload) {
   const sh = SpreadsheetApp.getActive().getSheetByName('Chi_Tieu_2026');
   const r = sh.getLastRow() + 1;
 
-  const idChi = getNextId(sh, 1, 'c');
+  const idChi = getNextId(sh, 1, 'c');  // Cột 1 = A = IDChi
 
-  sh.getRange(r, 1).setValue(idChi);             // A
-  sh.getRange(r, 2).setValue(payload.moTa);      // B
-  sh.getRange(r, 3).setValue(payload.loaiChi);   // C
-  sh.getRange(r, 4).setValue(payload.nguon);     // D
-  sh.getRange(r, 5).setFormula(payload.soTien1000); // E
-  sh.getRange(r, 7).setValue(payload.ngay);      // G
+  sh.getRange(r, 1).setValue(idChi);                // A: IDChi
+  sh.getRange(r, 2).setValue(payload.mo_ta_chi);    // B: mo_ta_chi
+  sh.getRange(r, 3).setValue(payload.nguon_tien);   // C: Nguồn tiền
+  sh.getRange(r, 4).setFormula(payload.so_tien_nghin); // D: Nghìn VND (công thức hoặc số)
+  sh.getRange(r, 6).setValue(payload.ngay);         // F: Ngày (cột 6)
+  // Không set E (formula tự tính), G (formula tự tính)
 }
 
 /**************************************************
@@ -105,35 +142,40 @@ function insertChi(payload) {
  **************************************************/
 function updateChiById(payload) {
   const sh = SpreadsheetApp.getActive().getSheetByName('Chi_Tieu_2026');
-  const data = sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).getValues();
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) throw new Error('No data');
 
-  const idx = data.findIndex(r => r[0] === payload.idChi);
-  if (idx === -1) throw new Error('IDChi not found');
+  // Tìm row theo IDChi (cột 1)
+  const idRange = sh.getRange(2, 1, lastRow - 1, 1);
+  const ids = idRange.getValues().flat();
+  const idx = ids.indexOf(payload.idChi);
+  if (idx === -1) throw new Error('IDChi not found: ' + payload.idChi);
 
-  const r = idx + 2;
+  const row = idx + 2;
 
-  sh.getRange(r, 2).setValue(payload.moTa);
-  sh.getRange(r, 3).setValue(payload.loaiChi);
-  sh.getRange(r, 4).setValue(payload.nguon);
-  sh.getRange(r, 5).setFormula(payload.soTien1000);
-  sh.getRange(r, 7).setValue(payload.ngay);
+  // Update các trường cho phép (từ payload)
+  if (payload.mo_ta_chi)    sh.getRange(row, 2).setValue(payload.mo_ta_chi);
+  if (payload.nguon_tien)   sh.getRange(row, 3).setValue(payload.nguon_tien);
+  if (payload.so_tien_nghin) sh.getRange(row, 4).setFormula(payload.so_tien_nghin); // Nghìn VND
+  if (payload.ngay)         sh.getRange(row, 6).setValue(payload.ngay);
+  // Không update IDChi, Số tiền vnđ, Số dư LT (formula)
 }
 
 /**************************************************
  * INSERT THU – Sheet: Thu_2026
- * Thu (VNĐ) đã nhân ở app
  **************************************************/
 function insertThu(payload) {
   const sh = SpreadsheetApp.getActive().getSheetByName('Thu_2026');
   const r = sh.getLastRow() + 1;
-  const idThu = getNextId(sh, 7, 't');
+  const idThu = getNextId(sh, 7, 't');  // Cột 7 = G = IDThu
 
-  sh.getRange(r, 1).setValue(payload.soTienVND); // A
-  sh.getRange(r, 2).setValue(payload.ngay);      // B
-  sh.getRange(r, 3).setValue(payload.moTa);      // C
-  sh.getRange(r, 4).setValue(payload.nguon);     // D
-  sh.getRange(r, 5).setValue(payload.loaiThu);   // E
-  sh.getRange(r, 7).setValue(idThu);              // G
+  sh.getRange(r, 1).setValue(payload.so_tien);   // A: Thu (VNĐ đầy đủ)
+  sh.getRange(r, 2).setValue(payload.ngay);      // B: Ngày
+  sh.getRange(r, 3).setValue(payload.mo_ta);     // C: Mô tả
+  sh.getRange(r, 4).setValue(payload.nguon_tien); // D: Nguồn tiền
+  sh.getRange(r, 5).setValue(payload.loai_thu);  // E: Loại thu
+  sh.getRange(r, 7).setValue(idThu);             // G: IDThu
+  // Không set F: Tổng thu (formula)
 }
 
 /**************************************************
@@ -141,16 +183,135 @@ function insertThu(payload) {
  **************************************************/
 function updateThuById(payload) {
   const sh = SpreadsheetApp.getActive().getSheetByName('Thu_2026');
-  const data = sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).getValues();
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) throw new Error('No data');
 
-  const idx = data.findIndex(r => r[6] === payload.idThu);
-  if (idx === -1) throw new Error('IDThu not found');
+  // Tìm row theo IDThu (cột 7)
+  const idRange = sh.getRange(2, 7, lastRow - 1, 1);
+  const ids = idRange.getValues().flat();
+  const idx = ids.indexOf(payload.idThu);
+  if (idx === -1) throw new Error('IDThu not found: ' + payload.idThu);
 
-  const r = idx + 2;
+  const row = idx + 2;
 
-  sh.getRange(r, 1).setValue(payload.soTienVND);
-  sh.getRange(r, 2).setValue(payload.ngay);
-  sh.getRange(r, 3).setValue(payload.moTa);
-  sh.getRange(r, 4).setValue(payload.nguon);
-  sh.getRange(r, 5).setValue(payload.loaiThu);
+  // Update các trường cho phép
+  if (payload.so_tien)     sh.getRange(row, 1).setValue(payload.so_tien);
+  if (payload.ngay)        sh.getRange(row, 2).setValue(payload.ngay);
+  if (payload.mo_ta)       sh.getRange(row, 3).setValue(payload.mo_ta);
+  if (payload.nguon_tien)  sh.getRange(row, 4).setValue(payload.nguon_tien);
+  if (payload.loai_thu)    sh.getRange(row, 5).setValue(payload.loai_thu);
+  // Không update IDThu, Tổng thu
+}
+
+/**************************************************
+ * INSERT LOAI_CHI – Sheet: loai_chi
+ **************************************************/
+function insertLoaiChi(payload) {
+  const sh = SpreadsheetApp.getActive().getSheetByName('loai_chi');
+  const r = sh.getLastRow() + 1;
+
+  const idChi = getNextId(sh, 1, 'c');  // Cột 1 = A = id_chi
+
+  // Tính sort_order max + 1
+  const lastRow = sh.getLastRow();
+  let maxSort = 0;
+  if (lastRow >= 2) {
+    const sortValues = sh.getRange(2, 7, lastRow - 1, 1).getValues().flat();
+    maxSort = Math.max(...sortValues.filter(v => typeof v === 'number'));
+  }
+  const sortOrder = maxSort + 1;
+
+  sh.getRange(r, 1).setValue(idChi);               // A: id_chi
+  sh.getRange(r, 2).setValue(payload.mo_ta_chi);   // B: mo_ta_chi
+  sh.getRange(r, 3).setValue(payload.phan_loai);   // C: phan_loai
+  sh.getRange(r, 4).setValue(payload.nhom);        // D: nhom
+  sh.getRange(r, 5).setValue(payload.icon || '');  // E: icon (mặc định rỗng nếu không gửi)
+  sh.getRange(r, 6).setValue(true);                // F: active = true
+  sh.getRange(r, 7).setValue(sortOrder);           // G: sort_order = max + 1
+  sh.getRange(r, 8).setValue(payload.note || '');  // H: note (mặc định rỗng nếu không gửi)
+}
+
+/**************************************************
+ * UPDATE LOAI_CHI – theo id_chi
+ **************************************************/
+function updateLoaiChi(payload) {
+  const sh = SpreadsheetApp.getActive().getSheetByName('loai_chi');
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) throw new Error('No data');
+
+  // Tìm row theo id_chi (cột 1)
+  const idRange = sh.getRange(2, 1, lastRow - 1, 1);
+  const ids = idRange.getValues().flat();
+  const idx = ids.indexOf(payload.id_chi);
+  if (idx === -1) throw new Error('id_chi not found: ' + payload.id_chi);
+
+  const row = idx + 2;
+
+  // Update các trường cho phép (không đụng id_chi, sort_order)
+  if (payload.mo_ta_chi)   sh.getRange(row, 2).setValue(payload.mo_ta_chi);
+  if (payload.phan_loai)   sh.getRange(row, 3).setValue(payload.phan_loai);
+  if (payload.nhom)        sh.getRange(row, 4).setValue(payload.nhom);
+  if (payload.icon)        sh.getRange(row, 5).setValue(payload.icon);  // Nếu cần update icon sau này
+  if (typeof payload.active !== 'undefined') sh.getRange(row, 6).setValue(payload.active);  // Boolean
+  if (payload.note)        sh.getRange(row, 8).setValue(payload.note);
+}
+
+/**************************************************
+ * DELETE LOAI_CHI – theo id_chi (set active = false)
+ **************************************************/
+function deleteLoaiChi(payload) {
+  const sh = SpreadsheetApp.getActive().getSheetByName('loai_chi');
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) throw new Error('No data');
+
+  // Tìm row theo id_chi (cột 1)
+  const idRange = sh.getRange(2, 1, lastRow - 1, 1);
+  const ids = idRange.getValues().flat();
+  const idx = ids.indexOf(payload.id_chi);
+  if (idx === -1) throw new Error('id_chi not found: ' + payload.id_chi);
+
+  const row = idx + 2;
+
+  // Set active = false (không xóa row)
+  sh.getRange(row, 6).setValue(false);
+}
+
+/**************************************************
+ * INSERT TONG KET – Insert vào tk_session và tk_detail
+ **************************************************/
+function insertTongKet(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const tkSessionSh = ss.getSheetByName('tk_session');
+  const tkDetailSh = ss.getSheetByName('tk_detail');
+
+  // Sinh session_id
+  const sessionId = getNextId(tkSessionSh, 1, 's');  // Cột 1 = A = session_id
+
+  // Tính so_du_tt từ chi_tiet (sum so_tien)
+  let soDuTt = 0;
+  if (payload.chi_tiet && Array.isArray(payload.chi_tiet)) {
+    soDuTt = payload.chi_tiet.reduce((sum, detail) => sum + (detail.so_tien || 0), 0);
+  }
+
+  // Insert vào tk_session
+  const sessionRow = tkSessionSh.getLastRow() + 1;
+  tkSessionSh.getRange(sessionRow, 1).setValue(sessionId);       // A: session_id
+  tkSessionSh.getRange(sessionRow, 2).setValue(payload.ngay_tk); // B: ngay_tk
+  tkSessionSh.getRange(sessionRow, 3).setValue(payload.so_du_lt); // C: so_du_lt (app gửi)
+  tkSessionSh.getRange(sessionRow, 4).setValue(soDuTt);          // D: so_du_tt (tính từ chi_tiet)
+  // E: chenhlech (formula tự tính)
+  tkSessionSh.getRange(sessionRow, 6).setValue('confirmed');     // F: status
+  tkSessionSh.getRange(sessionRow, 7).setValue(payload.note || ''); // G: note
+
+  // Insert nhiều row vào tk_detail (nếu có chi_tiet)
+  if (payload.chi_tiet && Array.isArray(payload.chi_tiet)) {
+    let detailRow = tkDetailSh.getLastRow() + 1;
+    payload.chi_tiet.forEach(detail => {
+      tkDetailSh.getRange(detailRow, 1).setValue(sessionId);       // A: session_id
+      tkDetailSh.getRange(detailRow, 2).setValue(payload.ngay_tk); // B: ngay_tk
+      tkDetailSh.getRange(detailRow, 3).setValue(detail.nguon_tien); // C: nguon_tien
+      tkDetailSh.getRange(detailRow, 4).setValue(detail.so_tien);    // D: so_tien
+      detailRow++;
+    });
+  }
 }

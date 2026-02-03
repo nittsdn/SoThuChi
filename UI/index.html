@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sổ Thu Chi</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ================= HEADER ================= -->
+<div class="header">
+  <div class="header-top">
+    <h1>Sổ Thu Chi</h1>
+    <div class="balance-tag">Số dư LT: 1.000.000</div>
+  </div>
+  <div class="last-trans-static">Chưa có chi tiêu</div>
+  <div class="version">v1</div>
+</div>
+
+<!-- ================= CHI (GIỮ NGUYÊN) ================= -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title red-text">CHI</div>
+    <button class="btn-square btn-gray">↺</button>
+  </div>
+
+  <div class="date-row">
+    <button class="btn-square">&lt;</button>
+    <button class="btn-date-display">Thứ Hai 30/01/2026</button>
+    <button class="btn-square">&gt;</button>
+  </div>
+
+  <div class="calc-row">
+    <input class="calc-input" type="number" placeholder="x1000">
+    <button class="btn-square btn-blue">+</button>
+    <button class="btn-square btn-gray">×</button>
+  </div>
+
+  <div class="stack-display">25.000 + 35.000 = 60.000</div>
+
+  <div class="chip-grid">
+    <button class="chip selected">Ăn sáng</button>
+    <button class="chip">Ăn chiều</button>
+    <button class="chip">Ăn lễ</button>
+    <button class="chip">Ăn chơi</button>
+    <button class="chip">Đi chợ</button>
+    <button class="chip">Đi chay</button>
+    <button class="chip">Sữa bỉm</button>
+    <button class="chip">Điện nhà</button>
+  </div>
+
+  <select class="input-std">
+    <option>-- Mô tả khác --</option>
+  </select>
+
+  <select class="input-std">
+    <option>-- Nguồn tiền --</option>
+  </select>
+
+  <button class="btn-submit btn-red">
+    Thêm chi
+  </button>
+</div>
+
+<!-- ================= THU (TÁCH RIÊNG ĐÚNG CHỖ KHÁC) ================= -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title green-text">THU</div>
+    <button class="btn-square btn-gray">↺</button>
+  </div>
+
+  <div class="date-row">
+    <button class="btn-square">&lt;</button>
+    <button class="btn-date-display">Thứ Hai 30/01/2026</button>
+    <button class="btn-square">&gt;</button>
+  </div>
+
+  <!-- calc-row RIÊNG cho THU -->
+  <div class="calc-row-thu">
+    <input class="calc-input-thu" type="number" placeholder="x1000">
+    <button class="btn-square btn-green">+</button>
+  </div>
+
+  <div class="stack-display">60.000</div>
+
+  <input class="input-std" placeholder="Mô tả thu">
+
+  <select class="input-std">
+    <option>-- Nguồn tiền --</option>
+  </select>
+
+  <button class="btn-submit btn-green">
+    Thêm thu
+  </button>
+</div>
+
+</body>
+</html>

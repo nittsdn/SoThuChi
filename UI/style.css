@@ -268,34 +268,3 @@ input, select, button {
 .btn-delete:hover {
   background: #f9d6d3;
 }
-
-/* =========================
-   ADD DESC BUTTON
-========================= */
-.btn-add-desc {
-  height: 44px;
-  border-radius: 22px;
-  border: none;
-  background: #f2f2f7;
-  font-size: 16px;
-  cursor: pointer;
-  margin-bottom: 12px;
-  width: 100%;
-}
-
-/* =========================
-   SETTINGS
-========================= */
-.settings-group {
-  margin-bottom: 20px;
-}
-
-.settings-group h3 {
-  font-size: 16px;
-  margin-bottom: 8px;
-}
-
-.chip.selected {
-  background: #007bff;
-  color: #fff;
-}

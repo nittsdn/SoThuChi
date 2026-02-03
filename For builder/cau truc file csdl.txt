@@ -1,71 +1,85 @@
-=== DATABASE SCHEMA CONFIGURATION ===
+=== DATABASE SCHEMA CONFIGURATION (FINAL) ===
 Target Spreadsheet: Database_SoChiTieu.xlsx
+Locale: Vietnam (vi-VN)
+Number Formatting: 
+  - Decimal Separator: "," (comma) -> Ví dụ: 5,5 (năm phẩy năm)
+  - Thousand Separator: "." (dot)  -> Ví dụ: 100.000 (một trăm nghìn)
 
+-----------------------------------------------------
 [SHEET 1]: Chi_Tieu_2026
-Mô tả: Bảng ghi chép chi tiêu hàng ngày
+Mô tả: Bảng ghi chép chi tiêu hàng ngày.
 -----------------------------------------------------
-Index | Column Name (Header) | Data Type (Gợi ý)
-0     | IDChi                | String (Primary Key)
-1     | mo_ta_chi            | String
-2     | Nguồn tiền           | String (Ref: nguon_tien)
-3     | Nghìn VND            | Float
-4     | Số tiền vnđ          | Integer
-5     | Ngày                 | Date (yyyy-MM-dd)
-6     | Số dư lý thuyết      | Integer
+Index | Column Name      | Data Type | Ghi chú / Logic xử lý
+0     | IDChi            | String    | Primary Key
+1     | mo_ta_chi        | String    | Nội dung chi tiêu
+2     | Nguồn tiền       | String    | (Ref: nguon_tien)
+3     | Nghìn VND        | Float     | Nhập số lẻ theo đơn vị nghìn. 
+                                     | VD: Nhập "4,5" nghĩa là 4.500 VNĐ.
+                                     | Lưu ý: App gửi lên JSON dùng dấu chấm (4.5), hiển thị dùng dấu phẩy (4,5).
+4     | Số tiền vnđ      | Integer   | [FORMULA] = [Nghìn VND] * 1000
+                                     | VD: 4,5 -> 4.500 (Bốn nghìn năm trăm)
+5     | Ngày             | Date      | Định dạng yyyy-MM-dd
+6     | Số dư lý thuyết  | Integer   | [FORMULA] Dư lũy kế. Hiển thị dạng: 100.000.000 (dấu chấm phân cách ngàn)
 
+-----------------------------------------------------
 [SHEET 2]: Thu_2026
-Mô tả: Bảng ghi chép các khoản thu nhập
+Mô tả: Bảng ghi chép các khoản thu nhập.
 -----------------------------------------------------
-Index | Column Name (Header) | Data Type (Gợi ý)
-0     | Thu                  | Integer
-1     | Ngày                 | Date (yyyy-MM-dd)
-2     | Mô tả                | String
-3     | Nguồn tiền           | String (Ref: nguon_tien)
-4     | Loại thu             | String
-5     | Tổng thu             | Integer (Cumulative)
-6     | IDThu                | String (Primary Key)
+Index | Column Name      | Data Type | Ghi chú / Logic xử lý
+0     | Thu              | Integer   | Số tiền thu (Hiển thị: 1.000.000)
+1     | Ngày             | Date      | Định dạng yyyy-MM-dd
+2     | Mô tả            | String    | Nội dung thu
+3     | Nguồn tiền       | String    | (Ref: nguon_tien)
+4     | Loại thu         | String    | Phân loại
+5     | Tổng thu         | Integer   | [FORMULA] Lũy kế tổng thu
+6     | IDThu            | String    | Primary Key
 
+-----------------------------------------------------
 [SHEET 3]: tk_detail
-Mô tả: Chi tiết số dư từng nguồn tiền tại mỗi kỳ kiểm kê
+Mô tả: Chi tiết số dư (Snapshot).
 -----------------------------------------------------
-Index | Column Name (Header) | Data Type (Gợi ý)
-0     | session_id           | String (Ref: tk_session)
-1     | ngay_tk              | Date (yyyy-MM-dd)
-2     | nguon_tien           | String (Ref: nguon_tien)
-3     | so_tien              | Integer
+Index | Column Name      | Data Type | Ghi chú / Logic xử lý
+0     | session_id       | String    | (Ref: tk_session)
+1     | ngay_tk          | Date      | Ngày kiểm kê
+2     | nguon_tien       | String    | (Ref: nguon_tien)
+3     | so_tien          | Integer   | Số dư thực tế. Hiển thị dạng: 50.000.000
 
+-----------------------------------------------------
 [SHEET 4]: tk_session
-Mô tả: Các phiên kiểm kê (chốt sổ)
+Mô tả: Các phiên kiểm kê (chốt sổ).
 -----------------------------------------------------
-Index | Column Name (Header) | Data Type (Gợi ý)
-0     | session_id           | String (Primary Key)
-1     | ngay_tk              | Date (yyyy-MM-dd)
-2     | so_du_lt             | Integer (Lý thuyết)
-3     | so_du_tt             | Integer (Thực tế)
-4     | chenhlech            | Integer
-5     | status               | String (e.g., confirmed)
-6     | note                 | String
+Index | Column Name      | Data Type | Ghi chú / Logic xử lý
+0     | session_id       | String    | Primary Key
+1     | ngay_tk          | Date      | Ngày chốt
+2     | so_du_lt         | Integer   | [FORMULA] Tổng lý thuyết
+3     | so_du_tt         | Integer   | Tổng thực tế (Sum từ tk_detail)
+4     | chenhlech        | Integer   | [FORMULA] = [so_du_tt] - [so_du_lt]
+                                     | Nếu âm (lỗ) hiển thị: -50.000
+5     | status           | String    | Trạng thái
+6     | note             | String    | Ghi chú
 
+-----------------------------------------------------
 [SHEET 5]: loai_chi
-Mô tả: Danh mục các loại chi tiêu (Category)
+Mô tả: Danh mục loại chi (Category).
 -----------------------------------------------------
-Index | Column Name (Header) | Data Type (Gợi ý)
-0     | id_chi               | String (Primary Key)
-1     | mo_ta_chi            | String
-2     | phan_loai            | String (Group)
-3     | nhom                 | String (Sub-Group)
-4     | icon                 | String (Emoji/Image)
-5     | active               | Boolean (True/False)
-6     | sort_order           | Integer
-7     | note                 | String
+Index | Column Name      | Data Type | Ghi chú
+0     | id_chi           | String    | Key (c1, c2...)
+1     | mo_ta_chi        | String    | Tên loại chi
+2     | phan_loai        | String    | Nhóm lớn
+3     | nhom             | String    | Nhóm con
+4     | icon             | String    | Emoji
+5     | active           | Boolean   | True/False
+6     | sort_order       | Integer   | Thứ tự
+7     | note             | String    | Ghi chú
 
-[SHEET 6]: nguon_tien
-Mô tả: Danh sách tài khoản/nguồn tiền
 -----------------------------------------------------
-Index | Column Name (Header) | Data Type (Gợi ý)
-0     | nguon_tien           | String (Primary Key)
-1     | nguoi                | String (Owner)
-2     | nhom                 | String (Bank/Cash/Wallet)
-3     | icon                 | String
-4     | active               | Boolean
-5     | note                 | String
+[SHEET 6]: nguon_tien
+Mô tả: Danh mục tài khoản.
+-----------------------------------------------------
+Index | Column Name      | Data Type | Ghi chú
+0     | nguon_tien       | String    | Key (Tên tài khoản)
+1     | nguoi            | String    | Chủ tài khoản
+2     | nhom             | String    | Loại (Bank/Cash)
+3     | icon             | String    | Emoji
+4     | active           | Boolean   | True/False
+5     | note             | String    | Ghi chú

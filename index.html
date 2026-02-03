@@ -2,108 +2,172 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Sổ Thu Chi 2026</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sổ chi tiêu</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<!-- Header -->
+<!-- ================= HEADER ================= -->
 <div class="header">
   <div class="header-top">
-    <h1>Sổ Thu Chi</h1>
-    <span id="app-version" class="balance-tag">v1.2.1</span>
+    <div class="balance-tag">Số dư LT: 0</div>
+    <div class="version">v1.0</div>
   </div>
-  <div id="last-trans" class="last-trans-static">Đang tải dữ liệu...</div>
+  <div id="last-trans-static" class="last-trans-static">Chưa có chi tiêu</div>
 </div>
 
-<!-- Card Chi -->
-<div class="card">
+<!-- ================= CHI ================= -->
+<div class="card" id="chi-section">
   <div class="card-header">
-    <span class="card-title red-text">CHI TIÊU</span>
-    <button type="button" class="btn-sm" id="chi-reset">Xóa Hết</button>
+    <div class="card-title red-text">CHI</div>
+    <button class="btn-square btn-gray btn-reset" onclick="resetChi()">↺</button>
   </div>
-  
-  <!-- Date Selector -->
-  <div class="date-row">
-    <button type="button" class="btn-date-nav" id="chi-prev-day">&lt;</button>
-    <button type="button" class="btn-date-display" id="chi-date-btn">Hôm nay</button>
-    <button type="button" class="btn-date-nav" id="chi-next-day">&gt;</button>
-  </div>
-  <input type="date" id="chi-date" style="display: none;">
 
-  <!-- Input Amount -->
-  <div class="input-group">
-    <input type="number" id="chi-amount" placeholder="Nhập tiền (vd: 25)" inputmode="decimal">
-    <button type="button" class="btn-add" id="chi-btn-plus">+</button>
+  <!-- Date -->
+  <div class="date-row">
+    <button class="btn-square btn-gray" onclick="changeDate('chi', -1)">&lt;</button>
+    <button id="chi-date-display" class="btn-date-display" onclick="openDatePicker('chi')">Hôm nay</button>
+    <input type="date" id="chi-date-picker" style="display: none;" onchange="setDate('chi', this.value)">
+    <button class="btn-square btn-gray" onclick="changeDate('chi', 1)">&gt;</button>
   </div>
-  
-  <!-- Stack Display -->
-  <div id="chi-stack-display" class="stack-display"></div>
-  
-  <!-- Mô tả -->
-  <div class="desc-area-visible">
-    <div id="chi-checkboxes" class="checkbox-container">Đang tải...</div>
-    <div class="desc-row">
-      <select id="chi-dropdown" class="input-std">
-        <option value="">-- Chọn mô tả khác --</option>
-      </select>
-    </div>
-    <div class="desc-row">
-      <input type="text" id="chi-text" class="input-std" placeholder="Ghi chú thêm...">
-    </div>
-    <div class="desc-row">
-      <select id="chi-nguon" class="input-std">
-        <option value="">-- Chọn nguồn tiền --</option>
-      </select>
-    </div>
+
+  <!-- Calc row -->
+  <div class="calc-row">
+    <input
+      type="text"
+      id="chi-input"
+      class="calc-input"
+      placeholder="x1000"
+    />
+    <button class="btn-square btn-blue" onclick="addChiNumber()">+</button>
+    <button class="btn-square btn-gray btn-delete" onclick="deleteLastChi()">×</button>
   </div>
-  
-  <div id="chi-message" class="status-msg"></div>
-  <button type="button" class="btn-submit btn-red" id="chi-submit" disabled>LƯU KHOẢN CHI</button>
+
+  <!-- Stack display (CHI ONLY) -->
+  <div id="chi-stack" class="stack-display chi-stack">0</div>
+
+  <!-- Mô tả chi -->
+  <div class="chip-grid" id="chi-desc-chips">
+    <!-- Quick chips will be rendered here -->
+  </div>
+  <select id="chi-desc-select" class="input-std">
+    <option value="">-- Mô tả chi --</option>
+    <!-- Options from DB -->
+  </select>
+  <button class="btn-add-desc" onclick="addNewDesc('chi')">+ Thêm mô tả mới</button>
+
+  <!-- Nguồn tiền -->
+  <select id="chi-source-select" class="input-std">
+    <option value="">-- Nguồn tiền --</option>
+    <!-- Options from DB -->
+  </select>
+
+  <!-- Submit -->
+  <button id="chi-submit" class="btn-submit btn-red" disabled onclick="submitChi()">Thêm chi</button>
 </div>
 
-<!-- Card Thu -->
-<div class="card">
+<!-- ================= THU ================= -->
+<div class="card" id="thu-section">
   <div class="card-header">
-    <span class="card-title green-text">THU NHẬP</span>
-    <button type="button" class="btn-sm" id="thu-reset">Xóa Hết</button>
+    <div class="card-title green-text">THU</div>
+    <button class="btn-square btn-gray" onclick="resetThu()">↺</button>
   </div>
 
-  <!-- Date Selector -->
   <div class="date-row">
-    <button type="button" class="btn-date-nav" id="thu-prev-day">&lt;</button>
-    <button type="button" class="btn-date-display" id="thu-date-btn">Hôm nay</button>
-    <button type="button" class="btn-date-nav" id="thu-next-day">&gt;</button>
+    <button class="btn-square btn-gray" onclick="changeDate('thu', -1)">&lt;</button>
+    <button id="thu-date-display" class="btn-date-display" onclick="openDatePicker('thu')">Hôm nay</button>
+    <input type="date" id="thu-date-picker" style="display: none;" onchange="setDate('thu', this.value)">
+    <button class="btn-square btn-gray" onclick="changeDate('thu', 1)">&gt;</button>
   </div>
-  <input type="date" id="thu-date" style="display: none;">
 
-  <!-- Input Amount -->
-  <div class="input-group">
-    <input type="number" id="thu-amount" placeholder="Nhập tiền VND đầy đủ" inputmode="decimal">
+  <div class="calc-row-thu">
+    <input
+      type="text"
+      id="thu-input"
+      class="calc-input-thu"
+      placeholder="VNĐ"
+    />
+    <button class="btn-square btn-green" onclick="validateThuInput()">+</button>
   </div>
-  
-  <!-- Mô tả -->
-  <div class="desc-area-visible">
-    <div class="desc-row">
-      <select id="thu-dropdown" class="input-std">
-        <option value="">-- Chọn danh mục --</option>
-      </select>
-    </div>
-    <div class="desc-row">
-      <input type="text" id="thu-text" class="input-std" placeholder="Nguồn tiền...">
-    </div>
-    <div class="desc-row">
-      <select id="thu-nguon" class="input-std">
-        <option value="">-- Chọn nguồn tiền --</option>
-      </select>
-    </div>
+
+  <div id="thu-stack" class="stack-display thu-stack">0</div>
+
+  <!-- Mô tả thu -->
+  <div class="chip-grid" id="thu-desc-chips">
+    <!-- Quick chips will be rendered here -->
   </div>
-  
-  <div id="thu-message" class="status-msg"></div>
-  <button type="button" class="btn-submit btn-green" id="thu-submit" disabled>LƯU KHOẢN THU</button>
+  <select id="thu-desc-select" class="input-std">
+    <option value="">-- Mô tả thu --</option>
+    <!-- Options from history or settings -->
+  </select>
+
+  <!-- Loại thu -->
+  <div class="chip-grid" id="thu-type-chips">
+    <!-- Quick chips for loại thu -->
+  </div>
+  <select id="thu-type-select" class="input-std">
+    <option value="">-- Loại thu --</option>
+    <!-- Options from settings -->
+  </select>
+
+  <!-- Nguồn tiền -->
+  <select id="thu-source-select" class="input-std">
+    <option value="">-- Nguồn tiền --</option>
+    <!-- Options from DB -->
+  </select>
+
+  <button id="thu-submit" class="btn-submit btn-green-submit" disabled onclick="submitThu()">Thêm thu</button>
 </div>
 
-<script src="script.js"></script>
+<!-- ================= TỔNG KẾT ================= -->
+<div class="card" id="tong-ket-section">
+  <div class="card-header">
+    <div class="card-title">TỔNG KẾT</div>
+  </div>
+  <button class="btn-submit btn-blue" onclick="startTongKet()">Làm tổng kết</button>
+  <div id="tk-content" style="display: none;">
+    <div id="tk-so-du-lt">Số dư LT: 0</div>
+    <div id="tk-sources">
+      <!-- Dynamic inputs for each nguon_tien -->
+    </div>
+    <input type="text" id="tk-thuc-te" class="input-std" placeholder="Tổng số dư thực tế" readonly />
+    <button class="btn-submit btn-blue" onclick="kiemTraTongKet()">Kiểm tra</button>
+    <div id="tk-chenh-lech">Chênh lệch: 0</div>
+    <div id="tk-detail-table">
+      <!-- Bảng chi tiết theo nguồn -->
+    </div>
+    <button class="btn-submit btn-green" onclick="xacNhanTongKet()">Xác nhận tổng kết</button>
+  </div>
+</div>
+
+<!-- ================= SETTINGS ================= -->
+<div class="card" id="settings-section">
+  <div class="card-header">
+    <div class="card-title">SETTINGS</div>
+  </div>
+  <div class="settings-group">
+    <h3>Mô tả Chi thường dùng (max 8)</h3>
+    <div id="quick-chi-desc"></div>
+    <button onclick="manageQuick('chi-desc')">Quản lý</button>
+  </div>
+  <div class="settings-group">
+    <h3>Mô tả Thu thường dùng (max 8)</h3>
+    <div id="quick-thu-desc"></div>
+    <button onclick="manageQuick('thu-desc')">Quản lý</button>
+  </div>
+  <div class="settings-group">
+    <h3>Loại thu thường dùng (max 8)</h3>
+    <div id="quick-thu-type"></div>
+    <button onclick="manageQuick('thu-type')">Quản lý</button>
+  </div>
+  <div class="settings-group">
+    <h3>Cài đặt chung</h3>
+    <!-- Add toggles for dark mode, etc. -->
+  </div>
+</div>
+
+<!-- ================= LOAD JS ================= -->
+<script src="app.js"></script>
 </body>
 </html>

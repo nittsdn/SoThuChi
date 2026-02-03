@@ -1,0 +1,325 @@
+# MASTER PLAN APP SỔ THU CHI – REBUILD (KHỚP CSDL + FLOW)
+
+> Mục tiêu: **MP này chỉ mô tả đúng những gì App phải làm**, dựa **100% vào CSDL hiện tại + Flow 1252**, không đoán thêm, không thiết kế dư. Sheet là source of truth.
+
+---
+
+## 1. NGUYÊN TẮC NỀN (CHỐT)
+
+* Google Sheet = **nguồn dữ liệu duy nhất**
+* App **không tự tính tiền**, **không sinh ID**, **không giữ số dư**
+* App chỉ:
+
+  * Nhập dữ liệu gốc
+  * Gửi đúng payload cho GAS
+  * Hiển thị dữ liệu đã được Sheet tính sẵn
+* Công thức, lũy kế, chênh lệch: **Sheet lo toàn bộ**
+
+---
+
+## 2. CSDL – CÁC SHEET APP ĐƯỢC PHÉP ĐỘNG TỚI
+
+### 2.1 Chi_Tieu_2026
+
+App được phép:
+
+* INSERT: mo_ta_chi, Nguồn tiền, Nghìn VND (dạng công thức), Ngày
+* UPDATE (chỉ trong Tổng kết): Nghìn VND
+
+Không được:
+
+* Set IDChi
+* Set Số tiền vnđ
+* Set Số dư lý thuyết
+
+---
+
+### 2.2 Thu_2026
+
+App được phép:
+
+* INSERT: Thu, Ngày, Mô tả, Nguồn tiền, Loại thu
+
+Không được:
+
+* Set IDThu
+* Set Tổng thu
+
+---
+
+### 2.3 loai_chi
+
+App được phép:
+
+* INSERT loai_chi mới
+* UPDATE active, mo_ta_chi, phan_loai, nhom, icon, note
+
+Không được:
+
+* Xóa row vật lý
+* Sửa sort_order thủ công (Sheet/GAS quản lý)
+
+---
+
+### 2.4 nguon_tien
+
+* App **chỉ đọc**
+* Lọc active=true
+
+---
+
+### 2.5 tk_session / tk_detail
+
+App được phép:
+
+* INSERT khi xác nhận tổng kết
+* Không update / delete
+
+---
+
+## 3. CẤU TRÚC APP (ONE PAGE SCROLL)
+
+Thứ tự cố định từ trên xuống:
+
+1. Header (Read-only)
+2. Chi
+3. Thu
+4. Tổng kết
+5. Settings
+
+Mỗi section có **ngày riêng**, không ảnh hưởng nhau.
+
+---
+
+## 4. HEADER – LOAD DATA
+
+Hiển thị:
+
+* Chi cuối cùng (row mới nhất Chi_Tieu_2026)
+
+  * mo_ta_chi
+  * Ngày
+  * Nghìn VND (công thức hiển thị dạng phép cộng)
+  * Số tiền vnđ (format)
+  * Số dư lý thuyết (format)
+
+Reload Header khi:
+
+* Thêm Chi
+* Thêm Thu
+* Xác nhận Tổng kết
+
+---
+
+## 5. SECTION CHI (FLOW CHÍNH)
+
+### 5.1 Ngày
+
+* Điều khiển <<  [Ngày]  >>
+* Không cho chọn ngày tương lai
+
+---
+
+### 5.2 Nhập tiền (x1000)
+
+State nội bộ:
+
+```
+tempList: number[]   // đơn vị nghìn
+```
+
+Hành vi:
+
+* Gõ số → format .000 khi hiển thị
+* Nhấn + → push vào tempList
+* Hiển thị phép cộng:
+  `25.000 + 35.000 = 60.000`
+
+App **không tính tổng gửi đi**, chỉ tạo công thức:
+
+```
+="25+35"
+```
+
+---
+
+### 5.3 Mô tả chi (mo_ta_chi)
+
+* 8 quick chip (từ Settings)
+* Dropdown từ loai_chi (active=true, sort_order)
+* Chỉ chọn **1**
+
+Thêm mới:
+
+* Popup → nhập mo_ta_chi, phan_loai, nhom
+* Gửi insertLoaiChi
+* Reload list
+
+---
+
+### 5.4 Nguồn tiền
+
+* Dropdown từ nguon_tien (active=true)
+* Chỉ chọn **1**
+
+---
+
+### 5.5 Submit Chi
+
+Enable khi:
+
+* tempList.length >= 1
+* Có mo_ta_chi
+* Có nguon_tien
+
+Payload gửi GAS:
+
+```
+{
+  ngay: YYYY-MM-DD,
+  so_tien_nghin: "=25+35",
+  mo_ta_chi: string,
+  nguon_tien: string
+}
+```
+
+Sau submit:
+
+* Reload Header
+* Reset section Chi
+* Focus lại ô nhập tiền
+
+---
+
+## 6. SECTION THU
+
+### 6.1 Ngày
+
+* Riêng, giống Chi
+
+---
+
+### 6.2 Số tiền
+
+* Nhập VNĐ đầy đủ
+* App format hiển thị
+* Payload gửi số nguyên
+
+---
+
+### 6.3 Mô tả & Loại thu
+
+* Quick chip từ Settings
+* Dropdown lịch sử
+* Text tự do
+
+---
+
+### 6.4 Submit Thu
+
+Payload:
+
+```
+{
+  ngay,
+  so_tien,
+  mo_ta,
+  loai_thu,
+  nguon_tien
+}
+```
+
+Sau submit:
+
+* Reload Header
+* Reset section Thu
+
+---
+
+## 7. SECTION TỔNG KẾT
+
+### 7.1 Load dữ liệu
+
+Khi nhấn "Làm tổng kết":
+
+* Load so_du_lt (từ Sheet)
+* Load danh sách nguon_tien (active=true)
+
+---
+
+### 7.2 Nhập số dư thực tế
+
+State:
+
+```
+tkInputs: { [nguon_tien]: number }
+```
+
+* Auto format khi nhập
+* so_du_tt = sum(tkInputs)
+
+---
+
+### 7.3 Kiểm tra
+
+Hiển thị:
+
+* Số dư LT
+* Số dư TT
+* Chênh lệch (Sheet sẽ tính khi ghi)
+
+---
+
+### 7.4 Xem & sửa chi trong kỳ
+
+* Xem chi theo nguồn
+* Cho sửa Nghìn VND
+* Gửi updateChiById
+* Reload lại Tổng kết
+
+---
+
+### 7.5 Xác nhận tổng kết
+
+Payload:
+
+```
+{
+  ngay_tk,
+  so_du_lt,
+  chi_tiet: [ { nguon_tien, so_tien } ],
+  note?
+}
+```
+
+GAS ghi:
+
+* 1 row tk_session
+* N row tk_detail
+
+---
+
+## 8. SETTINGS
+
+* Quick mô tả Chi (8)
+* Quick mô tả Thu (8)
+* Quick loại Thu
+* Xem loai_chi (read / active)
+* Xem nguon_tien (read / active)
+* Version (read-only)
+
+Settings **chỉ lưu LocalStorage**.
+
+---
+
+## 9. KẾT LUẬN
+
+* MP này **khớp 1–1 với CSDL & Flow**
+* Không còn logic mơ hồ
+* Đủ chi tiết để:
+
+  * Code frontend
+  * Viết test case
+  * Debug lệch Sheet
+
+➡️ Có thể dùng trực tiếp làm tài liệu triển khai.
