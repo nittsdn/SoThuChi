@@ -60,7 +60,7 @@
 ```
 <<   [ Thứ Hai 30/01/2026 ]   >>
 ```
-
+dùng tính năng mở lịch giống như trong ios khi nhấn chọn ngày
 **Logic**
 
 * Mỗi section có ngày riêng
@@ -73,7 +73,7 @@
 
 **Hành vi chuẩn (giữ 100% flow cũ)**
 
-* Gõ `25` → hiện `25.000` ở phần thông báo tổng ngay bên dưới (lắng nghe input type và chỉ cho phép số)
+* Gõ `25` → hiện `25.000` ở phần thông báo tổng ngay bên dưới(chứ ko phải trong textbox) (lắng nghe input type và chỉ cho phép số)
 * Nhấn `+`
 
   * Clear textbox
