@@ -8,92 +8,134 @@
 </head>
 <body>
 
+<!-- ================= TOAST NOTIFICATION ================= -->
+<div id="toast" class="toast"></div>
+
+<!-- ================= LOADING SPINNER ================= -->
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+</div>
+
 <!-- ================= HEADER ================= -->
 <div class="header">
   <div class="header-top">
     <h1>Sổ Thu Chi</h1>
-    <div class="balance-tag">Số dư LT: 1.000.000</div>
   </div>
-  <div class="last-trans-static">Chưa có chi tiêu</div>
-  <div class="version">v1</div>
+  <div id="header-content">
+    <div class="last-chi-desc">Chưa có chi tiêu</div>
+    <div class="balance-tag">Số dư LT: 0</div>
+  </div>
+  <div class="version">v1.0</div>
 </div>
 
-<!-- ================= CHI (GIỮ NGUYÊN) ================= -->
+<!-- ================= CHI ================= -->
 <div class="card">
   <div class="card-header">
     <div class="card-title red-text">CHI</div>
-    <button class="btn-square btn-gray">↺</button>
   </div>
 
   <div class="date-row">
-    <button class="btn-square">&lt;</button>
-    <button class="btn-date-display">Thứ Hai 30/01/2026</button>
-    <button class="btn-square">&gt;</button>
+    <button class="btn-square" id="chi-date-prev">&lt;&lt;</button>
+    <button class="btn-date-display" id="chi-date">Thứ Hai 30/01/2026</button>
+    <button class="btn-square" id="chi-date-next">&gt;&gt;</button>
   </div>
 
   <div class="calc-row">
-    <input class="calc-input" type="number" placeholder="x1000">
-    <button class="btn-square btn-blue">+</button>
-    <button class="btn-square btn-gray">×</button>
+    <input class="calc-input" id="chi-input" type="text" placeholder="x1000">
+    <button class="btn-square btn-blue" id="chi-add">+</button>
+    <button class="btn-square btn-delete" id="chi-clear">×</button>
   </div>
 
-  <div class="stack-display">25.000 + 35.000 = 60.000</div>
+  <div class="chi-preview" id="chi-preview"></div>
 
-  <div class="chip-grid">
-    <button class="chip selected">Ăn sáng</button>
-    <button class="chip">Ăn chiều</button>
-    <button class="chip">Ăn lễ</button>
-    <button class="chip">Ăn chơi</button>
-    <button class="chip">Đi chợ</button>
-    <button class="chip">Đi chay</button>
-    <button class="chip">Sữa bỉm</button>
-    <button class="chip">Điện nhà</button>
-  </div>
+  <div class="stack-display" id="chi-stack">Chưa có số</div>
 
-  <select class="input-std">
-    <option>-- Mô tả khác --</option>
+  <div class="chip-grid" id="chi-chips"></div>
+
+  <select class="input-std" id="chi-desc-dropdown">
+    <option value="">-- Mô tả khác --</option>
   </select>
 
-  <select class="input-std">
-    <option>-- Nguồn tiền --</option>
+  <select class="input-std" id="chi-source">
+    <option value="">-- Nguồn tiền --</option>
   </select>
 
-  <button class="btn-submit btn-red">
+  <button class="btn-submit btn-red" id="chi-submit" disabled>
     Thêm chi
   </button>
 </div>
 
-<!-- ================= THU (TÁCH RIÊNG ĐÚNG CHỖ KHÁC) ================= -->
+<!-- ================= THU ================= -->
 <div class="card">
   <div class="card-header">
     <div class="card-title green-text">THU</div>
-    <button class="btn-square btn-gray">↺</button>
   </div>
 
   <div class="date-row">
-    <button class="btn-square">&lt;</button>
-    <button class="btn-date-display">Thứ Hai 30/01/2026</button>
-    <button class="btn-square">&gt;</button>
+    <button class="btn-square" id="thu-date-prev">&lt;&lt;</button>
+    <button class="btn-date-display" id="thu-date">Thứ Hai 30/01/2026</button>
+    <button class="btn-square" id="thu-date-next">&gt;&gt;</button>
   </div>
 
-  <!-- calc-row RIÊNG cho THU -->
   <div class="calc-row-thu">
-    <input class="calc-input-thu" type="number" placeholder="x1000">
-    <button class="btn-square btn-green">+</button>
+    <input class="calc-input-thu" id="thu-input" type="text" placeholder="x1000">
   </div>
 
-  <div class="stack-display">60.000</div>
+  <div class="stack-display" id="thu-display">Chưa có số</div>
 
-  <input class="input-std" placeholder="Mô tả thu">
+  <div class="chip-grid" id="thu-chips"></div>
 
-  <select class="input-std">
-    <option>-- Nguồn tiền --</option>
+  <input class="input-std" id="thu-desc-input" placeholder="Mô tả thu">
+
+  <select class="input-std" id="thu-loai">
+    <option value="">-- Loại thu --</option>
   </select>
 
-  <button class="btn-submit btn-green">
+  <select class="input-std" id="thu-source">
+    <option value="">-- Nguồn tiền --</option>
+  </select>
+
+  <button class="btn-submit btn-green" id="thu-submit" disabled>
     Thêm thu
   </button>
 </div>
 
+<!-- ================= TỔNG KẾT ================= -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title blue-text">TỔNG KẾT</div>
+  </div>
+
+  <button class="btn-submit btn-blue" id="tk-start">Làm tổng kết</button>
+
+  <div id="tk-form" style="display: none;">
+    <div class="tk-period">Nhập số dư thực tế:</div>
+    <div id="tk-inputs"></div>
+    <button class="btn-submit btn-gray" id="tk-check">Kiểm tra</button>
+    <div id="tk-result" style="display: none;"></div>
+    <button class="btn-submit btn-blue" id="tk-confirm" style="display: none;">Xác nhận tổng kết</button>
+  </div>
+</div>
+
+<!-- ================= SETTING ================= -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">CÀI ĐẶT</div>
+  </div>
+
+  <div class="setting-section">
+    <h3>Quick Chips Chi</h3>
+    <div id="settings-chi-chips"></div>
+  </div>
+
+  <div class="setting-section">
+    <h3>Quick Chips Thu</h3>
+    <div id="settings-thu-chips"></div>
+  </div>
+
+  <button class="btn-submit btn-blue" id="save-settings">Lưu cài đặt</button>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
