@@ -245,7 +245,7 @@ function submitChi() {
 
   DB.chi.push({
     ngay: chiDate,
-    tong,
+    tien: tong,
     moTa,
     nguon
   });
