@@ -263,8 +263,7 @@ function populateChiDropdowns() {
 const chiInput = document.getElementById("chi-input");
 chiInput.oninput = () => {
   // Strip non-numeric immediately
-  let val = chiInput.value.replace(/\D/g, "");
-  chiInput.value = val;
+  const val = chiInput.value = chiInput.value.replace(/\D/g, "");
   
   if (val) {
     document.getElementById("chi-preview").textContent = formatVN(val * 1000);
@@ -422,8 +421,7 @@ function populateThuDropdowns() {
 const thuInput = document.getElementById("thu-input");
 thuInput.oninput = () => {
   // Strip non-numeric immediately
-  let val = thuInput.value.replace(/\D/g, "");
-  thuInput.value = val;
+  const val = thuInput.value = thuInput.value.replace(/\D/g, "");
   
   if (val) {
     thuAmount = parseInt(val) * 1000;
