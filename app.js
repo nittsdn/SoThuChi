@@ -128,29 +128,50 @@ let nguonTienList = [];
 let settings = loadSettings();
 
 // ================= HEADER =================
-async function loadHeader() {
-  const data = await fetchData("Chi_Tieu_2026");
-  if (data && data.length > 0) {
-    const lastChi = data[data.length - 1];
-    const headerContent = document.getElementById("header-content");
+function updateHeader(data) {
+  const headerContent = document.getElementById("header-content");
+  
+  if (!data || data.length === 0) {
     headerContent.innerHTML = `
-      <div class="last-chi-desc">${lastChi.mo_ta_chi || "Chưa có chi tiêu"}</div>
-      <div class="last-chi-date">${lastChi.Ngay ? formatDate(new Date(lastChi.Ngay)) : ""}</div>
-      <div class="last-chi-formula">${lastChi["Nghìn VND"] || ""}</div>
-      <div class="last-chi-amount">Số tiền: ${formatVN(lastChi["Số tiền vnđ"] || 0)}</div>
-      <div class="balance-tag">Số dư LT: ${formatVN(lastChi["Số dư lý thuyết"] || 0)}</div>
+      <div class="last-chi-desc">Chưa có chi tiêu</div>
+      <div class="balance-tag">Số dư lý thuyết: 0</div>
     `;
+    return;
   }
+  
+  const lastChi = data[data.length - 1];
+  headerContent.innerHTML = `
+    <div class="header-title">Chi cuối</div>
+    <div class="last-chi-desc">${lastChi.mo_ta_chi}</div>
+    <div class="last-chi-date">${formatDate(new Date(lastChi.Ngay))}</div>
+    <div class="last-chi-formula">Tổng ${lastChi["Nghìn VND"]} = ${formatVN(lastChi["Số tiền vnđ"])}</div>
+    <div class="balance-tag">Số dư lý thuyết: ${formatVN(lastChi["Số dư lý thuyết"])}</div>
+  `;
 }
 
 // ================= DATE NAVIGATION =================
+const chiDateInput = document.getElementById("chi-date-input");
+const thuDateInput = document.getElementById("thu-date-input");
+
 function renderChiDate() {
-  document.getElementById("chi-date").innerText = formatDate(chiDate);
+  chiDateInput.value = formatDateAPI(chiDate);
+  chiDateInput.max = formatDateAPI(new Date());
 }
 
 function renderThuDate() {
-  document.getElementById("thu-date").innerText = formatDate(thuDate);
+  thuDateInput.value = formatDateAPI(thuDate);
+  thuDateInput.max = formatDateAPI(new Date());
 }
+
+chiDateInput.onchange = (e) => {
+  const selected = new Date(e.target.value);
+  if (selected <= new Date()) {
+    chiDate = selected;
+  } else {
+    showToast("Không thể chọn ngày tương lai");
+    renderChiDate();
+  }
+};
 
 document.getElementById("chi-date-prev").onclick = () => {
   chiDate.setDate(chiDate.getDate() - 1);
@@ -165,6 +186,16 @@ document.getElementById("chi-date-next").onclick = () => {
     renderChiDate();
   } else {
     showToast("Không thể chọn ngày tương lai");
+  }
+};
+
+thuDateInput.onchange = (e) => {
+  const selected = new Date(e.target.value);
+  if (selected <= new Date()) {
+    thuDate = selected;
+  } else {
+    showToast("Không thể chọn ngày tương lai");
+    renderThuDate();
   }
 };
 
@@ -205,10 +236,7 @@ function renderChiChips() {
   });
 }
 
-async function loadChiDropdowns() {
-  loaiChiList = await fetchData("loai_chi");
-  nguonTienList = await fetchData("nguon_tien");
-  
+function populateChiDropdowns() {
   if (loaiChiList) {
     const select = document.getElementById("chi-desc-dropdown");
     select.innerHTML = '<option value="">-- Mô tả khác --</option>';
@@ -234,7 +262,9 @@ async function loadChiDropdowns() {
 
 const chiInput = document.getElementById("chi-input");
 chiInput.oninput = () => {
-  const val = chiInput.value.replace(/\D/g, "");
+  // Strip non-numeric immediately
+  const val = chiInput.value = chiInput.value.replace(/\D/g, "");
+  
   if (val) {
     document.getElementById("chi-preview").textContent = formatVN(val * 1000);
   } else {
@@ -337,7 +367,8 @@ document.getElementById("chi-submit").onclick = async () => {
   if (result) {
     const total = chiStack.reduce((a, b) => a + b, 0) * 1000;
     showToast(`Đã thêm vào chi tiêu ${chiDesc}\n${formatStack(chiStack)}\nNguồn ${chiSource}\n${formatDate(chiDate)}\nThành công`);
-    await loadHeader();
+    const data = await fetchData("Chi_Tieu_2026");
+    updateHeader(data);
     resetChiSection();
   }
 };
@@ -363,7 +394,7 @@ function renderThuChips() {
   });
 }
 
-async function loadThuDropdowns() {
+function populateThuDropdowns() {
   if (nguonTienList) {
     const select = document.getElementById("thu-source");
     select.innerHTML = '<option value="">-- Nguồn tiền --</option>';
@@ -389,7 +420,9 @@ async function loadThuDropdowns() {
 
 const thuInput = document.getElementById("thu-input");
 thuInput.oninput = () => {
-  const val = thuInput.value.replace(/\D/g, "");
+  // Strip non-numeric immediately
+  const val = thuInput.value = thuInput.value.replace(/\D/g, "");
+  
   if (val) {
     thuAmount = parseInt(val) * 1000;
     document.getElementById("thu-display").textContent = formatVN(thuAmount);
@@ -449,7 +482,8 @@ document.getElementById("thu-submit").onclick = async () => {
   const result = await postData("insert_thu", payload);
   if (result) {
     showToast(`Đã thêm thu nhập ${thuDesc}\n${formatVN(thuAmount)}\nNguồn ${thuSource}\n${formatDate(thuDate)}\nThành công`);
-    await loadHeader();
+    const data = await fetchData("Chi_Tieu_2026");
+    updateHeader(data);
     resetThuSection();
   }
 };
@@ -524,7 +558,8 @@ document.getElementById("tk-confirm").onclick = async () => {
     const tkSoDuTT = Object.values(tkInputs).reduce((a, b) => a + b, 0);
     const chenhLech = tkSoDuTT - tkSoDuLT;
     showToast(`Đã tổng kết thành công\nSố dư LT: ${formatVN(tkSoDuLT, 2)}\nSố dư TT: ${formatVN(tkSoDuTT, 2)}\nChênh lệch: ${formatVN(chenhLech, 2)}`);
-    await loadHeader();
+    const data = await fetchData("Chi_Tieu_2026");
+    updateHeader(data);
     resetTongKet();
   }
 };
@@ -594,13 +629,26 @@ document.getElementById("save-settings").onclick = () => {
 
 // ================= INIT =================
 window.onload = async () => {
+  // Render UI immediately (don't wait for API)
   renderChiDate();
   renderThuDate();
-  await loadHeader();
-  await loadChiDropdowns();
-  await loadThuDropdowns();
   renderChiChips();
   renderThuChips();
   renderSettings();
   chiInput.focus();
+  
+  // Load ALL data in parallel (3x faster!)
+  const [chiTieuData, loaiChiData, nguonTienData] = await Promise.all([
+    fetchData("Chi_Tieu_2026"),
+    fetchData("loai_chi"),
+    fetchData("nguon_tien")
+  ]);
+  
+  // Update UI with loaded data
+  loaiChiList = loaiChiData || [];
+  nguonTienList = nguonTienData || [];
+  
+  updateHeader(chiTieuData);
+  populateChiDropdowns();
+  populateThuDropdowns();
 };
