@@ -1,9 +1,4 @@
 <!DOCTYPE html>
-<!--
-  APP SỔ THU CHI CÁ NHÂN
-  VERSION: v1.2.0 (GAS JSON API + UI Improvements)
-  BUILD: 2026-02-03
--->
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
@@ -17,7 +12,7 @@
 <div class="header">
   <div class="header-top">
     <h1>Sổ Thu Chi</h1>
-    <span id="app-version" class="balance-tag"></span>
+    <span id="app-version" class="balance-tag">v1.2.1</span>
   </div>
   <div id="last-trans" class="last-trans-static">Đang tải dữ liệu...</div>
 </div>
@@ -35,7 +30,7 @@
     <button type="button" class="btn-date-display" id="chi-date-btn">Hôm nay</button>
     <button type="button" class="btn-date-nav" id="chi-next-day">&gt;</button>
   </div>
-  <input type="date" id="chi-date-hidden" style="display: none;">
+  <input type="date" id="chi-date" style="display: none;">
 
   <!-- Input Amount -->
   <div class="input-group">
@@ -46,13 +41,16 @@
   <!-- Stack Display -->
   <div id="chi-stack-display" class="stack-display"></div>
   
-  <!-- Mô tả chips -->
+  <!-- Mô tả -->
   <div class="desc-area-visible">
     <div id="chi-checkboxes" class="checkbox-container">Đang tải...</div>
     <div class="desc-row">
       <select id="chi-dropdown" class="input-std">
         <option value="">-- Chọn mô tả khác --</option>
       </select>
+    </div>
+    <div class="desc-row">
+      <input type="text" id="chi-text" class="input-std" placeholder="Ghi chú thêm...">
     </div>
     <div class="desc-row">
       <select id="chi-nguon" class="input-std">
@@ -78,7 +76,7 @@
     <button type="button" class="btn-date-display" id="thu-date-btn">Hôm nay</button>
     <button type="button" class="btn-date-nav" id="thu-next-day">&gt;</button>
   </div>
-  <input type="date" id="thu-date-hidden" style="display: none;">
+  <input type="date" id="thu-date" style="display: none;">
 
   <!-- Input Amount -->
   <div class="input-group">
@@ -88,10 +86,12 @@
   <!-- Mô tả -->
   <div class="desc-area-visible">
     <div class="desc-row">
-      <input type="text" id="thu-mota" class="input-std" placeholder="Mô tả thu nhập...">
+      <select id="thu-dropdown" class="input-std">
+        <option value="">-- Chọn danh mục --</option>
+      </select>
     </div>
     <div class="desc-row">
-      <input type="text" id="thu-loai" class="input-std" placeholder="Loại thu (vd: Lương)...">
+      <input type="text" id="thu-text" class="input-std" placeholder="Nguồn tiền...">
     </div>
     <div class="desc-row">
       <select id="thu-nguon" class="input-std">

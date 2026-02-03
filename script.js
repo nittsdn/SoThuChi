@@ -1,14 +1,15 @@
 /*
-  VERSION: v1.2.1 (GAS API + Keep Old UI)
+  VERSION: v1.2.2 (FIXED)
   BUILD: 2026-02-03
 */
 
-const APP_VERSION = 'v1.2.1';
+const APP_VERSION = 'v1.2.2';
 const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec';
 
 const QUICK_DESC = ['Ăn sáng', 'Ăn chiều', 'Ăn lễ', 'Ăn chơi với bạn bè', 'Đi chợ', 'Đi chợ tết', 'Siêu thị', 'Điện nhà', 'Điện mẹ', 'Điện nhà trọ'];
 
-let chiStack = [], thuStack = [];
+let chiStack = [];
+let thuStack = [];
 let chiDate = new Date();
 let thuDate = new Date();
 
@@ -21,24 +22,67 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initDates() {
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('chi-date').value = today;
-    document.getElementById('thu-date').value = today;
+    const today = new Date();
     chiDate = new Date(today);
     thuDate = new Date(today);
+    
+    updateDateDisplay('chi');
+    updateDateDisplay('thu');
+    
+    document.getElementById('chi-date').value = dateToISO(today);
+    document.getElementById('thu-date').value = dateToISO(today);
 }
 
-function handleBackDate(type) {
-    const input = document.getElementById(`${type}-date`);
-    const d = new Date(input.value);
-    d.setDate(d.getDate() - 1);
-    input.value = d.toISOString().split('T')[0];
-    
+function dateToISO(date) {
+    return date.toISOString().split('T')[0];
+}
+
+function updateDateDisplay(type) {
+    const date = type === 'chi' ? chiDate : thuDate;
+    const btn = document.getElementById(`${type}-date-btn`);
+    const days = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const dayName = days[date.getDay()];
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    btn.textContent = `${dayName} ${dd}/${mm}/${yyyy}`;
+}
+
+function changeDate(type, delta) {
     if (type === 'chi') {
-        chiDate = new Date(input.value);
+        chiDate.setDate(chiDate.getDate() + delta);
+        updateDateDisplay('chi');
+        document.getElementById('chi-date').value = dateToISO(chiDate);
     } else {
-        thuDate = new Date(input.value);
+        thuDate.setDate(thuDate.getDate() + delta);
+        updateDateDisplay('thu');
+        document.getElementById('thu-date').value = dateToISO(thuDate);
     }
+    console.log(`📅 ${type} date:`, dateToISO(type === 'chi' ? chiDate : thuDate));
+}
+
+function showDatePicker(type) {
+    const input = document.getElementById(`${type}-date`);
+    input.style.display = 'block';
+    input.style.position = 'absolute';
+    input.style.opacity = '0';
+    input.focus();
+    input.click();
+    
+    input.onchange = () => {
+        if (type === 'chi') {
+            chiDate = new Date(input.value);
+            updateDateDisplay('chi');
+        } else {
+            thuDate = new Date(input.value);
+            updateDateDisplay('thu');
+        }
+        input.style.display = 'none';
+    };
+    
+    input.onblur = () => {
+        setTimeout(() => input.style.display = 'none', 200);
+    };
 }
 
 async function loadSheetData() {
@@ -50,7 +94,6 @@ async function loadSheetData() {
         if (jsonChi.status === 'success' && jsonChi.data.length > 0) {
             const rows = jsonChi.data;
             
-            // Find last valid chi
             for (let i = rows.length - 1; i >= 0; i--) {
                 const vnd = parseFloat(rows[i]['Số tiền vnđ']) || 0;
                 if (vnd > 0) {
@@ -63,9 +106,11 @@ async function loadSheetData() {
                     break;
                 }
             }
+        } else {
+            document.getElementById('last-trans').innerText = 'Chưa có chi tiêu nào';
         }
         
-        // Load nguồn tiền for dropdowns
+        // Load nguồn tiền
         const resNguon = await fetch(`${GAS_ENDPOINT}?sheet=nguon_tien`);
         const jsonNguon = await resNguon.json();
         
@@ -74,24 +119,25 @@ async function loadSheetData() {
             const optionsHTML = '<option value="">-- Chọn nguồn tiền --</option>' + 
                 nguonList.map(n => `<option value="${n.nguon_tien}">${n.nguon_tien}</option>`).join('');
             
-            // Không có select nguồn tiền trong code cũ, bỏ qua
+            document.getElementById('chi-nguon').innerHTML = optionsHTML;
+            document.getElementById('thu-nguon').innerHTML = optionsHTML;
         }
         
-        // Load loai_chi for dropdown
+        // Load loai_chi
         const resLoaiChi = await fetch(`${GAS_ENDPOINT}?sheet=loai_chi`);
         const jsonLoaiChi = await resLoaiChi.json();
         
         if (jsonLoaiChi.status === 'success') {
             const loaiChiList = jsonLoaiChi.data.filter(row => row.active === true);
             const dropdown = document.getElementById('chi-dropdown');
-            dropdown.innerHTML = '<option value="">-- Chọn danh mục --</option>' + 
+            dropdown.innerHTML = '<option value="">-- Chọn mô tả khác --</option>' + 
                 loaiChiList.map(item => `<option value="${item.mo_ta_chi}">${item.mo_ta_chi}</option>`).join('');
         }
         
         console.log('✅ Data loaded');
     } catch (e) {
         console.error('❌ Load failed:', e);
-        document.getElementById('last-trans').innerText = 'Lỗi tải dữ liệu';
+        document.getElementById('last-trans').innerText = 'Lỗi tải dữ liệu: ' + e.message;
     }
 }
 
@@ -122,6 +168,7 @@ function handlePlus(type) {
         input.focus();
         updateStackDisplay(type);
         checkSubmitState(type);
+        console.log(`➕ Added to ${type} stack:`, val);
     }
 }
 
@@ -131,7 +178,7 @@ function updateStackDisplay(type) {
     
     if (stack.length > 0) {
         const total = stack.reduce((a,b) => a+b, 0);
-        disp.innerText = `Đang cộng: ${stack.join(' + ')} = ${total} x 1000 = ${(total * 1000).toLocaleString()} đ`;
+        disp.innerText = `Đang cộng: ${stack.join(' + ')} = ${total} x 1000 = ${(total * 1000).toLocaleString('vi-VN')} đ`;
         disp.style.display = 'block';
     } else {
         disp.innerText = "";
@@ -149,7 +196,7 @@ async function submitData(type) {
     const btn = document.getElementById(`${type}-submit`);
     const msg = document.getElementById(`${type}-message`);
     const amountInput = document.getElementById(`${type}-amount`);
-    const dateVal = document.getElementById(`${type}-date`).value;
+    const dateVal = dateToISO(type === 'chi' ? chiDate : thuDate);
     
     let stack = type === 'chi' ? [...chiStack] : [...thuStack];
     if (parseFloat(amountInput.value) > 0) stack.push(parseFloat(amountInput.value));
@@ -166,7 +213,12 @@ async function submitData(type) {
             const checks = Array.from(document.querySelectorAll('#chi-checkboxes input:checked')).map(c => c.value);
             const dropdown = document.getElementById('chi-dropdown').value;
             const text = document.getElementById('chi-text').value;
+            const nguon = document.getElementById('chi-nguon').value;
             const desc = [...checks, dropdown, text].filter(x => x).join(', ');
+            
+            if (!nguon) {
+                throw new Error('Vui lòng chọn nguồn tiền');
+            }
             
             const formula = stack.length > 1 ? `=${stack.join('+')}` : total;
             
@@ -175,7 +227,7 @@ async function submitData(type) {
                 payload: {
                     moTa: desc,
                     loaiChi: '',
-                    nguon: 'Tiền mặt', // Default vì code cũ không có select nguồn
+                    nguon: nguon,
                     soTien1000: formula,
                     ngay: dateVal
                 }
@@ -183,7 +235,12 @@ async function submitData(type) {
         } else {
             const dropdown = document.getElementById('thu-dropdown').value;
             const text = document.getElementById('thu-text').value;
+            const nguon = document.getElementById('thu-nguon').value;
             const desc = [dropdown, text].filter(x => x).join(', ');
+            
+            if (!nguon) {
+                throw new Error('Vui lòng chọn nguồn tiền');
+            }
             
             const totalFull = total * 1000;
             
@@ -193,7 +250,7 @@ async function submitData(type) {
                     soTienVND: totalFull,
                     ngay: dateVal,
                     moTa: desc,
-                    nguon: 'Chuyển khoản', // Default
+                    nguon: nguon,
                     loaiThu: dropdown || 'Khác'
                 }
             };
@@ -210,7 +267,7 @@ async function submitData(type) {
         const result = await res.json();
         
         if (result.status === 'success') {
-            msg.innerHTML = `✅ Đã lưu: ${total}${type === 'chi' ? 'k' : ''}`;
+            msg.innerHTML = `✅ Đã lưu: ${(total * 1000).toLocaleString('vi-VN')} đ`;
             msg.className = "status-msg success";
             resetForm(type);
             setTimeout(loadSheetData, 2000);
@@ -222,6 +279,7 @@ async function submitData(type) {
         console.error('❌ Submit failed:', e);
         msg.innerText = "❌ Lỗi: " + e.message;
         msg.className = "status-msg error";
+        setTimeout(() => { msg.className = "status-msg"; }, 5000);
     } finally {
         btn.disabled = false;
         btn.innerText = type === 'chi' ? "LƯU KHOẢN CHI" : "LƯU KHOẢN THU";
@@ -229,19 +287,49 @@ async function submitData(type) {
 }
 
 function resetForm(type) {
-    if (type === 'chi') chiStack = []; else thuStack = [];
-    document.getElementById(`${type}-amount`).value = "";
+    if (type === 'chi') {
+        chiStack = [];
+        document.getElementById('chi-amount').value = '';
+        document.getElementById('chi-stack-display').textContent = '';
+        document.getElementById('chi-stack-display').style.display = 'none';
+        document.querySelectorAll('#chi-checkboxes input').forEach(cb => cb.checked = false);
+        document.getElementById('chi-dropdown').value = '';
+        document.getElementById('chi-text').value = '';
+        document.getElementById('chi-nguon').value = '';
+    } else {
+        thuStack = [];
+        document.getElementById('thu-amount').value = '';
+        document.getElementById('thu-dropdown').value = '';
+        document.getElementById('thu-text').value = '';
+        document.getElementById('thu-nguon').value = '';
+    }
     updateStackDisplay(type);
-    initDates();
+    checkSubmitState(type);
 }
 
 function setupEvents() {
+    // Date controls
+    document.getElementById('chi-prev-day').onclick = () => changeDate('chi', -1);
+    document.getElementById('chi-next-day').onclick = () => changeDate('chi', 1);
+    document.getElementById('chi-date-btn').onclick = () => showDatePicker('chi');
+    
+    document.getElementById('thu-prev-day').onclick = () => changeDate('thu', -1);
+    document.getElementById('thu-next-day').onclick = () => changeDate('thu', 1);
+    document.getElementById('thu-date-btn').onclick = () => showDatePicker('thu');
+    
+    // Plus buttons
     document.getElementById('chi-btn-plus').onclick = () => handlePlus('chi');
     document.getElementById('thu-btn-plus').onclick = () => handlePlus('thu');
+    
+    // Submit buttons
     document.getElementById('chi-submit').onclick = () => submitData('chi');
     document.getElementById('thu-submit').onclick = () => submitData('thu');
     
-    // Live preview on input
+    // Reset buttons
+    document.getElementById('chi-reset').onclick = () => resetForm('chi');
+    document.getElementById('thu-reset').onclick = () => resetForm('thu');
+    
+    // Live preview on chi input
     document.getElementById('chi-amount').addEventListener('input', () => {
         const currentVal = parseFloat(document.getElementById('chi-amount').value) || 0;
         const stack = [...chiStack];
@@ -250,34 +338,26 @@ function setupEvents() {
         const disp = document.getElementById('chi-stack-display');
         if (stack.length > 0) {
             const total = stack.reduce((a,b) => a+b, 0);
-            disp.innerText = `Đang cộng: ${stack.join(' + ')} = ${total} x 1000 = ${(total * 1000).toLocaleString()} đ`;
+            disp.innerText = `Đang cộng: ${stack.join(' + ')} = ${total} x 1000 = ${(total * 1000).toLocaleString('vi-VN')} đ`;
             disp.style.display = 'block';
+        } else {
+            disp.innerText = '';
+            disp.style.display = 'none';
         }
         
         checkSubmitState('chi');
     });
     
+    // Enter key on chi input
+    document.getElementById('chi-amount').addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === '+') {
+            e.preventDefault();
+            handlePlus('chi');
+        }
+    });
+    
+    // Thu validation
     document.getElementById('thu-amount').addEventListener('input', () => {
         checkSubmitState('thu');
     });
-    
-    // Reset buttons
-    document.getElementById('chi-reset').onclick = () => {
-        chiStack = [];
-        document.getElementById('chi-amount').value = '';
-        document.getElementById('chi-stack-display').textContent = '';
-        document.getElementById('chi-stack-display').style.display = 'none';
-        document.querySelectorAll('#chi-checkboxes input').forEach(cb => cb.checked = false);
-        document.getElementById('chi-dropdown').value = '';
-        document.getElementById('chi-text').value = '';
-        checkSubmitState('chi');
-    };
-    
-    document.getElementById('thu-reset').onclick = () => {
-        thuStack = [];
-        document.getElementById('thu-amount').value = '';
-        document.getElementById('thu-dropdown').value = '';
-        document.getElementById('thu-text').value = '';
-        checkSubmitState('thu');
-    };
 }
