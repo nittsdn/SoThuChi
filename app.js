@@ -41,6 +41,12 @@ function formatDateAPI(d) {
   return `${year}-${month}-${day}`;
 }
 
+function parseDateString(dateStr) {
+  // Parse "YYYY-MM-DD" string as local date to avoid timezone issues
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 // ================= TOAST NOTIFICATION =================
 function showToast(message, duration = 3000) {
   const toast = document.getElementById("toast");
@@ -143,7 +149,7 @@ function updateHeader(data) {
   headerContent.innerHTML = `
     <div class="header-title">Chi cuối</div>
     <div class="last-chi-desc">${lastChi.mo_ta_chi}</div>
-    <div class="last-chi-date">${formatDate(new Date(lastChi.Ngay))}</div>
+    <div class="last-chi-date">${formatDate(parseDateString(lastChi.Ngay))}</div>
     <div class="last-chi-formula">Tổng ${lastChi["Nghìn VND"]} = ${formatVN(lastChi["Số tiền vnđ"])}</div>
     <div class="balance-tag">Số dư lý thuyết: ${formatVN(lastChi["Số dư lý thuyết"])}</div>
   `;
