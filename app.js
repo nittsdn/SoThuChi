@@ -598,9 +598,16 @@ function checkChiReady() {
   document.getElementById("chi-submit").disabled = !(chiStack.length && chiDesc && chiSource);
 }
 
+// THAY ĐỔI CHÍNH Ở ĐÂY: Logic mới cho nút chi-clear
 document.getElementById("chi-clear").onclick = () => {
-  if (confirm("Xóa hết tất cả dữ liệu chi?")) {
-    resetChiSection();
+  if (editMode) {
+    // EDIT MODE: Delete the selected number from the stack
+    deleteChiStackNumber(editIndex);
+  } else {
+    // INPUT MODE: Clear all chiStack with confirmation
+    if (confirm("Xóa hết tất cả dữ liệu chi?")) {
+      resetChiSection();
+    }
   }
 };
 
