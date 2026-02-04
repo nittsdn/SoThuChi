@@ -499,7 +499,7 @@ function renderChiStack() {
   // If there's existing stack and new input in INPUT MODE, show the formula
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
-      return `<span class="stack-num" data-index="${i}">${formatVN(n * 1000)}</span><button class="stack-delete-btn" data-index="${i}">🗑️</button>`;
+      return `<span class="stack-num" data-index="${i}">${formatVN(n * 1000)}</span>`;
     });
     const newTotal = existingTotal + (currentInputNum * 1000);
     display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(newTotal)}`;
@@ -508,7 +508,9 @@ function renderChiStack() {
     const parts = chiStack.map((n, i) => {
       // Highlight the number being edited in EDIT MODE
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
-      return `<span class="${className}" data-index="${i}">${formatVN(n * 1000)}</span><button class="stack-delete-btn" data-index="${i}">🗑️</button>`;
+      // Only show delete button for the number in edit mode
+      const deleteBtn = (editMode && i === editIndex) ? `<button class="stack-delete-btn" data-index="${i}">🗑️</button>` : '';
+      return `<span class="${className}" data-index="${i}">${formatVN(n * 1000)}</span>${deleteBtn}`;
     });
     display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
   }
@@ -543,24 +545,19 @@ function renderChiStack() {
 
 /**
  * Delete a specific number from the chiStack by index
- * If currently editing that number, exit edit mode
+ * Always exits edit mode and resets to default entry mode
  * @param {number} index - Index of the number to delete
  */
 function deleteChiStackNumber(index) {
   // Remove the number from the stack
   chiStack.splice(index, 1);
   
-  // If we were editing this number, exit edit mode
-  if (editMode && editIndex === index) {
-    editMode = false;
-    editIndex = -1;
-    chiInput.value = "";
-    chiAddBtn.textContent = "+";
-    chiAddBtn.classList.remove("btn-confirm");
-  } else if (editMode && editIndex > index) {
-    // If we were editing a number after the deleted one, adjust the edit index
-    editIndex--;
-  }
+  // Always exit edit mode and reset to default entry mode
+  editMode = false;
+  editIndex = -1;
+  chiInput.value = "";
+  chiAddBtn.textContent = "+";
+  chiAddBtn.classList.remove("btn-confirm");
   
   // Re-render the stack
   renderChiStack();
