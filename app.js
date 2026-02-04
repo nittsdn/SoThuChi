@@ -475,6 +475,29 @@ chiInput.onblur = () => {
  * - Clicking a number to edit it
  * - Clicking the delete button (🗑️) to remove it
  */
+// Helper function to enter edit mode (called from onclick in HTML)
+window.enterChiEditMode = function(index) {
+  editMode = true;
+  editIndex = index;
+  chiInput.value = chiStack[index];
+  chiInput.focus();
+  chiAddBtn.textContent = "✓";
+  chiAddBtn.classList.add("btn-confirm");
+  renderChiStack();
+};
+
+// Helper function to delete a value (called from onclick in HTML)
+window.deleteChiValue = function(index) {
+  // Use window.event for cross-browser compatibility
+  const evt = event || window.event;
+  if (evt) {
+    evt.stopPropagation(); // Prevent the span's onclick from firing
+    evt.preventDefault();
+  }
+  deleteChiStackNumber(index);
+  return false; // Also prevent default behavior
+};
+
 function renderChiStack() {
   const display = document.getElementById("chi-stack");
   const currentInputVal = chiInput.value.replace(/\D/g, "");
@@ -499,7 +522,7 @@ function renderChiStack() {
   // If there's existing stack and new input in INPUT MODE, show the formula
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
-      return `<span class="stack-num" data-index="${i}">${formatVN(n * 1000)}</span>`;
+      return `<span class="stack-num" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n * 1000)}</span>`;
     });
     const newTotal = existingTotal + (currentInputNum * 1000);
     display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(newTotal)}`;
@@ -509,36 +532,11 @@ function renderChiStack() {
       // Highlight the number being edited in EDIT MODE
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
       // Only show delete button for the number in edit mode
-      const deleteBtn = (editMode && i === editIndex) ? `<button class="stack-delete-btn" data-index="${i}">🗑️</button>` : '';
-      return `<span class="${className}" data-index="${i}">${formatVN(n * 1000)}</span>${deleteBtn}`;
+      const deleteBtn = (editMode && i === editIndex) ? `<button type="button" class="stack-delete-btn" data-index="${i}" onclick="return window.deleteChiValue(${i})">🗑️</button>` : '';
+      return `<span class="${className}" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n * 1000)}</span>${deleteBtn}`;
     });
     display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
   }
-  
-  // Add click handlers to enter EDIT MODE when clicking a number
-  document.querySelectorAll(".stack-num").forEach(el => {
-    el.onclick = () => {
-      const index = parseInt(el.dataset.index);
-      // Enter EDIT MODE
-      editMode = true;
-      editIndex = index;
-      chiInput.value = chiStack[index];
-      chiInput.focus();
-      // Update button to show confirm (✓)
-      chiAddBtn.textContent = "✓";
-      chiAddBtn.classList.add("btn-confirm");
-      renderChiStack();
-    };
-  });
-  
-  // Add delete handlers to remove individual numbers from stack
-  document.querySelectorAll(".stack-delete-btn").forEach(el => {
-    el.onclick = (e) => {
-      e.stopPropagation(); // Prevent triggering parent click handlers
-      const index = parseInt(el.dataset.index);
-      deleteChiStackNumber(index);
-    };
-  });
   
   checkChiReady();
 }
@@ -555,7 +553,16 @@ function deleteChiStackNumber(index) {
   // Always exit edit mode and reset to default entry mode
   editMode = false;
   editIndex = -1;
+  
+  // Temporarily disable oninput to prevent it from interfering
+  const originalOnInput = chiInput.oninput;
+  chiInput.oninput = null;
+  
   chiInput.value = "";
+  
+  // Restore oninput handler
+  chiInput.oninput = originalOnInput;
+  
   chiAddBtn.textContent = "+";
   chiAddBtn.classList.remove("btn-confirm");
   
