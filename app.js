@@ -229,22 +229,32 @@ function updateHeader(data) {
 
 // ================= DATE NAVIGATION =================
 const chiDateInput = document.getElementById("chi-date-input");
+const chiDateDisplay = document.getElementById("chi-date-display");
 const thuDateInput = document.getElementById("thu-date-input");
+const thuDateDisplay = document.getElementById("thu-date-display");
 
 function renderChiDate() {
   chiDateInput.value = formatDateAPI(chiDate);
   chiDateInput.max = formatDateAPI(new Date());
+  chiDateDisplay.textContent = formatDate(chiDate);
 }
 
 function renderThuDate() {
   thuDateInput.value = formatDateAPI(thuDate);
   thuDateInput.max = formatDateAPI(new Date());
+  thuDateDisplay.textContent = formatDate(thuDate);
 }
+
+// When user clicks the display button, trigger the hidden date input
+chiDateDisplay.onclick = () => {
+  chiDateInput.showPicker();
+};
 
 chiDateInput.onchange = (e) => {
   const selected = new Date(e.target.value);
   if (selected <= new Date()) {
     chiDate = selected;
+    renderChiDate();
   } else {
     showToast("Không thể chọn ngày tương lai");
     renderChiDate();
@@ -267,10 +277,16 @@ document.getElementById("chi-date-next").onclick = () => {
   }
 };
 
+// When user clicks the display button, trigger the hidden date input
+thuDateDisplay.onclick = () => {
+  thuDateInput.showPicker();
+};
+
 thuDateInput.onchange = (e) => {
   const selected = new Date(e.target.value);
   if (selected <= new Date()) {
     thuDate = selected;
+    renderThuDate();
   } else {
     showToast("Không thể chọn ngày tương lai");
     renderThuDate();
