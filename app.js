@@ -185,7 +185,10 @@ let thuDate = new Date();
 let chiStack = [];
 let chiDesc = "";
 let chiSource = "";
-let chiEditIndex = -1;
+
+// Edit mode state: tracks whether we're editing an existing value
+let editMode = false;      // true = editing existing number, false = adding new numbers
+let editIndex = -1;        // index of the number being edited in chiStack
 
 let thuAmount = 0;
 let thuDesc = "";
@@ -365,39 +368,56 @@ function populateChiDropdowns() {
 const chiInput = document.getElementById("chi-input");
 const chiAddBtn = document.getElementById("chi-add");
 
+// INPUT MODE vs EDIT MODE handler for the text input
 chiInput.oninput = () => {
   // Strip non-numeric immediately
   const val = chiInput.value = chiInput.value.replace(/\D/g, "");
   
-  // Update button state based on whether there's input
-  if (val && val !== "0") {
+  if (editMode) {
+    // EDIT MODE: Real-time update of the selected value in the stack
+    if (val && val !== "0") {
+      const num = parseFloat(val);
+      chiStack[editIndex] = num;  // Update the value in the stack in real-time
+    }
+    // Button stays as "✓" (confirm button) in edit mode
     chiAddBtn.textContent = "✓";
     chiAddBtn.classList.add("btn-confirm");
   } else {
-    chiAddBtn.textContent = "+";
-    chiAddBtn.classList.remove("btn-confirm");
+    // INPUT MODE: Button changes based on whether there's input
+    if (val && val !== "0") {
+      chiAddBtn.textContent = "+";
+      chiAddBtn.classList.remove("btn-confirm");
+    } else {
+      chiAddBtn.textContent = "+";
+      chiAddBtn.classList.remove("btn-confirm");
+    }
   }
   
   // Update stack display to show current total + new value being entered
   renderChiStack();
 };
 
-// Function to add value from chi input to stack
+// Function to add value from chi input to stack (INPUT MODE)
+// or confirm edit (EDIT MODE)
 function addChiValue() {
   const val = chiInput.value.replace(/\D/g, "");
   if (!val || val === "0") return;
   
   const num = parseFloat(val);
-  if (chiEditIndex >= 0) {
-    chiStack[chiEditIndex] = num;
-    chiEditIndex = -1;
+  
+  if (editMode) {
+    // EDIT MODE: Confirm the edit and exit edit mode
+    chiStack[editIndex] = num;
+    editMode = false;
+    editIndex = -1;
   } else {
+    // INPUT MODE: Add new value to stack
     chiStack.push(num);
   }
   
   chiInput.value = "";
   
-  // Reset button to + state
+  // Reset button to + state (input mode)
   chiAddBtn.textContent = "+";
   chiAddBtn.classList.remove("btn-confirm");
   
@@ -451,34 +471,42 @@ function renderChiStack() {
   // Calculate existing total
   const existingTotal = chiStack.reduce((a, b) => a + b, 0) * 1000;
   
-  // If there's a value being entered, show "Tổng: X"
-  if (!chiStack.length && currentInputNum) {
+  // If there's a value being entered in INPUT MODE, show "Tổng: X"
+  if (!chiStack.length && currentInputNum && !editMode) {
     display.innerHTML = `Tổng: ${formatVN(currentInputNum * 1000)}`;
     checkChiReady();
     return;
   }
   
-  // If there's existing stack and new input, show the formula
-  if (chiStack.length && currentInputNum) {
+  // If there's existing stack and new input in INPUT MODE, show the formula
+  if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
       return `<span class="stack-num" data-index="${i}">${formatVN(n * 1000)}</span>`;
     });
     const newTotal = existingTotal + (currentInputNum * 1000);
     display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(newTotal)}`;
   } else {
-    // Show only existing stack
+    // Show existing stack (either in INPUT MODE with no new value, or in EDIT MODE)
     const parts = chiStack.map((n, i) => {
-      return `<span class="stack-num" data-index="${i}">${formatVN(n * 1000)}</span>`;
+      // Highlight the number being edited in EDIT MODE
+      const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
+      return `<span class="${className}" data-index="${i}">${formatVN(n * 1000)}</span>`;
     });
     display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
   }
   
+  // Add click handlers to enter EDIT MODE when clicking a number
   document.querySelectorAll(".stack-num").forEach(el => {
     el.onclick = () => {
       const index = parseInt(el.dataset.index);
+      // Enter EDIT MODE
+      editMode = true;
+      editIndex = index;
       chiInput.value = chiStack[index];
-      chiEditIndex = index;
       chiInput.focus();
+      // Update button to show confirm (✓)
+      chiAddBtn.textContent = "✓";
+      chiAddBtn.classList.add("btn-confirm");
       renderChiStack();
     };
   });
@@ -513,7 +541,8 @@ function resetChiSection() {
   chiStack = [];
   chiDesc = "";
   chiSource = "";
-  chiEditIndex = -1;
+  editMode = false;      // Reset to INPUT MODE
+  editIndex = -1;
   chiInput.value = "";
   document.getElementById("chi-stack").innerHTML = "Chưa có số";
   document.getElementById("chi-desc-dropdown").value = "";
