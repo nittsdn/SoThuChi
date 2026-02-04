@@ -384,6 +384,7 @@ function populateChiDropdowns() {
 
 const chiInput = document.getElementById("chi-input");
 const chiAddBtn = document.getElementById("chi-add");
+const chiClearBtn = document.getElementById("chi-clear");
 
 // INPUT MODE vs EDIT MODE handler for the text input
 chiInput.oninput = () => {
@@ -399,10 +400,14 @@ chiInput.oninput = () => {
     // Button stays as "✓" (confirm button) in edit mode
     chiAddBtn.textContent = "✓";
     chiAddBtn.classList.add("btn-confirm");
+    // Change clear button to trash icon in edit mode
+    chiClearBtn.textContent = "🗑️";
   } else {
     // INPUT MODE: Button stays as "+" (add button)
     chiAddBtn.textContent = "+";
     chiAddBtn.classList.remove("btn-confirm");
+    // Keep clear button as reset icon in input mode
+    chiClearBtn.textContent = "↻";
   }
   
   // Update stack display to show current total + new value being entered
@@ -432,12 +437,14 @@ function addChiValue() {
   // Reset button to + state (input mode)
   chiAddBtn.textContent = "+";
   chiAddBtn.classList.remove("btn-confirm");
+  chiClearBtn.textContent = "↻";
   
   renderChiStack();
 }
 
 // Flag to prevent blur when clicking the add button
 let isAddingFromButton = false;
+let isDeletingFromButton = false; // ← THÊM FLAG MỚI
 
 // Existing + button functionality
 document.getElementById("chi-add").onmousedown = () => {
@@ -459,21 +466,21 @@ document.getElementById("chi-add").onclick = () => {
 
 // New blur event functionality
 chiInput.onblur = () => {
-  // Only add value if not clicking the add button
-  if (!isAddingFromButton) {
+  // Only add value if not clicking the add button OR delete button
+  if (!isAddingFromButton && !isDeletingFromButton) { // ← SỬA Ở ĐÂY
     addChiValue();
   }
   // Reset flag in case of incomplete button interaction (mousedown without click)
   setTimeout(() => {
     isAddingFromButton = false;
+    isDeletingFromButton = false; // ← RESET FLAG MỚI
   }, 0);
 };
 
 /**
- * Render the CHI stack display with delete buttons for each number
+ * Render the CHI stack display WITHOUT delete buttons next to numbers
  * Shows the formula of numbers being added and allows:
  * - Clicking a number to edit it
- * - Clicking the delete button (🗑️) to remove it
  */
 // Helper function to enter edit mode (called from onclick in HTML)
 window.enterChiEditMode = function(index) {
@@ -483,19 +490,8 @@ window.enterChiEditMode = function(index) {
   chiInput.focus();
   chiAddBtn.textContent = "✓";
   chiAddBtn.classList.add("btn-confirm");
+  chiClearBtn.textContent = "🗑️";
   renderChiStack();
-};
-
-// Helper function to delete a value (called from onclick in HTML)
-window.deleteChiValue = function(index) {
-  // Use window.event for cross-browser compatibility
-  const evt = event || window.event;
-  if (evt) {
-    evt.stopPropagation(); // Prevent the span's onclick from firing
-    evt.preventDefault();
-  }
-  deleteChiStackNumber(index);
-  return false; // Also prevent default behavior
 };
 
 function renderChiStack() {
@@ -528,25 +524,13 @@ function renderChiStack() {
     display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(newTotal)}`;
   } else {
     // Show existing stack (either in INPUT MODE with no new value, or in EDIT MODE)
+    // NO DELETE BUTTON next to numbers anymore
     const parts = chiStack.map((n, i) => {
       // Highlight the number being edited in EDIT MODE
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
-      // Only show delete button for the number in edit mode (NOT using onclick)
-      const deleteBtn = (editMode && i === editIndex) ? `<button type="button" class="stack-delete-btn" data-delete-index="${i}">🗑️</button>` : '';
-      return `<span class="${className}" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n * 1000)}</span>${deleteBtn}`;
+      return `<span class="${className}" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n * 1000)}</span>`;
     });
     display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
-    
-    // Attach delete button event listener using data attribute and getElementById parent
-    const deleteBtn = display.querySelector('.stack-delete-btn');
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        e.preventDefault();
-        const index = parseInt(this.getAttribute('data-delete-index'));
-        deleteChiStackNumber(index);
-      }, {once: true}); // Use once:true to prevent duplicate handlers
-    }
   }
   
   checkChiReady();
@@ -576,6 +560,7 @@ function deleteChiStackNumber(index) {
   
   chiAddBtn.textContent = "+";
   chiAddBtn.classList.remove("btn-confirm");
+  chiClearBtn.textContent = "↻";
   
   // Re-render the stack
   renderChiStack();
@@ -597,14 +582,37 @@ document.getElementById("chi-source").onchange = (e) => {
 function checkChiReady() {
   document.getElementById("chi-submit").disabled = !(chiStack.length && chiDesc && chiSource);
 }
+// Prevent blur when clicking clear/delete button
+document.getElementById("chi-clear").onmousedown = () => {
+  isDeletingFromButton = true;
+};
 
-// THAY ĐỔI CHÍNH Ở ĐÂY: Logic mới cho nút chi-clear
+document.getElementById("chi-clear").onkeydown = (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    isDeletingFromButton = true;
+  }
+};
+
+// CHI-CLEAR button: Reset in INPUT mode, Delete in EDIT mode
 document.getElementById("chi-clear").onclick = () => {
   if (editMode) {
-    // EDIT MODE: Delete the selected number from the stack
+    // EDIT MODE: Delete the selected number (no confirm)
     deleteChiStackNumber(editIndex);
   } else {
-    // INPUT MODE: Clear all chiStack with confirmation
+    // INPUT MODE: Reset all with confirmation
+    if (confirm("Xóa hết tất cả dữ liệu chi?")) {
+      resetChiSection();
+    }
+  }
+  isDeletingFromButton = false; // ← RESET FLAG SAU KHI XỬ LÝ XONG
+};
+// CHI-CLEAR button: Reset in INPUT mode, Delete in EDIT mode
+document.getElementById("chi-clear").onclick = () => {
+  if (editMode) {
+    // EDIT MODE: Delete the selected number (no confirm)
+    deleteChiStackNumber(editIndex);
+  } else {
+    // INPUT MODE: Reset all with confirmation
     if (confirm("Xóa hết tất cả dữ liệu chi?")) {
       resetChiSection();
     }
@@ -615,7 +623,7 @@ function resetChiSection() {
   chiStack = [];
   chiDesc = "";
   chiSource = "";
-  editMode = false;      // Reset to INPUT MODE
+  editMode = false;
   editIndex = -1;
   chiInput.value = "";
   document.getElementById("chi-stack").innerHTML = "Chưa có số";
@@ -623,6 +631,9 @@ function resetChiSection() {
   document.getElementById("chi-source").value = "";
   document.querySelectorAll("#chi-chips .chip").forEach(c => c.classList.remove("selected"));
   document.getElementById("chi-submit").disabled = true;
+  chiAddBtn.textContent = "+";
+  chiAddBtn.classList.remove("btn-confirm");
+  chiClearBtn.textContent = "↻";
   chiInput.focus();
 }
 
