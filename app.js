@@ -43,8 +43,56 @@ function formatDateAPI(d) {
 
 function parseDateString(dateStr) {
   // Parse "YYYY-MM-DD" string as local date to avoid timezone issues
-  const [year, month, day] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day);
+  // Add robust error handling for edge cases
+  
+  // Handle null, undefined, or non-string inputs
+  if (!dateStr) {
+    console.warn("parseDateString: Received empty or null date string, using current date");
+    return new Date();
+  }
+  
+  // If already a Date object, return it
+  if (dateStr instanceof Date) {
+    console.debug("parseDateString: Received Date object, returning as-is");
+    return dateStr;
+  }
+  
+  // Convert to string if needed
+  const dateString = String(dateStr).trim();
+  
+  // Validate format (should be YYYY-MM-DD from GAS)
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (!datePattern.test(dateString)) {
+    console.warn(`parseDateString: Invalid date format "${dateString}", falling back to Date constructor`);
+    // Fallback to the old method for compatibility
+    const fallbackDate = new Date(dateString);
+    if (isNaN(fallbackDate.getTime())) {
+      console.error(`parseDateString: Failed to parse "${dateString}", using current date`);
+      return new Date();
+    }
+    return fallbackDate;
+  }
+  
+  // Parse the date string
+  const [year, month, day] = dateString.split("-").map(Number);
+  
+  // Validate the parsed values
+  if (isNaN(year) || isNaN(month) || isNaN(day)) {
+    console.error(`parseDateString: Invalid date components in "${dateString}", using current date`);
+    return new Date();
+  }
+  
+  // Create the date object
+  const parsedDate = new Date(year, month - 1, day);
+  
+  // Validate the resulting date
+  if (isNaN(parsedDate.getTime())) {
+    console.error(`parseDateString: Invalid date result from "${dateString}", using current date`);
+    return new Date();
+  }
+  
+  console.debug(`parseDateString: Successfully parsed "${dateString}" to ${parsedDate}`);
+  return parsedDate;
 }
 
 // ================= TOAST NOTIFICATION =================
@@ -65,19 +113,34 @@ function showLoading(show = true) {
 async function fetchData(sheet) {
   try {
     showLoading(true);
+    console.log(`fetchData: Fetching sheet "${sheet}"`);
     const response = await fetch(`${API_URL}?sheet=${sheet}`);
     const result = await response.json();
     showLoading(false);
+    
+    // Debug logging for API response
+    console.log(`fetchData: Response status for "${sheet}":`, result.status);
+    console.log(`fetchData: Data length for "${sheet}":`, result.data ? result.data.length : 0);
+    
+    // Log a sample of the data for debugging (first and last items)
+    if (result.data && result.data.length > 0) {
+      console.log(`fetchData: First item from "${sheet}":`, result.data[0]);
+      if (result.data.length > 1) {
+        console.log(`fetchData: Last item from "${sheet}":`, result.data[result.data.length - 1]);
+      }
+    }
     
     // Check status and return data array
     if (result.status === "success") {
       return result.data || [];
     } else {
+      console.error(`fetchData: API error for "${sheet}":`, result.message);
       showToast("Lỗi từ API: " + (result.message || "Unknown error"));
       return [];
     }
   } catch (error) {
     showLoading(false);
+    console.error(`fetchData: Network error for "${sheet}":`, error);
     showToast("Lỗi kết nối API: " + error.message);
     return [];
   }
@@ -137,7 +200,11 @@ let settings = loadSettings();
 function updateHeader(data) {
   const headerContent = document.getElementById("header-content");
   
+  // Debug logging to monitor raw data
+  console.log("updateHeader: Received data array length:", data ? data.length : 0);
+  
   if (!data || data.length === 0) {
+    console.warn("updateHeader: No data available");
     headerContent.innerHTML = `
       <div class="last-chi-desc">Chưa có chi tiêu</div>
       <div class="balance-tag">Số dư lý thuyết: 0</div>
@@ -146,6 +213,11 @@ function updateHeader(data) {
   }
   
   const lastChi = data[data.length - 1];
+  
+  // Debug log the last chi data and date format
+  console.log("updateHeader: Last chi data:", lastChi);
+  console.log("updateHeader: Date field (Ngay):", lastChi.Ngay, "Type:", typeof lastChi.Ngay);
+  
   headerContent.innerHTML = `
     <div class="header-title">Chi cuối</div>
     <div class="last-chi-desc">${lastChi.mo_ta_chi}</div>
