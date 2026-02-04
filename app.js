@@ -396,6 +396,13 @@ document.getElementById("chi-add").onmousedown = () => {
   isAddingFromButton = true;
 };
 
+document.getElementById("chi-add").onkeydown = (e) => {
+  // Handle Enter and Space for keyboard accessibility
+  if (e.key === 'Enter' || e.key === ' ') {
+    isAddingFromButton = true;
+  }
+};
+
 document.getElementById("chi-add").onclick = () => {
   addChiValue();
   chiInput.focus();
@@ -408,6 +415,10 @@ chiInput.onblur = () => {
   if (!isAddingFromButton) {
     addChiValue();
   }
+  // Reset flag in case of incomplete button interaction (mousedown without click)
+  setTimeout(() => {
+    isAddingFromButton = false;
+  }, 0);
 };
 
 function renderChiStack() {
