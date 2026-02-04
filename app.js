@@ -371,7 +371,8 @@ chiInput.oninput = () => {
   renderChiStack();
 };
 
-document.getElementById("chi-add").onclick = () => {
+// Function to add value from chi input to stack
+function addChiValue() {
   const val = chiInput.value.replace(/\D/g, "");
   if (!val || val === "0") return;
   
@@ -384,8 +385,18 @@ document.getElementById("chi-add").onclick = () => {
   }
   
   chiInput.value = "";
-  chiInput.focus();
   renderChiStack();
+}
+
+// Existing + button functionality
+document.getElementById("chi-add").onclick = () => {
+  addChiValue();
+  chiInput.focus();
+};
+
+// New blur event functionality
+chiInput.onblur = () => {
+  addChiValue();
 };
 
 function renderChiStack() {
