@@ -363,9 +363,20 @@ function populateChiDropdowns() {
 }
 
 const chiInput = document.getElementById("chi-input");
+const chiAddBtn = document.getElementById("chi-add");
+
 chiInput.oninput = () => {
   // Strip non-numeric immediately
   const val = chiInput.value = chiInput.value.replace(/\D/g, "");
+  
+  // Update button state based on whether there's input
+  if (val && val !== "0") {
+    chiAddBtn.textContent = "✓";
+    chiAddBtn.classList.add("btn-confirm");
+  } else {
+    chiAddBtn.textContent = "+";
+    chiAddBtn.classList.remove("btn-confirm");
+  }
   
   // Update stack display to show current total + new value being entered
   renderChiStack();
@@ -385,6 +396,11 @@ function addChiValue() {
   }
   
   chiInput.value = "";
+  
+  // Reset button to + state
+  chiAddBtn.textContent = "+";
+  chiAddBtn.classList.remove("btn-confirm");
+  
   renderChiStack();
 }
 

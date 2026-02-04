@@ -275,6 +275,10 @@ input, select, button {
   color: #fff;
 }
 
+.btn-blue.btn-confirm {
+  background: #28a745;
+}
+
 .btn-green {
   background: #34c759;
   color: #fff;
