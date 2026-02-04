@@ -367,11 +367,8 @@ chiInput.oninput = () => {
   // Strip non-numeric immediately
   const val = chiInput.value = chiInput.value.replace(/\D/g, "");
   
-  if (val) {
-    document.getElementById("chi-preview").textContent = formatVN(val * 1000);
-  } else {
-    document.getElementById("chi-preview").textContent = "";
-  }
+  // Update stack display to show current total + new value being entered
+  renderChiStack();
 };
 
 document.getElementById("chi-add").onclick = () => {
@@ -387,24 +384,45 @@ document.getElementById("chi-add").onclick = () => {
   }
   
   chiInput.value = "";
-  document.getElementById("chi-preview").textContent = "";
   chiInput.focus();
   renderChiStack();
 };
 
 function renderChiStack() {
   const display = document.getElementById("chi-stack");
-  if (!chiStack.length) {
+  const currentInputVal = chiInput.value.replace(/\D/g, "");
+  const currentInputNum = currentInputVal ? parseFloat(currentInputVal) : 0;
+  
+  if (!chiStack.length && !currentInputNum) {
     display.innerHTML = "Chưa có số";
     checkChiReady();
     return;
   }
   
-  const parts = chiStack.map((n, i) => {
-    return `<span class="stack-num" data-index="${i}">${formatVN(n * 1000)}</span>`;
-  });
-  const total = chiStack.reduce((a, b) => a + b, 0) * 1000;
-  display.innerHTML = parts.join(" + ") + " = " + formatVN(total);
+  // Calculate existing total
+  const existingTotal = chiStack.reduce((a, b) => a + b, 0) * 1000;
+  
+  // If there's a value being entered, show "Tổng: X"
+  if (!chiStack.length && currentInputNum) {
+    display.innerHTML = `Tổng: ${formatVN(currentInputNum * 1000)}`;
+    checkChiReady();
+    return;
+  }
+  
+  // If there's existing stack and new input, show the formula
+  if (chiStack.length && currentInputNum) {
+    const parts = chiStack.map((n, i) => {
+      return `<span class="stack-num" data-index="${i}">${formatVN(n * 1000)}</span>`;
+    });
+    const newTotal = existingTotal + (currentInputNum * 1000);
+    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(newTotal)}`;
+  } else {
+    // Show only existing stack
+    const parts = chiStack.map((n, i) => {
+      return `<span class="stack-num" data-index="${i}">${formatVN(n * 1000)}</span>`;
+    });
+    display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
+  }
   
   document.querySelectorAll(".stack-num").forEach(el => {
     el.onclick = () => {
@@ -412,7 +430,7 @@ function renderChiStack() {
       chiInput.value = chiStack[index];
       chiEditIndex = index;
       chiInput.focus();
-      document.getElementById("chi-preview").textContent = formatVN(chiStack[index] * 1000);
+      renderChiStack();
     };
   });
   
@@ -448,7 +466,6 @@ function resetChiSection() {
   chiSource = "";
   chiEditIndex = -1;
   chiInput.value = "";
-  document.getElementById("chi-preview").textContent = "";
   document.getElementById("chi-stack").innerHTML = "Chưa có số";
   document.getElementById("chi-desc-dropdown").value = "";
   document.getElementById("chi-source").value = "";
