@@ -336,16 +336,17 @@ input, select, button {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   padding: 0 4px;
   margin-left: 4px;
   opacity: 0.6;
   transition: opacity 0.2s, transform 0.1s;
+  color: #d9534f;
 }
 
 .stack-delete-btn:hover {
   opacity: 1;
-  transform: scale(1.2);
+  transform: scale(1.3);
 }
 
 /* =========================

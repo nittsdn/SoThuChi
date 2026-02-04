@@ -473,7 +473,7 @@ chiInput.onblur = () => {
  * Render the CHI stack display with delete buttons for each number
  * Shows the formula of numbers being added and allows:
  * - Clicking a number to edit it
- * - Clicking the delete button (❌) to remove it
+ * - Clicking the delete button (🗑️) to remove it
  */
 function renderChiStack() {
   const display = document.getElementById("chi-stack");
@@ -499,7 +499,7 @@ function renderChiStack() {
   // If there's existing stack and new input in INPUT MODE, show the formula
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
-      return `<span class="stack-num" data-index="${i}">${formatVN(n * 1000)}</span><button class="stack-delete-btn" data-index="${i}">❌</button>`;
+      return `<span class="stack-num" data-index="${i}">${formatVN(n * 1000)}</span><button class="stack-delete-btn" data-index="${i}">🗑️</button>`;
     });
     const newTotal = existingTotal + (currentInputNum * 1000);
     display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(newTotal)}`;
@@ -508,7 +508,7 @@ function renderChiStack() {
     const parts = chiStack.map((n, i) => {
       // Highlight the number being edited in EDIT MODE
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
-      return `<span class="${className}" data-index="${i}">${formatVN(n * 1000)}</span><button class="stack-delete-btn" data-index="${i}">❌</button>`;
+      return `<span class="${className}" data-index="${i}">${formatVN(n * 1000)}</span><button class="stack-delete-btn" data-index="${i}">🗑️</button>`;
     });
     display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
   }
