@@ -1,5 +1,7 @@
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
+const BTN_TEXT_ADD = "+";
+const BTN_TEXT_CONFIRM = "✓";
 
 // ================= UTIL =================
 // Vietnamese number formatting: . for thousands, , for decimals
@@ -257,9 +259,23 @@ chiDateDisplay.onclick = () => {
 };
 
 chiDateInput.onchange = (e) => {
-  const selected = new Date(e.target.value + "T00:00:00");
+  const dateValue = e.target.value;
+  // Validate the date format (YYYY-MM-DD)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    showToast("Định dạng ngày không hợp lệ");
+    renderChiDate();
+    return;
+  }
+  
+  const selected = new Date(dateValue + "T00:00:00");
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  
+  if (isNaN(selected.getTime())) {
+    showToast("Ngày không hợp lệ");
+    renderChiDate();
+    return;
+  }
   
   if (selected <= today) {
     chiDate = selected;
@@ -298,9 +314,23 @@ thuDateDisplay.onclick = () => {
 };
 
 thuDateInput.onchange = (e) => {
-  const selected = new Date(e.target.value + "T00:00:00");
+  const dateValue = e.target.value;
+  // Validate the date format (YYYY-MM-DD)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    showToast("Định dạng ngày không hợp lệ");
+    renderThuDate();
+    return;
+  }
+  
+  const selected = new Date(dateValue + "T00:00:00");
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  
+  if (isNaN(selected.getTime())) {
+    showToast("Ngày không hợp lệ");
+    renderThuDate();
+    return;
+  }
   
   if (selected <= today) {
     thuDate = selected;
@@ -381,9 +411,9 @@ chiInput.oninput = () => {
   
   // Update button text based on whether user is editing
   if (val) {
-    chiAddBtn.textContent = "✓";
+    chiAddBtn.textContent = BTN_TEXT_CONFIRM;
   } else {
-    chiAddBtn.textContent = "+";
+    chiAddBtn.textContent = BTN_TEXT_ADD;
   }
   
   // Update stack display to show current total + new value being entered
@@ -404,7 +434,7 @@ function addChiValue() {
   }
   
   chiInput.value = "";
-  chiAddBtn.textContent = "+";
+  chiAddBtn.textContent = BTN_TEXT_ADD;
   renderChiStack();
 }
 
@@ -482,7 +512,7 @@ function renderChiStack() {
       const index = parseInt(el.dataset.index);
       chiInput.value = chiStack[index];
       chiEditIndex = index;
-      chiAddBtn.textContent = "✓";
+      chiAddBtn.textContent = BTN_TEXT_CONFIRM;
       chiInput.focus();
       renderChiStack();
     };
