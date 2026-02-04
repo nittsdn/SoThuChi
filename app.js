@@ -388,20 +388,26 @@ function addChiValue() {
   renderChiStack();
 }
 
+// Flag to prevent blur when clicking the add button
+let isAddingFromButton = false;
+
 // Existing + button functionality
-document.getElementById("chi-add").onmousedown = (e) => {
-  // Prevent blur event from firing when clicking the button
-  e.preventDefault();
+document.getElementById("chi-add").onmousedown = () => {
+  isAddingFromButton = true;
 };
 
 document.getElementById("chi-add").onclick = () => {
   addChiValue();
   chiInput.focus();
+  isAddingFromButton = false;
 };
 
 // New blur event functionality
 chiInput.onblur = () => {
-  addChiValue();
+  // Only add value if not clicking the add button
+  if (!isAddingFromButton) {
+    addChiValue();
+  }
 };
 
 function renderChiStack() {
