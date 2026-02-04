@@ -236,19 +236,42 @@ const chiDateDisplay = document.getElementById("chi-date-display");
 const thuDateInput = document.getElementById("thu-date-input");
 const thuDateDisplay = document.getElementById("thu-date-display");
 
+/**
+ * Common helper function to change date by a delta (in days)
+ * Prevents selecting future dates
+ * @param {Date} currentDate - The current date object
+ * @param {number} delta - Number of days to shift (positive or negative)
+ * @returns {Date} The new date, or current date if future date would be selected
+ */
+function changeDate(currentDate, delta) {
+  const newDate = new Date(currentDate);
+  newDate.setDate(newDate.getDate() + delta);
+  
+  // Prevent selecting future dates
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // Set to end of today for comparison
+  
+  if (newDate > today) {
+    showToast("Không thể chọn ngày tương lai");
+    return currentDate;
+  }
+  
+  return newDate;
+}
+
 function renderChiDate() {
   chiDateInput.value = formatDateAPI(chiDate);
   chiDateInput.max = formatDateAPI(new Date());
-  chiDateDisplay.textContent = formatDate(chiDate);
+  chiDateDisplay.textContent = `<< ${formatDate(chiDate)} >>`;
 }
 
 function renderThuDate() {
   thuDateInput.value = formatDateAPI(thuDate);
   thuDateInput.max = formatDateAPI(new Date());
-  thuDateDisplay.textContent = formatDate(thuDate);
+  thuDateDisplay.textContent = `<< ${formatDate(thuDate)} >>`;
 }
 
-// When user clicks the display button, trigger the hidden date input
+// CHI date navigation event listeners
 chiDateDisplay.onclick = () => {
   if (chiDateInput.showPicker) {
     chiDateInput.showPicker();
@@ -259,7 +282,10 @@ chiDateDisplay.onclick = () => {
 
 chiDateInput.onchange = (e) => {
   const selected = new Date(e.target.value);
-  if (selected <= new Date()) {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  
+  if (selected <= today) {
     chiDate = selected;
     renderChiDate();
   } else {
@@ -269,22 +295,16 @@ chiDateInput.onchange = (e) => {
 };
 
 document.getElementById("chi-date-prev").onclick = () => {
-  chiDate.setDate(chiDate.getDate() - 1);
+  chiDate = changeDate(chiDate, -1);
   renderChiDate();
 };
 
 document.getElementById("chi-date-next").onclick = () => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  if (chiDate < tomorrow) {
-    chiDate.setDate(chiDate.getDate() + 1);
-    renderChiDate();
-  } else {
-    showToast("Không thể chọn ngày tương lai");
-  }
+  chiDate = changeDate(chiDate, 1);
+  renderChiDate();
 };
 
-// When user clicks the display button, trigger the hidden date input
+// THU date navigation event listeners
 thuDateDisplay.onclick = () => {
   if (thuDateInput.showPicker) {
     thuDateInput.showPicker();
@@ -295,7 +315,10 @@ thuDateDisplay.onclick = () => {
 
 thuDateInput.onchange = (e) => {
   const selected = new Date(e.target.value);
-  if (selected <= new Date()) {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  
+  if (selected <= today) {
     thuDate = selected;
     renderThuDate();
   } else {
@@ -305,19 +328,13 @@ thuDateInput.onchange = (e) => {
 };
 
 document.getElementById("thu-date-prev").onclick = () => {
-  thuDate.setDate(thuDate.getDate() - 1);
+  thuDate = changeDate(thuDate, -1);
   renderThuDate();
 };
 
 document.getElementById("thu-date-next").onclick = () => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  if (thuDate < tomorrow) {
-    thuDate.setDate(thuDate.getDate() + 1);
-    renderThuDate();
-  } else {
-    showToast("Không thể chọn ngày tương lai");
-  }
+  thuDate = changeDate(thuDate, 1);
+  renderThuDate();
 };
 
 // ================= CHI (EXPENSE) =================
@@ -452,6 +469,12 @@ chiInput.onblur = () => {
   }, 0);
 };
 
+/**
+ * Render the CHI stack display with delete buttons for each number
+ * Shows the formula of numbers being added and allows:
+ * - Clicking a number to edit it
+ * - Clicking the delete button (❌) to remove it
+ */
 function renderChiStack() {
   const display = document.getElementById("chi-stack");
   const currentInputVal = chiInput.value.replace(/\D/g, "");
@@ -476,7 +499,7 @@ function renderChiStack() {
   // If there's existing stack and new input in INPUT MODE, show the formula
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
-      return `<span class="stack-num" data-index="${i}">${formatVN(n * 1000)}</span>`;
+      return `<span class="stack-num" data-index="${i}">${formatVN(n * 1000)}</span><button class="stack-delete-btn" data-index="${i}">❌</button>`;
     });
     const newTotal = existingTotal + (currentInputNum * 1000);
     display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(newTotal)}`;
@@ -485,7 +508,7 @@ function renderChiStack() {
     const parts = chiStack.map((n, i) => {
       // Highlight the number being edited in EDIT MODE
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
-      return `<span class="${className}" data-index="${i}">${formatVN(n * 1000)}</span>`;
+      return `<span class="${className}" data-index="${i}">${formatVN(n * 1000)}</span><button class="stack-delete-btn" data-index="${i}">❌</button>`;
     });
     display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
   }
@@ -506,7 +529,41 @@ function renderChiStack() {
     };
   });
   
+  // Add delete handlers to remove individual numbers from stack
+  document.querySelectorAll(".stack-delete-btn").forEach(el => {
+    el.onclick = (e) => {
+      e.stopPropagation(); // Prevent triggering parent click handlers
+      const index = parseInt(el.dataset.index);
+      deleteChiStackNumber(index);
+    };
+  });
+  
   checkChiReady();
+}
+
+/**
+ * Delete a specific number from the chiStack by index
+ * If currently editing that number, exit edit mode
+ * @param {number} index - Index of the number to delete
+ */
+function deleteChiStackNumber(index) {
+  // Remove the number from the stack
+  chiStack.splice(index, 1);
+  
+  // If we were editing this number, exit edit mode
+  if (editMode && editIndex === index) {
+    editMode = false;
+    editIndex = -1;
+    chiInput.value = "";
+    chiAddBtn.textContent = "+";
+    chiAddBtn.classList.remove("btn-confirm");
+  } else if (editMode && editIndex > index) {
+    // If we were editing a number after the deleted one, adjust the edit index
+    editIndex--;
+  }
+  
+  // Re-render the stack
+  renderChiStack();
 }
 
 document.getElementById("chi-desc-dropdown").onchange = (e) => {
