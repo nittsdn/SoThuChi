@@ -371,7 +371,8 @@ chiInput.oninput = () => {
   renderChiStack();
 };
 
-document.getElementById("chi-add").onclick = () => {
+// Function to add value from chi input to stack
+function addChiValue() {
   const val = chiInput.value.replace(/\D/g, "");
   if (!val || val === "0") return;
   
@@ -384,8 +385,40 @@ document.getElementById("chi-add").onclick = () => {
   }
   
   chiInput.value = "";
-  chiInput.focus();
   renderChiStack();
+}
+
+// Flag to prevent blur when clicking the add button
+let isAddingFromButton = false;
+
+// Existing + button functionality
+document.getElementById("chi-add").onmousedown = () => {
+  isAddingFromButton = true;
+};
+
+document.getElementById("chi-add").onkeydown = (e) => {
+  // Handle Enter and Space for keyboard accessibility
+  if (e.key === 'Enter' || e.key === ' ') {
+    isAddingFromButton = true;
+  }
+};
+
+document.getElementById("chi-add").onclick = () => {
+  addChiValue();
+  chiInput.focus();
+  isAddingFromButton = false;
+};
+
+// New blur event functionality
+chiInput.onblur = () => {
+  // Only add value if not clicking the add button
+  if (!isAddingFromButton) {
+    addChiValue();
+  }
+  // Reset flag in case of incomplete button interaction (mousedown without click)
+  setTimeout(() => {
+    isAddingFromButton = false;
+  }, 0);
 };
 
 function renderChiStack() {
