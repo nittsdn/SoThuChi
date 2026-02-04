@@ -389,6 +389,11 @@ function addChiValue() {
 }
 
 // Existing + button functionality
+document.getElementById("chi-add").onmousedown = (e) => {
+  // Prevent blur event from firing when clicking the button
+  e.preventDefault();
+};
+
 document.getElementById("chi-add").onclick = () => {
   addChiValue();
   chiInput.focus();
