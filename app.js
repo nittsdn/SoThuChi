@@ -247,7 +247,11 @@ function renderThuDate() {
 
 // When user clicks the display button, trigger the hidden date input
 chiDateDisplay.onclick = () => {
-  chiDateInput.showPicker();
+  if (chiDateInput.showPicker) {
+    chiDateInput.showPicker();
+  } else {
+    chiDateInput.click();
+  }
 };
 
 chiDateInput.onchange = (e) => {
@@ -279,7 +283,11 @@ document.getElementById("chi-date-next").onclick = () => {
 
 // When user clicks the display button, trigger the hidden date input
 thuDateDisplay.onclick = () => {
-  thuDateInput.showPicker();
+  if (thuDateInput.showPicker) {
+    thuDateInput.showPicker();
+  } else {
+    thuDateInput.click();
+  }
 };
 
 thuDateInput.onchange = (e) => {
