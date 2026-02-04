@@ -482,6 +482,7 @@ function renderChiStack() {
       const index = parseInt(el.dataset.index);
       chiInput.value = chiStack[index];
       chiEditIndex = index;
+      chiAddBtn.textContent = "✓";
       chiInput.focus();
       renderChiStack();
     };
