@@ -247,6 +247,8 @@ function renderThuDate() {
 
 // When user clicks the display button, trigger the hidden date input
 chiDateDisplay.onclick = () => {
+  // Ensure the input value is set before opening picker
+  chiDateInput.value = formatDateAPI(chiDate);
   if (chiDateInput.showPicker) {
     chiDateInput.showPicker();
   } else {
@@ -255,8 +257,11 @@ chiDateDisplay.onclick = () => {
 };
 
 chiDateInput.onchange = (e) => {
-  const selected = new Date(e.target.value);
-  if (selected <= new Date()) {
+  const selected = new Date(e.target.value + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  if (selected <= today) {
     chiDate = selected;
     renderChiDate();
   } else {
@@ -283,6 +288,8 @@ document.getElementById("chi-date-next").onclick = () => {
 
 // When user clicks the display button, trigger the hidden date input
 thuDateDisplay.onclick = () => {
+  // Ensure the input value is set before opening picker
+  thuDateInput.value = formatDateAPI(thuDate);
   if (thuDateInput.showPicker) {
     thuDateInput.showPicker();
   } else {
@@ -291,8 +298,11 @@ thuDateDisplay.onclick = () => {
 };
 
 thuDateInput.onchange = (e) => {
-  const selected = new Date(e.target.value);
-  if (selected <= new Date()) {
+  const selected = new Date(e.target.value + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  if (selected <= today) {
     thuDate = selected;
     renderThuDate();
   } else {
@@ -363,9 +373,18 @@ function populateChiDropdowns() {
 }
 
 const chiInput = document.getElementById("chi-input");
+const chiAddBtn = document.getElementById("chi-add");
+
 chiInput.oninput = () => {
   // Strip non-numeric immediately
   const val = chiInput.value = chiInput.value.replace(/\D/g, "");
+  
+  // Update button text based on whether user is editing
+  if (val) {
+    chiAddBtn.textContent = "✓";
+  } else {
+    chiAddBtn.textContent = "+";
+  }
   
   // Update stack display to show current total + new value being entered
   renderChiStack();
@@ -385,6 +404,7 @@ function addChiValue() {
   }
   
   chiInput.value = "";
+  chiAddBtn.textContent = "+";
   renderChiStack();
 }
 
