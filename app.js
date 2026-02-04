@@ -531,11 +531,22 @@ function renderChiStack() {
     const parts = chiStack.map((n, i) => {
       // Highlight the number being edited in EDIT MODE
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
-      // Only show delete button for the number in edit mode
-      const deleteBtn = (editMode && i === editIndex) ? `<button type="button" class="stack-delete-btn" data-index="${i}" onclick="return window.deleteChiValue(${i})">🗑️</button>` : '';
+      // Only show delete button for the number in edit mode (NOT using onclick)
+      const deleteBtn = (editMode && i === editIndex) ? `<button type="button" class="stack-delete-btn" data-delete-index="${i}">🗑️</button>` : '';
       return `<span class="${className}" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n * 1000)}</span>${deleteBtn}`;
     });
     display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
+    
+    // Attach delete button event listener using data attribute and getElementById parent
+    const deleteBtn = display.querySelector('.stack-delete-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        const index = parseInt(this.getAttribute('data-delete-index'));
+        deleteChiStackNumber(index);
+      }, {once: true}); // Use once:true to prevent duplicate handlers
+    }
   }
   
   checkChiReady();
