@@ -383,14 +383,9 @@ chiInput.oninput = () => {
     chiAddBtn.textContent = "✓";
     chiAddBtn.classList.add("btn-confirm");
   } else {
-    // INPUT MODE: Button changes based on whether there's input
-    if (val && val !== "0") {
-      chiAddBtn.textContent = "+";
-      chiAddBtn.classList.remove("btn-confirm");
-    } else {
-      chiAddBtn.textContent = "+";
-      chiAddBtn.classList.remove("btn-confirm");
-    }
+    // INPUT MODE: Button stays as "+" (add button)
+    chiAddBtn.textContent = "+";
+    chiAddBtn.classList.remove("btn-confirm");
   }
   
   // Update stack display to show current total + new value being entered
