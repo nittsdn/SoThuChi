@@ -221,6 +221,7 @@ input, select, button {
 }
 
 .chi-preview {
+  display: none;
   text-align: right;
   font-size: 14px;
   color: #666;
