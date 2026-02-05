@@ -610,19 +610,7 @@ document.getElementById("chi-clear").onclick = () => {
       resetChiSection();
     }
   }
-  isDeletingFromButton = false; // ← RESET FLAG SAU KHI XỬ LÝ XONG
-};
-// CHI-CLEAR button: Reset in INPUT mode, Delete in EDIT mode
-document.getElementById("chi-clear").onclick = () => {
-  if (editMode) {
-    // EDIT MODE: Delete the selected number (no confirm)
-    deleteChiStackNumber(editIndex);
-  } else {
-    // INPUT MODE: Reset all with confirmation
-    if (confirm("Xóa hết tất cả dữ liệu chi?")) {
-      resetChiSection();
-    }
-  }
+  isDeletingFromButton = false; // ← CÓ DÒNG NÀY
 };
 
 function resetChiSection() {
@@ -920,16 +908,21 @@ document.getElementById("save-settings").onclick = () => {
 // Show modal
 function showModal(type) {
   const modal = document.getElementById(`${type}-settings-modal`);
+  if (!modal) {
+    console.error(`Modal not found: ${type}-settings-modal`);
+    return;
+  }
   modal.classList.add('show');
   renderModalCheckboxList(type);
-  document.body.style.overflow = 'hidden'; // Prevent background scroll
+  document.body.style.overflow = 'hidden';
 }
 
 // Hide modal
 function hideModal(type) {
   const modal = document.getElementById(`${type}-settings-modal`);
+  if (!modal) return;
   modal.classList.remove('show');
-  document.body.style.overflow = ''; // Restore scroll
+  document.body.style.overflow = '';
 }
 
 // Render checkbox list in modal
@@ -937,29 +930,49 @@ function renderModalCheckboxList(type) {
   const container = document.getElementById(`${type}-modal-checkbox-list`);
   const countSpan = document.getElementById(`${type}-modal-selected-count`);
   
-  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  const sourceList = loaiChiList; // TODO: Use separate list for thu if needed
-  
-  if (!sourceList || sourceList.length === 0) {
-    container.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</div>';
+  if (!container) {
+    console.error(`Container not found: ${type}-modal-checkbox-list`);
     return;
   }
   
+  // Get current chips from LocalStorage
+  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
+  
+  const sourceList = loaiChiList;
+  
+  if (!sourceList || sourceList.length === 0) {
+    container.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--text-secondary);">Chưa có dữ liệu. Vui lòng reload trang.</div>';
+    return;
+  }
+  
+  console.log('renderModalCheckboxList:', {
+    type,
+    currentChips,
+    sourceListLength: sourceList.length
+  });
+  
   container.innerHTML = '';
   
+  // Filter active items and sort ALPHABETICALLY (A-Z)
   const activeItems = sourceList
     .filter(item => item.active)
-    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    .sort((a, b) => {
+      // Sort A-Z (Vietnamese locale aware)
+      return a.mo_ta_chi.localeCompare(b.mo_ta_chi, 'vi', { sensitivity: 'base' });
+    });
   
-  activeItems.forEach(item => {
-    const isChecked = currentChips.includes(item.mo_ta_chi);
+  console.log('Active items after sort:', activeItems.length, activeItems.map(i => i.mo_ta_chi));
+  
+  activeItems.forEach((item, index) => {
+    // Check if this item is in currentChips (filter empty strings)
+    const isChecked = currentChips.filter(c => c).includes(item.mo_ta_chi);
     
     const itemDiv = document.createElement('div');
     itemDiv.className = 'checkbox-item';
     
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
-    checkbox.id = `${type}-modal-chip-${item.id_chi || item.mo_ta_chi}`;
+    checkbox.id = `${type}-modal-chip-${index}`;
     checkbox.checked = isChecked;
     checkbox.dataset.desc = item.mo_ta_chi;
     
@@ -984,7 +997,9 @@ function handleModalChipToggle(type, desc, checked) {
   const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
   
   if (checked) {
-    if (currentChips.filter(c => c).length >= 8) {
+    const nonEmptyCount = currentChips.filter(c => c).length;
+    
+    if (nonEmptyCount >= 8) {
       showToast("Chỉ được chọn tối đa 8 mô tả");
       const checkbox = document.querySelector(`input[data-desc="${desc}"]`);
       if (checkbox) checkbox.checked = false;
@@ -995,7 +1010,9 @@ function handleModalChipToggle(type, desc, checked) {
     if (emptyIndex !== -1) {
       currentChips[emptyIndex] = desc;
     } else {
-      currentChips.push(desc);
+      if (currentChips.length < 8) {
+        currentChips.push(desc);
+      }
     }
   } else {
     const index = currentChips.indexOf(desc);
@@ -1004,10 +1021,16 @@ function handleModalChipToggle(type, desc, checked) {
     }
   }
   
+  console.log('After toggle:', {
+    type,
+    desc,
+    checked,
+    currentChips
+  });
+  
   saveSettings(settings);
   updateModalSelectedCount(type);
   
-  // Re-render quick chips in main UI
   if (type === 'chi') {
     renderChiChips();
   } else {
@@ -1057,53 +1080,95 @@ async function addNewFromModal(type) {
   const result = await postData("insert_loai_chi", payload);
   
   if (result && result.status === "success") {
-    showToast(`Đã thêm mô tả: ${name}`);
+    showToast(`✅ Đã thêm mô tả: ${name}`);
     
-    // Reload data
     loaiChiList = await fetchData("loai_chi");
     populateChiDropdowns();
     if (type === 'thu') populateThuDropdowns();
     
-    // Re-render checkbox list
     renderModalCheckboxList(type);
     
-    // Clear form
     document.getElementById(`${type}-modal-new-name`).value = "";
     document.getElementById(`${type}-modal-new-${field}`).value = "";
     document.getElementById(`${type}-modal-new-note`).value = "";
     checkModalAddReady(type);
     
-    showToast(`✅ Đã thêm "${name}". Bạn có thể chọn nó trong danh sách trên.`, 4000);
   } else {
     showToast("❌ Lỗi khi thêm mô tả: " + (result?.message || "Unknown error"));
   }
 }
 
-// Event listeners for CHI modal
-document.getElementById("chi-settings-btn").onclick = () => showModal('chi');
-document.getElementById("chi-modal-close").onclick = () => hideModal('chi');
-document.getElementById("chi-settings-modal").onclick = (e) => {
-  if (e.target.id === 'chi-settings-modal') hideModal('chi');
-};
+// Initialize modal event listeners (called after DOM ready)
+function initModalEventListeners() {
+  // CHI modal
+  const chiBtn = document.getElementById("chi-settings-btn");
+  const chiModalClose = document.getElementById("chi-modal-close");
+  const chiModal = document.getElementById("chi-settings-modal");
+  
+  if (chiBtn) {
+    chiBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('CHI settings button clicked');
+      showModal('chi');
+    });
+  }
+  
+  if (chiModalClose) {
+    chiModalClose.addEventListener('click', () => hideModal('chi'));
+  }
+  
+  if (chiModal) {
+    chiModal.addEventListener('click', (e) => {
+      if (e.target.id === 'chi-settings-modal') hideModal('chi');
+    });
+  }
 
-document.getElementById("chi-modal-new-name").oninput = () => checkModalAddReady('chi');
-document.getElementById("chi-modal-new-phanloai").onchange = () => checkModalAddReady('chi');
-document.getElementById("chi-modal-add-btn").onclick = () => addNewFromModal('chi');
+  const chiNewName = document.getElementById("chi-modal-new-name");
+  const chiNewPhanloai = document.getElementById("chi-modal-new-phanloai");
+  const chiAddBtn = document.getElementById("chi-modal-add-btn");
+  
+  if (chiNewName) chiNewName.addEventListener('input', () => checkModalAddReady('chi'));
+  if (chiNewPhanloai) chiNewPhanloai.addEventListener('change', () => checkModalAddReady('chi'));
+  if (chiAddBtn) chiAddBtn.addEventListener('click', () => addNewFromModal('chi'));
 
-// Event listeners for THU modal
-document.getElementById("thu-settings-btn").onclick = () => showModal('thu');
-document.getElementById("thu-modal-close").onclick = () => hideModal('thu');
-document.getElementById("thu-settings-modal").onclick = (e) => {
-  if (e.target.id === 'thu-settings-modal') hideModal('thu');
-};
+  // THU modal
+  const thuBtn = document.getElementById("thu-settings-btn");
+  const thuModalClose = document.getElementById("thu-modal-close");
+  const thuModal = document.getElementById("thu-settings-modal");
+  
+  if (thuBtn) {
+    thuBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('THU settings button clicked');
+      showModal('thu');
+    });
+  }
+  
+  if (thuModalClose) {
+    thuModalClose.addEventListener('click', () => hideModal('thu'));
+  }
+  
+  if (thuModal) {
+    thuModal.addEventListener('click', (e) => {
+      if (e.target.id === 'thu-settings-modal') hideModal('thu');
+    });
+  }
 
-document.getElementById("thu-modal-new-name").oninput = () => checkModalAddReady('thu');
-document.getElementById("thu-modal-new-loaithu").onchange = () => checkModalAddReady('thu');
-document.getElementById("thu-modal-add-btn").onclick = () => addNewFromModal('thu');
+  const thuNewName = document.getElementById("thu-modal-new-name");
+  const thuNewLoaithu = document.getElementById("thu-modal-new-loaithu");
+  const thuAddBtn = document.getElementById("thu-modal-add-btn");
+  
+  if (thuNewName) thuNewName.addEventListener('input', () => checkModalAddReady('thu'));
+  if (thuNewLoaithu) thuNewLoaithu.addEventListener('change', () => checkModalAddReady('thu'));
+  if (thuAddBtn) thuAddBtn.addEventListener('click', () => addNewFromModal('thu'));
+  
+  console.log('Modal event listeners initialized');
+}
 
 // ================= INIT =================
 window.onload = async () => {
-  // Render UI immediately (don't wait for API)
   renderChiDate();
   renderThuDate();
   renderChiChips();
@@ -1111,18 +1176,21 @@ window.onload = async () => {
   renderSettings();
   chiInput.focus();
   
-  // Load ALL data in parallel (3x faster!)
   const [chiTieuData, loaiChiData, nguonTienData] = await Promise.all([
     fetchData("Chi_Tieu_2026"),
     fetchData("loai_chi"),
     fetchData("nguon_tien")
   ]);
   
-  // Update UI with loaded data
   loaiChiList = loaiChiData || [];
   nguonTienList = nguonTienData || [];
   
   updateHeader(chiTieuData);
   populateChiDropdowns();
   populateThuDropdowns();
+  
+  // Initialize modal event listeners AFTER data is loaded
+  initModalEventListeners();
+  
+  console.log('App initialized. loaiChiList:', loaiChiList.length, 'items');
 };
