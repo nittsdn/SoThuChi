@@ -163,6 +163,22 @@ async function postData(action, payload) {
   }
 }
 
+// ================= SETTINGS (LocalStorage) =================
+const DEFAULT_SETTINGS = {
+  quickChipsChi: ["Ăn sáng", "Ăn chiều", "Ăn lễ", "Ăn chơi", "Đi chợ", "Đi chay", "Sữa bỉm", "Điện nhà"],
+  quickChipsThu: ["Lương", "Thưởng", "Bán hàng", "Lãi", "Khác", "", "", ""],
+  quickLoaiThu: ["Thu nhập", "Tiền về", "Khác"]
+};
+
+function loadSettings() {
+  const settings = localStorage.getItem("soThuChiSettings");
+  return settings ? JSON.parse(settings) : DEFAULT_SETTINGS;
+}
+
+function saveSettings(settings) {
+  localStorage.setItem("soThuChiSettings", JSON.stringify(settings));
+}
+
 // ================= STATE =================
 let chiDate = new Date();
 let thuDate = new Date();
@@ -181,6 +197,7 @@ let thuSource = "";
 
 let loaiChiList = [];
 let nguonTienList = [];
+let settings = loadSettings();
 
 // ================= HEADER =================
 function updateHeader(data) {
@@ -636,7 +653,7 @@ document.getElementById("chi-submit").onclick = async () => {
   
   const result = await postData("insert_chi", payload);
   if (result) {
-    const total = chiStack.reduce((a, b) => a + b, 0);
+    const total = chiStack.reduce((a, b) => a + b, 0) * 1000;
     showToast(`Đã thêm vào chi tiêu ${chiDesc}\n${formatStack(chiStack)}\nNguồn ${chiSource}\n${formatDate(chiDate)}\nThành công`);
     const data = await fetchData("Chi_Tieu_2026");
     updateHeader(data);
@@ -845,4 +862,81 @@ function resetTongKet() {
 }
 
 // ================= SETTINGS =================
-// XÓA HOẶC COMMENT OUT PHẦN NÀY
+function renderSettings() {
+  const chiChipsContainer = document.getElementById("settings-chi-chips");
+  chiChipsContainer.innerHTML = "";
+  settings.quickChipsChi.forEach((chip, i) => {
+    const div = document.createElement("div");
+    div.className = "setting-chip-row";
+    div.innerHTML = `
+      <input type="text" value="${chip}" class="input-std" data-type="chi" data-index="${i}">
+      <button class="btn-square btn-gray" onclick="removeChip('chi', ${i})">×</button>
+    `;
+    chiChipsContainer.appendChild(div);
+  });
+  
+  const thuChipsContainer = document.getElementById("settings-thu-chips");
+  thuChipsContainer.innerHTML = "";
+  settings.quickChipsThu.forEach((chip, i) => {
+    const div = document.createElement("div");
+    div.className = "setting-chip-row";
+    div.innerHTML = `
+      <input type="text" value="${chip}" class="input-std" data-type="thu" data-index="${i}">
+      <button class="btn-square btn-gray" onclick="removeChip('thu', ${i})">×</button>
+    `;
+    thuChipsContainer.appendChild(div);
+  });
+}
+
+function removeChip(type, index) {
+  if (type === "chi") {
+    settings.quickChipsChi[index] = "";
+  } else {
+    settings.quickChipsThu[index] = "";
+  }
+  saveSettings(settings);
+  renderSettings();
+}
+
+document.getElementById("save-settings").onclick = () => {
+  document.querySelectorAll('[data-type="chi"]').forEach(input => {
+    const index = parseInt(input.dataset.index);
+    settings.quickChipsChi[index] = input.value;
+  });
+  
+  document.querySelectorAll('[data-type="thu"]').forEach(input => {
+    const index = parseInt(input.dataset.index);
+    settings.quickChipsThu[index] = input.value;
+  });
+  
+  saveSettings(settings);
+  showToast("Đã lưu cài đặt");
+  renderChiChips();
+  renderThuChips();
+};
+
+// ================= INIT =================
+window.onload = async () => {
+  // Render UI immediately (don't wait for API)
+  renderChiDate();
+  renderThuDate();
+  renderChiChips();
+  renderThuChips();
+  renderSettings();
+  chiInput.focus();
+  
+  // Load ALL data in parallel (3x faster!)
+  const [chiTieuData, loaiChiData, nguonTienData] = await Promise.all([
+    fetchData("Chi_Tieu_2026"),
+    fetchData("loai_chi"),
+    fetchData("nguon_tien")
+  ]);
+  
+  // Update UI with loaded data
+  loaiChiList = loaiChiData || [];
+  nguonTienList = nguonTienData || [];
+  
+  updateHeader(chiTieuData);
+  populateChiDropdowns();
+  populateThuDropdowns();
+};
