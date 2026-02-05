@@ -1,4 +1,20 @@
 /* =========================
+   CSS VARIABLES
+========================= */
+:root {
+  --bg: #ffffff;
+  --bg-secondary: #f2f2f7;
+  --bg-tertiary: #e5e5ea;
+  --text: #000000;
+  --text-secondary: #8e8e93;
+  --border: #c6c6c8;
+  --radius: 12px;
+  --red: #d9534f;
+  --green: #34c759;
+  --blue: #007bff;
+}
+
+/* =========================
    RESET & BASE
 ========================= */
 * {
@@ -146,7 +162,6 @@ input, select, button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
 }
 
 .card-title {
@@ -164,6 +179,17 @@ input, select, button {
 
 .blue-text {
   color: #007bff;
+}
+
+/* Card borders for CHI and THU */
+.card-chi {
+  border-left: 4px solid var(--red);
+  border: 2px solid rgba(217, 83, 79, 0.3);
+}
+
+.card-thu {
+  border-left: 4px solid var(--green);
+  border: 2px solid rgba(52, 199, 89, 0.3);
 }
 
 /* =========================
@@ -531,72 +557,172 @@ input, select, button {
 }
 
 /* =========================
-   RESPONSIVE
+   SETTINGS BUTTON IN HEADER
 ========================= */
-@media (max-width: 480px) {
-  .chip-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .card {
-    margin: 12px 8px;
-    padding: 12px;
-  }
-}
 
-/* ================= COLORED BORDERS FOR CHI/THU ================= */
-
-/* Card CHI - Red border */
-.card-chi {
-  border: 2px solid rgba(220, 38, 38, 0.3);
-  border-left: 4px solid var(--red);
-}
-
-/* Card THU - Green border */
-.card-thu {
-  border: 2px solid rgba(34, 197, 94, 0.3);
-  border-left: 4px solid var(--green);
-}
-
-/* ================= DATE INPUT OVERLAY FOR iOS ================= */
-
-/* Date display wrapper */
-.date-display-wrapper {
-  position: relative;
-  flex: 1;
-  min-height: 44px; /* iOS minimum touch target */
-}
-
-/* Date input overlay - trong suốt nhưng vẫn clickable */
-.date-input-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  z-index: 10;
-  font-size: 16px; /* Prevent iOS zoom */
-  border: none;
+.btn-settings-icon {
   background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+  line-height: 1;
 }
 
-/* Calendar picker indicator (iOS Safari) */
-.date-input-overlay::-webkit-calendar-picker-indicator {
-  position: absolute;
+/* =========================
+   iOS SAFARI FIXES
+========================= */
+.btn-settings-icon {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.modal-overlay {
+  display: none;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  margin: 0;
-  padding: 0;
-  cursor: pointer;
-  opacity: 0;
+  background: rgba(0, 0, 0, 0.7); /* ← Từ 0.5 lên 0.7 (tối hơn) */
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
 }
 
-/* Active state for better UX */
-.date-display-wrapper:active .btn-date-display {
-  transform: scale(0.98);
-  opacity: 0.9;
+.modal-overlay.show {
+  display: flex !important;
+}
+
+/* Prevent iOS zoom on input focus */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* =========================
+   DROPDOWN CHECKBOX LIST
+========================= */
+
+.dropdown-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.dropdown-toggle:hover {
+  border-color: var(--blue);
+  background: var(--bg-secondary);
+}
+
+.dropdown-toggle.open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-color: var(--blue);
+}
+
+.dropdown-label {
+  font-weight: 500;
+}
+
+.dropdown-arrow {
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-toggle.open .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown-content {
+  display: none;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  background: var(--bg);
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.dropdown-content.open {
+  display: block;
+}
+
+/* Checkbox list inside dropdown */
+.dropdown-content .checkbox-list {
+  border: none;
+  border-radius: 0;
+  padding: 0.5rem;
+  background: transparent;
+  max-height: none;
+}
+
+.dropdown-content .checkbox-item {
+  padding: 0.75rem;
+}
+
+/* Remove margin from selected-count */
+.selected-count {
+  display: none;
+}
+
+.modal-content {
+  background: #fff; /* ← Đảm bảo background trắng 100% */
+  border-radius: 18px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #ddd;
+  flex-shrink: 0;
+  background: #fff; /* ← Đảm bảo header trắng 100% */
+}
+
+.modal-close {
+  /* NÚT ĐÓNG STYLE GIỐNG APP - MÀU ĐỎ */
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: #fdecea; /* ← Giống btn-delete */
+  color: #d9534f;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+  padding: 0;
+}
+
+.modal-close:hover {
+  background: #f9d6d3;
+  transform: scale(1.05);
+}
+
+.modal-close:active {
+  transform: scale(0.95);
 }

@@ -610,19 +610,7 @@ document.getElementById("chi-clear").onclick = () => {
       resetChiSection();
     }
   }
-  isDeletingFromButton = false; // ← RESET FLAG SAU KHI XỬ LÝ XONG
-};
-// CHI-CLEAR button: Reset in INPUT mode, Delete in EDIT mode
-document.getElementById("chi-clear").onclick = () => {
-  if (editMode) {
-    // EDIT MODE: Delete the selected number (no confirm)
-    deleteChiStackNumber(editIndex);
-  } else {
-    // INPUT MODE: Reset all with confirmation
-    if (confirm("Xóa hết tất cả dữ liệu chi?")) {
-      resetChiSection();
-    }
-  }
+  isDeletingFromButton = false; // ← CÓ DÒNG NÀY
 };
 
 function resetChiSection() {
@@ -653,7 +641,7 @@ document.getElementById("chi-submit").onclick = async () => {
   
   const result = await postData("insert_chi", payload);
   if (result) {
-    const total = chiStack.reduce((a, b) => a + b, 0) * 1000;
+    const total = chiStack.reduce((a, b) => a + b, 0);
     showToast(`Đã thêm vào chi tiêu ${chiDesc}\n${formatStack(chiStack)}\nNguồn ${chiSource}\n${formatDate(chiDate)}\nThành công`);
     const data = await fetchData("Chi_Tieu_2026");
     updateHeader(data);
@@ -915,9 +903,358 @@ document.getElementById("save-settings").onclick = () => {
   renderThuChips();
 };
 
+// ================= MODAL SETTINGS =================
+
+// Show modal
+function showModal(type) {
+  console.log('showModal called with type:', type);
+  const modal = document.getElementById(`${type}-settings-modal`);
+  
+  if (!modal) {
+    console.error(`❌ Modal not found: ${type}-settings-modal`);
+    showToast("Lỗi: Không tìm thấy modal popup");
+    return;
+  }
+  
+  console.log('✅ Modal found, showing...');
+  modal.classList.add('show');
+  
+  // Populate dynamic dropdowns
+  populateModalDropdowns(type);
+  
+  // Render checkbox list
+  renderModalCheckboxList(type);
+  
+  document.body.style.overflow = 'hidden';
+  console.log('Modal should be visible now');
+}
+
+// Hide modal
+function hideModal(type) {
+  console.log('hideModal called with type:', type);
+  const modal = document.getElementById(`${type}-settings-modal`);
+  if (!modal) return;
+  modal.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// Populate dynamic dropdowns in modal
+function populateModalDropdowns(type) {
+  if (type === 'chi') {
+    // Populate phân loại dropdown from loaiChiList
+    const phanloaiSelect = document.getElementById('chi-modal-new-phanloai');
+    if (phanloaiSelect && loaiChiList.length > 0) {
+      // Get unique phan_loai values from loaiChiList
+      const uniquePhanLoai = [...new Set(loaiChiList.map(item => item.phan_loai))].filter(Boolean).sort();
+      
+      phanloaiSelect.innerHTML = '<option value="">-- Chọn phân loại *--</option>';
+      uniquePhanLoai.forEach(phanLoai => {
+        const option = document.createElement('option');
+        option.value = phanLoai;
+        option.textContent = phanLoai;
+        phanloaiSelect.appendChild(option);
+      });
+      
+      console.log(`✅ Populated ${uniquePhanLoai.length} phân loại options`);
+    }
+  } else {
+    // Populate loại thu dropdown from settings.quickLoaiThu
+    const loaithuSelect = document.getElementById('thu-modal-new-loaithu');
+    if (loaithuSelect && settings.quickLoaiThu.length > 0) {
+      loaithuSelect.innerHTML = '<option value="">-- Chọn loại thu *--</option>';
+      settings.quickLoaiThu.forEach(loai => {
+        if (loai) { // Skip empty strings
+          const option = document.createElement('option');
+          option.value = loai;
+          option.textContent = loai;
+          loaithuSelect.appendChild(option);
+        }
+      });
+      
+      console.log(`✅ Populated ${settings.quickLoaiThu.filter(l => l).length} loại thu options`);
+    }
+  }
+}
+
+// Render checkbox list in modal
+function renderModalCheckboxList(type) {
+  console.log('renderModalCheckboxList called for:', type);
+  const container = document.getElementById(`${type}-modal-checkbox-list`);
+  
+  if (!container) {
+    console.error(`❌ Container not found: ${type}-modal-checkbox-list`);
+    return;
+  }
+  
+  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
+  const sourceList = loaiChiList;
+  
+  console.log('📊 Data check:', {
+    type,
+    sourceListLength: sourceList.length,
+    currentChipsLength: currentChips.length,
+    currentChips: currentChips
+  });
+  
+  if (!sourceList || sourceList.length === 0) {
+    console.warn('⚠️ No source data available');
+    container.innerHTML = '<div style="padding: 1rem; text-align: center; color: #888;">Chưa có dữ liệu. Vui lòng reload trang.</div>';
+    return;
+  }
+  
+  container.innerHTML = '';
+  
+  const activeItems = sourceList
+    .filter(item => item.active)
+    .sort((a, b) => a.mo_ta_chi.localeCompare(b.mo_ta_chi, 'vi', { sensitivity: 'base' }));
+  
+  console.log(`✅ Rendering ${activeItems.length} items (${sourceList.length} total, ${sourceList.filter(i => i.active).length} active)`);
+  
+  activeItems.forEach((item, index) => {
+    const isChecked = currentChips.filter(c => c).includes(item.mo_ta_chi);
+    
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'checkbox-item';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `${type}-modal-chip-${index}`;
+    checkbox.checked = isChecked;
+    checkbox.dataset.desc = item.mo_ta_chi;
+    
+    const label = document.createElement('label');
+    label.htmlFor = checkbox.id;
+    label.textContent = item.mo_ta_chi;
+    
+    checkbox.onchange = () => {
+      handleModalChipToggle(type, item.mo_ta_chi, checkbox.checked);
+    };
+    
+    itemDiv.appendChild(checkbox);
+    itemDiv.appendChild(label);
+    container.appendChild(itemDiv);
+  });
+  
+  updateModalSelectedCount(type);
+}
+
+// Handle checkbox toggle
+function handleModalChipToggle(type, desc, checked) {
+  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
+  
+  if (checked) {
+    const nonEmptyCount = currentChips.filter(c => c).length;
+    
+    if (nonEmptyCount >= 8) {
+      showToast("Chỉ được chọn tối đa 8 mô tả");
+      const checkbox = document.querySelector(`input[data-desc="${desc}"]`);
+      if (checkbox) checkbox.checked = false;
+      return;
+    }
+    
+    const emptyIndex = currentChips.findIndex(c => !c);
+    if (emptyIndex !== -1) {
+      currentChips[emptyIndex] = desc;
+    } else if (currentChips.length < 8) {
+      currentChips.push(desc);
+    }
+  } else {
+    const index = currentChips.indexOf(desc);
+    if (index !== -1) {
+      currentChips[index] = "";
+    }
+  }
+  
+  saveSettings(settings);
+  updateModalSelectedCount(type);
+  
+  if (type === 'chi') {
+    renderChiChips();
+  } else {
+    renderThuChips();
+  }
+}
+
+// Update selected count
+function updateModalSelectedCount(type) {
+  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
+  const count = currentChips.filter(c => c).length;
+  
+  // Update dropdown label count
+  const countSpan = document.getElementById(`${type}-dropdown-count`);
+  if (countSpan) {
+    countSpan.textContent = count;
+  }
+}
+
+// Check if add form is valid
+function checkModalAddReady(type) {
+  const name = document.getElementById(`${type}-modal-new-name`).value.trim();
+  const field = type === 'chi' ? 'phanloai' : 'loaithu';
+  const phanloai = document.getElementById(`${type}-modal-new-${field}`).value;
+  
+  const isValid = name && phanloai;
+  document.getElementById(`${type}-modal-add-btn`).disabled = !isValid;
+}
+
+// Add new description
+async function addNewFromModal(type) {
+  const name = document.getElementById(`${type}-modal-new-name`).value.trim();
+  const field = type === 'chi' ? 'phanloai' : 'loaithu';
+  const phanloai = document.getElementById(`${type}-modal-new-${field}`).value;
+  const note = document.getElementById(`${type}-modal-new-note`).value.trim();
+  
+  if (!name || !phanloai) {
+    showToast("Vui lòng điền đầy đủ thông tin bắt buộc");
+    return;
+  }
+  
+  const payload = {
+    mo_ta_chi: name,
+    phan_loai: phanloai,
+    note: note || ""
+  };
+  
+  const result = await postData("insert_loai_chi", payload);
+  
+  if (result && result.status === "success") {
+    showToast(`✅ Đã thêm mô tả: ${name}`);
+    
+    loaiChiList = await fetchData("loai_chi");
+    populateChiDropdowns();
+    renderModalCheckboxList(type);
+    
+    document.getElementById(`${type}-modal-new-name`).value = "";
+    document.getElementById(`${type}-modal-new-phanloai`).value = "";
+    document.getElementById(`${type}-modal-new-note`).value = "";
+    checkModalAddReady(type);
+  } else {
+    showToast("❌ Lỗi khi thêm mô tả");
+  }
+}
+
+// Initialize modal event listeners
+function initModalEventListeners() {
+  console.log('🔧 initModalEventListeners called');
+  
+  // CHI modal button
+  const chiBtn = document.getElementById("chi-settings-btn");
+  if (chiBtn) {
+    console.log('✅ CHI button found, attaching listener');
+    chiBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('🔴 CHI settings button CLICKED');
+      showModal('chi');
+    };
+  } else {
+    console.error('❌ CHI button NOT found');
+  }
+  
+  // THU modal button
+  const thuBtn = document.getElementById("thu-settings-btn");
+  if (thuBtn) {
+    console.log('✅ THU button found, attaching listener');
+    thuBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('🟢 THU settings button CLICKED');
+      showModal('thu');
+    };
+  } else {
+    console.error('❌ THU button NOT found');
+  }
+  
+  // CHI modal close
+  const chiModalClose = document.getElementById("chi-modal-close");
+  if (chiModalClose) {
+    chiModalClose.onclick = () => hideModal('chi');
+  }
+  
+  const chiModal = document.getElementById("chi-settings-modal");
+  if (chiModal) {
+    chiModal.onclick = (e) => {
+      if (e.target.id === 'chi-settings-modal') hideModal('chi');
+    };
+  }
+  
+  // THU modal close
+  const thuModalClose = document.getElementById("thu-modal-close");
+  if (thuModalClose) {
+    thuModalClose.onclick = () => hideModal('thu');
+  }
+  
+  const thuModal = document.getElementById("thu-settings-modal");
+  if (thuModal) {
+    thuModal.onclick = (e) => {
+      if (e.target.id === 'thu-settings-modal') hideModal('thu');
+    };
+  }
+  
+  // CHI form inputs
+  const chiNewName = document.getElementById("chi-modal-new-name");
+  const chiNewPhanloai = document.getElementById("chi-modal-new-phanloai");
+  const chiAddBtn = document.getElementById("chi-modal-add-btn");
+  
+  if (chiNewName) chiNewName.oninput = () => checkModalAddReady('chi');
+  if (chiNewPhanloai) chiNewPhanloai.onchange = () => checkModalAddReady('chi');
+  if (chiAddBtn) chiAddBtn.onclick = () => addNewFromModal('chi');
+  
+  // THU form inputs
+  const thuNewName = document.getElementById("thu-modal-new-name");
+  const thuNewLoaithu = document.getElementById("thu-modal-new-loaithu");
+  const thuAddBtn = document.getElementById("thu-modal-add-btn");
+  
+  if (thuNewName) thuNewName.oninput = () => checkModalAddReady('thu');
+  if (thuNewLoaithu) thuNewLoaithu.onchange = () => checkModalAddReady('thu');
+  if (thuAddBtn) thuAddBtn.onclick = () => addNewFromModal('thu');
+  
+  // ===== THÊM DROPDOWN TOGGLE LOGIC =====
+  
+  // CHI dropdown toggle
+  const chiDropdownToggle = document.getElementById('chi-dropdown-toggle');
+  const chiDropdownContent = document.getElementById('chi-dropdown-content');
+  
+  if (chiDropdownToggle && chiDropdownContent) {
+    chiDropdownToggle.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      chiDropdownToggle.classList.toggle('open');
+      chiDropdownContent.classList.toggle('open');
+    };
+  }
+  
+  // THU dropdown toggle
+  const thuDropdownToggle = document.getElementById('thu-dropdown-toggle');
+  const thuDropdownContent = document.getElementById('thu-dropdown-content');
+  
+  if (thuDropdownToggle && thuDropdownContent) {
+    thuDropdownToggle.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      thuDropdownToggle.classList.toggle('open');
+      thuDropdownContent.classList.toggle('open');
+    };
+  }
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (chiDropdownToggle && !chiDropdownToggle.contains(e.target) && !chiDropdownContent.contains(e.target)) {
+      chiDropdownToggle.classList.remove('open');
+      chiDropdownContent.classList.remove('open');
+    }
+    if (thuDropdownToggle && !thuDropdownToggle.contains(e.target) && !thuDropdownContent.contains(e.target)) {
+      thuDropdownToggle.classList.remove('open');
+      thuDropdownContent.classList.remove('open');
+    }
+  });
+  
+  console.log('✅ Dropdown toggle initialized');
+  console.log('✅ Modal event listeners initialized');
+}
+
 // ================= INIT =================
 window.onload = async () => {
-  // Render UI immediately (don't wait for API)
   renderChiDate();
   renderThuDate();
   renderChiChips();
@@ -925,18 +1262,21 @@ window.onload = async () => {
   renderSettings();
   chiInput.focus();
   
-  // Load ALL data in parallel (3x faster!)
   const [chiTieuData, loaiChiData, nguonTienData] = await Promise.all([
     fetchData("Chi_Tieu_2026"),
     fetchData("loai_chi"),
     fetchData("nguon_tien")
   ]);
   
-  // Update UI with loaded data
   loaiChiList = loaiChiData || [];
   nguonTienList = nguonTienData || [];
   
   updateHeader(chiTieuData);
   populateChiDropdowns();
   populateThuDropdowns();
+  
+  // Initialize modal event listeners AFTER data is loaded
+  initModalEventListeners();
+  
+  console.log('App initialized. loaiChiList:', loaiChiList.length, 'items');
 };

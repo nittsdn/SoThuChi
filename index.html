@@ -25,13 +25,14 @@
     <div class="last-chi-desc">Chưa có chi tiêu</div>
     <div class="balance-tag">Số dư LT: 0</div>
   </div>
-  <div class="version">v1.951</div>
+  <div class="version">v1.9.411</div>
 </div>
 
 <!-- ================= CHI ================= -->
 <div class="card card-chi">
   <div class="card-header">
     <div class="card-title red-text">CHI</div>
+    <button class="btn-settings-icon" id="chi-settings-btn">⚙️</button>
   </div>
 
   <div class="date-row">
@@ -72,6 +73,7 @@
 <div class="card card-thu">
   <div class="card-header">
     <div class="card-title green-text">THU</div>
+    <button class="btn-settings-icon" id="thu-settings-btn">⚙️</button>
   </div>
 
   <div class="date-row">
@@ -142,7 +144,92 @@
   <button class="btn-submit btn-blue" id="save-settings">Lưu cài đặt</button>
 </div>
 
+<!-- ================= MODAL POPUP FOR SETTINGS ================= -->
+<!-- Thêm vào cuối, trước thẻ đóng </body> -->
+
+<!-- CHI Settings Modal -->
+<div id="chi-settings-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>⚙️ Cấu hình CHI</h3>
+      <button class="modal-close" id="chi-modal-close">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Quick Chips Config - DROPDOWN VERSION -->
+      <div class="modal-section">
+        <h4>📋 Chọn 8 mô tả hiển thị nhanh</h4>
+        
+        <!-- Dropdown toggle button -->
+        <button type="button" class="dropdown-toggle" id="chi-dropdown-toggle">
+          <span class="dropdown-label">Chọn mô tả (<span id="chi-dropdown-count">0</span>/8)</span>
+          <span class="dropdown-arrow">▼</span>
+        </button>
+        
+        <!-- Dropdown content (hidden by default) -->
+        <div class="dropdown-content" id="chi-dropdown-content">
+          <div class="checkbox-list" id="chi-modal-checkbox-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Add New -->
+      <div class="modal-section">
+        <h4>➕ Thêm mô tả chi mới</h4>
+        <input type="text" id="chi-modal-new-name" class="input-std" placeholder="Tên mô tả *">
+        <select id="chi-modal-new-phanloai" class="input-std">
+          <option value="">-- Chọn phân loại *--</option>
+          <!-- Dynamically populated from loaiChiList -->
+        </select>
+        <input type="text" id="chi-modal-new-note" class="input-std" placeholder="Ghi chú (optional)">
+        <button id="chi-modal-add-btn" class="btn-submit btn-blue" disabled>Thêm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- THU Settings Modal -->
+<div id="thu-settings-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>⚙️ Cấu hình THU</h3>
+      <button class="modal-close" id="thu-modal-close">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Quick Chips Config - DROPDOWN VERSION -->
+      <div class="modal-section">
+        <h4>📋 Chọn 8 mô tả hiển thị nhanh</h4>
+        
+        <!-- Dropdown toggle button -->
+        <button type="button" class="dropdown-toggle" id="thu-dropdown-toggle">
+          <span class="dropdown-label">Chọn mô tả (<span id="thu-dropdown-count">0</span>/8)</span>
+          <span class="dropdown-arrow">▼</span>
+        </button>
+        
+        <!-- Dropdown content (hidden by default) -->
+        <div class="dropdown-content" id="thu-dropdown-content">
+          <div class="checkbox-list" id="thu-modal-checkbox-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Add New -->
+      <div class="modal-section">
+        <h4>➕ Thêm mô tả thu mới</h4>
+        <input type="text" id="thu-modal-new-name" class="input-std" placeholder="Tên mô tả *">
+        <select id="thu-modal-new-loaithu" class="input-std">
+          <option value="">-- Chọn loại thu *--</option>
+          <!-- Dynamically populated from settings.quickLoaiThu -->
+        </select>
+        <input type="text" id="thu-modal-new-note" class="input-std" placeholder="Ghi chú (optional)">
+        <button id="thu-modal-add-btn" class="btn-submit btn-green" disabled>Thêm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="app.js"></script>
 </body>
-
-</html>
