@@ -42,29 +42,21 @@ function formatDateAPI(d) {
 }
 
 function parseDateString(dateStr) {
-  // Parse "YYYY-MM-DD" string as local date to avoid timezone issues
-  // Add robust error handling for edge cases
-  
-  // Handle null, undefined, or non-string inputs
   if (!dateStr) {
     console.warn("parseDateString: Received empty or null date string, using current date");
     return new Date();
   }
   
-  // If already a Date object, return it
   if (dateStr instanceof Date) {
     console.debug("parseDateString: Received Date object, returning as-is");
     return dateStr;
   }
   
-  // Convert to string if needed
   const dateString = String(dateStr).trim();
-  
-  // Validate format (should be YYYY-MM-DD from GAS)
   const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  
   if (!datePattern.test(dateString)) {
     console.warn(`parseDateString: Invalid date format "${dateString}", falling back to Date constructor`);
-    // Fallback to the old method for compatibility
     const fallbackDate = new Date(dateString);
     if (isNaN(fallbackDate.getTime())) {
       console.error(`parseDateString: Failed to parse "${dateString}", using current date`);
@@ -73,19 +65,15 @@ function parseDateString(dateStr) {
     return fallbackDate;
   }
   
-  // Parse the date string
   const [year, month, day] = dateString.split("-").map(Number);
   
-  // Validate the parsed values
   if (isNaN(year) || isNaN(month) || isNaN(day)) {
     console.error(`parseDateString: Invalid date components in "${dateString}", using current date`);
     return new Date();
   }
   
-  // Create the date object
   const parsedDate = new Date(year, month - 1, day);
   
-  // Validate the resulting date
   if (isNaN(parsedDate.getTime())) {
     console.error(`parseDateString: Invalid date result from "${dateString}", using current date`);
     return new Date();
@@ -118,11 +106,9 @@ async function fetchData(sheet) {
     const result = await response.json();
     showLoading(false);
     
-    // Debug logging for API response
     console.log(`fetchData: Response status for "${sheet}":`, result.status);
     console.log(`fetchData: Data length for "${sheet}":`, result.data ? result.data.length : 0);
     
-    // Log a sample of the data for debugging (first and last items)
     if (result.data && result.data.length > 0) {
       console.log(`fetchData: First item from "${sheet}":`, result.data[0]);
       if (result.data.length > 1) {
@@ -130,7 +116,6 @@ async function fetchData(sheet) {
       }
     }
     
-    // Check status and return data array
     if (result.status === "success") {
       return result.data || [];
     } else {
@@ -165,12 +150,11 @@ async function postData(action, payload) {
 
 // ================= SETTINGS (LocalStorage) =================
 const DEFAULT_SETTINGS = {
-  quickChipsChi: null,  // Will be populated dynamically
-  quickChipsThu: null,  // Will be populated dynamically
-  quickLoaiThu: ["Thu income", "Tiền về", "Khác"]
+  quickChipsChi: null,
+  quickChipsThu: null,
+  quickLoaiThu: ["Thu nhập", "Tiền về", "Khác"]
 };
 
-// Helper function to get default 8 chips from data list
 function getDefaultChips(type) {
   const sourceList = type === 'chi' ? loaiChiList : moTaThuList;
   const fieldName = type === 'chi' ? 'mo_ta_chi' : 'mo_ta_thu';
@@ -180,14 +164,12 @@ function getDefaultChips(type) {
     return ["", "", "", "", "", "", "", ""];
   }
   
-  // Get active items, sort by Vietnamese alphabet, take first 8
   const activeItems = sourceList
     .filter(item => item.active)
     .sort((a, b) => a[fieldName].localeCompare(b[fieldName], 'vi', { sensitivity: 'base' }))
     .slice(0, 8)
     .map(item => item[fieldName]);
   
-  // Pad with empty strings if less than 8
   while (activeItems.length < 8) {
     activeItems.push("");
   }
@@ -204,11 +186,9 @@ function loadSettings() {
     return JSON.parse(stored);
   }
   
-  // No localStorage → generate defaults from data
   console.log('⚠️ No localStorage found, generating defaults from data');
   const defaults = { ...DEFAULT_SETTINGS };
   
-  // Only generate if data is loaded
   if (loaiChiList && loaiChiList.length > 0) {
     defaults.quickChipsChi = getDefaultChips('chi');
   } else {
@@ -235,9 +215,8 @@ let chiStack = [];
 let chiDesc = "";
 let chiSource = "";
 
-// Edit mode state: tracks whether we're editing an existing value
-let editMode = false;      // true = editing existing number, false = adding new numbers
-let editIndex = -1;        // index of the number being edited in chiStack
+let editMode = false;
+let editIndex = -1;
 
 let thuAmount = 0;
 let thuDesc = "";
@@ -245,15 +224,14 @@ let thuLoai = "";
 let thuSource = "";
 
 let loaiChiList = [];
-let moTaThuList = [];  // ← ADD THIS LINE
+let moTaThuList = [];
 let nguonTienList = [];
-let settings = null;  // ← Initialize as null, will be set after data loads
+let settings = null;
 
 // ================= HEADER =================
 function updateHeader(data) {
   const headerContent = document.getElementById("header-content");
   
-  // Debug logging to monitor raw data
   console.log("updateHeader: Received data array length:", data ? data.length : 0);
   
   if (!data || data.length === 0) {
@@ -267,7 +245,6 @@ function updateHeader(data) {
   
   const lastChi = data[data.length - 1];
   
-  // Debug log the last chi data and date format
   console.log("updateHeader: Last chi data:", lastChi);
   console.log("updateHeader: Date field (Ngay):", lastChi.Ngay, "Type:", typeof lastChi.Ngay);
   
@@ -286,20 +263,12 @@ const chiDateDisplay = document.getElementById("chi-date-display");
 const thuDateInput = document.getElementById("thu-date-input");
 const thuDateDisplay = document.getElementById("thu-date-display");
 
-/**
- * Common helper function to change date by a delta (in days)
- * Prevents selecting future dates
- * @param {Date} currentDate - The current date object
- * @param {number} delta - Number of days to shift (positive or negative)
- * @returns {Date} The new date, or current date if future date would be selected
- */
 function changeDate(currentDate, delta) {
   const newDate = new Date(currentDate);
   newDate.setDate(newDate.getDate() + delta);
   
-  // Prevent selecting future dates
   const today = new Date();
-  today.setHours(23, 59, 59, 999); // Set to end of today for comparison
+  today.setHours(23, 59, 59, 999);
   
   if (newDate > today) {
     showToast("Không thể chọn ngày tương lai");
@@ -321,7 +290,6 @@ function renderThuDate() {
   thuDateDisplay.textContent = `${formatDate(thuDate)}`;
 }
 
-// CHI date navigation - SIMPLIFIED for iOS
 chiDateDisplay.onclick = (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -357,7 +325,6 @@ document.getElementById("chi-date-next").onclick = () => {
   renderChiDate();
 };
 
-// THU date navigation - SIMPLIFIED for iOS
 thuDateDisplay.onclick = (e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -406,7 +373,7 @@ function renderChiChips() {
         document.querySelectorAll("#chi-chips .chip").forEach(c => c.classList.remove("selected"));
         btn.classList.add("selected");
         chiDesc = chip;
-        document.getElementById("chi-desc-other").value = "";
+        document.getElementById("chi-desc-dropdown").value = "";
         checkChiReady();
       };
       chipGrid.appendChild(btn);
@@ -442,36 +409,26 @@ const chiInput = document.getElementById("chi-input");
 const chiAddBtn = document.getElementById("chi-add");
 const chiClearBtn = document.getElementById("chi-clear");
 
-// INPUT MODE vs EDIT MODE handler for the text input
 chiInput.oninput = () => {
-  // Strip non-numeric immediately
   const val = chiInput.value = chiInput.value.replace(/\D/g, "");
   
   if (editMode) {
-    // EDIT MODE: Real-time update of the selected value in the stack
     if (val && val !== "0") {
       const num = parseFloat(val);
-      chiStack[editIndex] = num;  // Update the value in the stack in real-time
+      chiStack[editIndex] = num;
     }
-    // Button stays as "✓" (confirm button) in edit mode
     chiAddBtn.textContent = "✓";
     chiAddBtn.classList.add("btn-confirm");
-    // Change clear button to trash icon in edit mode
     chiClearBtn.textContent = "🗑️";
   } else {
-    // INPUT MODE: Button stays as "+" (add button)
     chiAddBtn.textContent = "+";
     chiAddBtn.classList.remove("btn-confirm");
-    // Keep clear button as reset icon in input mode
     chiClearBtn.textContent = "↻";
   }
   
-  // Update stack display to show current total + new value being entered
   renderChiStack();
 };
 
-// Function to add value from chi input to stack (INPUT MODE)
-// or confirm edit (EDIT MODE)
 function addChiValue() {
   const val = chiInput.value.replace(/\D/g, "");
   if (!val || val === "0") return;
@@ -479,18 +436,15 @@ function addChiValue() {
   const num = parseFloat(val);
   
   if (editMode) {
-    // EDIT MODE: Confirm the edit and exit edit mode
     chiStack[editIndex] = num;
     editMode = false;
     editIndex = -1;
   } else {
-    // INPUT MODE: Add new value to stack
     chiStack.push(num);
   }
   
   chiInput.value = "";
   
-  // Reset button to + state (input mode)
   chiAddBtn.textContent = "+";
   chiAddBtn.classList.remove("btn-confirm");
   chiClearBtn.textContent = "↻";
@@ -498,17 +452,14 @@ function addChiValue() {
   renderChiStack();
 }
 
-// Flag to prevent blur when clicking the add button
 let isAddingFromButton = false;
-let isDeletingFromButton = false; // ← THÊM FLAG MỚI
+let isDeletingFromButton = false;
 
-// Existing + button functionality
 document.getElementById("chi-add").onmousedown = () => {
   isAddingFromButton = true;
 };
 
 document.getElementById("chi-add").onkeydown = (e) => {
-  // Handle Enter and Space for keyboard accessibility
   if (e.key === 'Enter' || e.key === ' ') {
     isAddingFromButton = true;
   }
@@ -520,25 +471,16 @@ document.getElementById("chi-add").onclick = () => {
   isAddingFromButton = false;
 };
 
-// New blur event functionality
 chiInput.onblur = () => {
-  // Only add value if not clicking the add button OR delete button
-  if (!isAddingFromButton && !isDeletingFromButton) { // ← SỬA Ở ĐÂY
+  if (!isAddingFromButton && !isDeletingFromButton) {
     addChiValue();
   }
-  // Reset flag in case of incomplete button interaction (mousedown without click)
   setTimeout(() => {
     isAddingFromButton = false;
-    isDeletingFromButton = false; // ← RESET FLAG MỚI
+    isDeletingFromButton = false;
   }, 0);
 };
 
-/**
- * Render the CHI stack display WITHOUT delete buttons next to numbers
- * Shows the formula of numbers being added and allows:
- * - Clicking a number to edit it
- */
-// Helper function to enter edit mode (called from onclick in HTML)
 window.enterChiEditMode = function(index) {
   editMode = true;
   editIndex = index;
@@ -561,17 +503,14 @@ function renderChiStack() {
     return;
   }
   
-  // Calculate existing total
   const existingTotal = chiStack.reduce((a, b) => a + b, 0) * 1000;
   
-  // If there's a value being entered in INPUT MODE, show "Tổng: X"
   if (!chiStack.length && currentInputNum && !editMode) {
     display.innerHTML = `Tổng: ${formatVN(currentInputNum * 1000)}`;
     checkChiReady();
     return;
   }
   
-  // If there's existing stack and new input in INPUT MODE, show the formula
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
       return `<span class="stack-num" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n * 1000)}</span>`;
@@ -579,10 +518,7 @@ function renderChiStack() {
     const newTotal = existingTotal + (currentInputNum * 1000);
     display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(newTotal)}`;
   } else {
-    // Show existing stack (either in INPUT MODE with no new value, or in EDIT MODE)
-    // NO DELETE BUTTON next to numbers anymore
     const parts = chiStack.map((n, i) => {
-      // Highlight the number being edited in EDIT MODE
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
       return `<span class="${className}" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n * 1000)}</span>`;
     });
@@ -592,33 +528,23 @@ function renderChiStack() {
   checkChiReady();
 }
 
-/**
- * Delete a specific number from the chiStack by index
- * Always exits edit mode and resets to default entry mode
- * @param {number} index - Index of the number to delete
- */
 function deleteChiStackNumber(index) {
-  // Remove the number from the stack
   chiStack.splice(index, 1);
   
-  // Always exit edit mode and reset to default entry mode
   editMode = false;
   editIndex = -1;
   
-  // Temporarily disable oninput to prevent it from interfering
   const originalOnInput = chiInput.oninput;
   chiInput.oninput = null;
   
   chiInput.value = "";
   
-  // Restore oninput handler
   chiInput.oninput = originalOnInput;
   
   chiAddBtn.textContent = "+";
   chiAddBtn.classList.remove("btn-confirm");
   chiClearBtn.textContent = "↻";
   
-  // Re-render the stack
   renderChiStack();
 }
 
@@ -638,7 +564,7 @@ document.getElementById("chi-source").onchange = (e) => {
 function checkChiReady() {
   document.getElementById("chi-submit").disabled = !(chiStack.length && chiDesc && chiSource);
 }
-// Prevent blur when clicking clear/delete button
+
 document.getElementById("chi-clear").onmousedown = () => {
   isDeletingFromButton = true;
 };
@@ -649,18 +575,15 @@ document.getElementById("chi-clear").onkeydown = (e) => {
   }
 };
 
-// CHI-CLEAR button: Reset in INPUT mode, Delete in EDIT mode
 document.getElementById("chi-clear").onclick = () => {
   if (editMode) {
-    // EDIT MODE: Delete the selected number (no confirm)
     deleteChiStackNumber(editIndex);
   } else {
-    // INPUT MODE: Reset all with confirmation
     if (confirm("Xóa hết tất cả dữ liệu chi?")) {
       resetChiSection();
     }
   }
-  isDeletingFromButton = false; // ← CÓ DÒNG NÀY
+  isDeletingFromButton = false;
 };
 
 function resetChiSection() {
@@ -746,7 +669,6 @@ function populateThuDropdowns() {
 
 const thuInput = document.getElementById("thu-input");
 thuInput.oninput = () => {
-  // Strip non-numeric immediately
   const val = thuInput.value = thuInput.value.replace(/\D/g, "");
   
   if (val) {
@@ -955,7 +877,6 @@ document.getElementById("save-settings").onclick = () => {
 
 // ================= MODAL SETTINGS =================
 
-// Render checkbox list in modal
 function renderModalCheckboxList(type) {
   console.log('renderModalCheckboxList called for:', type);
   const container = document.getElementById(`${type}-modal-checkbox-list`);
@@ -966,8 +887,8 @@ function renderModalCheckboxList(type) {
   }
   
   const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  const sourceList = type === 'chi' ? loaiChiList : moTaThuList;  // ← FIX THIS LINE
-  const fieldName = type === 'chi' ? 'mo_ta_chi' : 'mo_ta_thu';  // ← ADD THIS LINE
+  const sourceList = type === 'chi' ? loaiChiList : moTaThuList;
+  const fieldName = type === 'chi' ? 'mo_ta_chi' : 'mo_ta_thu';
   
   console.log('📊 Data check:', {
     type,
@@ -986,12 +907,12 @@ function renderModalCheckboxList(type) {
   
   const activeItems = sourceList
     .filter(item => item.active)
-    .sort((a, b) => a[fieldName].localeCompare(b[fieldName], 'vi', { sensitivity: 'base' }));  // ← FIX THIS LINE
+    .sort((a, b) => a[fieldName].localeCompare(b[fieldName], 'vi', { sensitivity: 'base' }));
   
   console.log(`✅ Rendering ${activeItems.length} items (${sourceList.length} total, ${sourceList.filter(i => i.active).length} active)`);
   
   activeItems.forEach((item, index) => {
-    const isChecked = currentChips.filter(c => c).includes(item[fieldName]);  // ← FIX THIS LINE
+    const isChecked = currentChips.filter(c => c).includes(item[fieldName]);
     
     const itemDiv = document.createElement('div');
     itemDiv.className = 'checkbox-item';
@@ -1000,14 +921,14 @@ function renderModalCheckboxList(type) {
     checkbox.type = 'checkbox';
     checkbox.id = `${type}-modal-chip-${index}`;
     checkbox.checked = isChecked;
-    checkbox.dataset.desc = item[fieldName];  // ← FIX THIS LINE
+    checkbox.dataset.desc = item[fieldName];
     
     const label = document.createElement('label');
     label.htmlFor = checkbox.id;
-    label.textContent = item[fieldName];  // ← FIX THIS LINE
+    label.textContent = item[fieldName];
     
     checkbox.onchange = () => {
-      handleModalChipToggle(type, item[fieldName], checkbox.checked);  // ← FIX THIS LINE
+      handleModalChipToggle(type, item[fieldName], checkbox.checked);
     };
     
     itemDiv.appendChild(checkbox);
@@ -1017,3 +938,236 @@ function renderModalCheckboxList(type) {
   
   updateModalSelectedCount(type);
 }
+
+function handleModalChipToggle(type, desc, checked) {
+  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
+  
+  if (checked) {
+    const nonEmptyCount = currentChips.filter(c => c).length;
+    
+    if (nonEmptyCount >= 8) {
+      showToast("Chỉ được chọn tối đa 8 mô tả");
+      const checkbox = document.querySelector(`input[data-desc="${desc}"]`);
+      if (checkbox) checkbox.checked = false;
+      return;
+    }
+    
+    const firstEmptyIndex = currentChips.findIndex(c => !c);
+    if (firstEmptyIndex !== -1) {
+      currentChips[firstEmptyIndex] = desc;
+    }
+  } else {
+    const index = currentChips.indexOf(desc);
+    if (index !== -1) {
+      currentChips[index] = "";
+    }
+  }
+  
+  if (type === 'chi') {
+    settings.quickChipsChi = currentChips;
+  } else {
+    settings.quickChipsThu = currentChips;
+  }
+  
+  saveSettings(settings);
+  renderChiChips();
+  renderThuChips();
+  updateModalSelectedCount(type);
+}
+
+function updateModalSelectedCount(type) {
+  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
+  const count = currentChips.filter(c => c).length;
+  const countElement = document.getElementById(`${type}-dropdown-count`);
+  if (countElement) {
+    countElement.textContent = count;
+  }
+}
+
+function showModal(type) {
+  console.log(`🟢 showModal called for: ${type}`);
+  const modal = document.getElementById(`${type}-settings-modal`);
+  if (!modal) {
+    console.error(`❌ Modal not found: ${type}-settings-modal`);
+    return;
+  }
+  
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  
+  renderModalCheckboxList(type);
+  populateModalDropdowns(type);
+  
+  console.log(`✅ Modal ${type} opened`);
+}
+
+function hideModal(type) {
+  const modal = document.getElementById(`${type}-settings-modal`);
+  if (!modal) return;
+  modal.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function populateModalDropdowns(type) {
+  if (type === 'chi') {
+    const phanloaiSelect = document.getElementById('chi-modal-new-phanloai');
+    if (phanloaiSelect && loaiChiList.length > 0) {
+      const uniquePhanLoai = [...new Set(loaiChiList.map(item => item.phan_loai))].filter(Boolean).sort();
+      
+      phanloaiSelect.innerHTML = '<option value="">-- Chọn phân loại *--</option>';
+      uniquePhanLoai.forEach(phanLoai => {
+        const option = document.createElement('option');
+        option.value = phanLoai;
+        option.textContent = phanLoai;
+        phanloaiSelect.appendChild(option);
+      });
+      
+      console.log(`✅ Populated ${uniquePhanLoai.length} phân loại options`);
+    }
+  } else {
+    const loaithuSelect = document.getElementById('thu-modal-new-loaithu');
+    if (loaithuSelect && settings.quickLoaiThu.length > 0) {
+      loaithuSelect.innerHTML = '<option value="">-- Chọn loại thu *--</option>';
+      settings.quickLoaiThu.forEach(loai => {
+        if (loai) {
+          const option = document.createElement('option');
+          option.value = loai;
+          option.textContent = loai;
+          loaithuSelect.appendChild(option);
+        }
+      });
+      
+      console.log(`✅ Populated ${settings.quickLoaiThu.filter(l => l).length} loại thu options`);
+    }
+  }
+}
+
+function initModalEventListeners() {
+  console.log('🔧 Initializing modal event listeners');
+  
+  const chiBtn = document.getElementById('chi-settings-btn');
+  if (chiBtn) {
+    console.log('✅ CHI button found, attaching listener');
+    chiBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('🟢 CHI settings button CLICKED');
+      showModal('chi');
+    };
+  } else {
+    console.error('❌ CHI button NOT found');
+  }
+  
+  const thuBtn = document.getElementById('thu-settings-btn');
+  if (thuBtn) {
+    console.log('✅ THU button found, attaching listener');
+    thuBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('🟢 THU settings button CLICKED');
+      showModal('thu');
+    };
+  } else {
+    console.error('❌ THU button NOT found');
+  }
+  
+  const chiModalClose = document.getElementById("chi-modal-close");
+  if (chiModalClose) {
+    chiModalClose.onclick = () => hideModal('chi');
+  }
+  
+  const chiModal = document.getElementById("chi-settings-modal");
+  if (chiModal) {
+    chiModal.onclick = (e) => {
+      if (e.target.id === 'chi-settings-modal') hideModal('chi');
+    };
+  }
+  
+  const thuModalClose = document.getElementById("thu-modal-close");
+  if (thuModalClose) {
+    thuModalClose.onclick = () => hideModal('thu');
+  }
+  
+  const thuModal = document.getElementById("thu-settings-modal");
+  if (thuModal) {
+    thuModal.onclick = (e) => {
+      if (e.target.id === 'thu-settings-modal') hideModal('thu');
+    };
+  }
+  
+  const chiDropdownToggle = document.getElementById('chi-dropdown-toggle');
+  const chiDropdownContent = document.getElementById('chi-dropdown-content');
+  
+  if (chiDropdownToggle && chiDropdownContent) {
+    chiDropdownToggle.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      chiDropdownToggle.classList.toggle('open');
+      chiDropdownContent.classList.toggle('open');
+    };
+  }
+  
+  const thuDropdownToggle = document.getElementById('thu-dropdown-toggle');
+  const thuDropdownContent = document.getElementById('thu-dropdown-content');
+  
+  if (thuDropdownToggle && thuDropdownContent) {
+    thuDropdownToggle.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      thuDropdownToggle.classList.toggle('open');
+      thuDropdownContent.classList.toggle('open');
+    };
+  }
+  
+  document.addEventListener('click', (e) => {
+    if (chiDropdownToggle && !chiDropdownToggle.contains(e.target) && !chiDropdownContent.contains(e.target)) {
+      chiDropdownToggle.classList.remove('open');
+      chiDropdownContent.classList.remove('open');
+    }
+    if (thuDropdownToggle && !thuDropdownToggle.contains(e.target) && !thuDropdownContent.contains(e.target)) {
+      thuDropdownToggle.classList.remove('open');
+      thuDropdownContent.classList.remove('open');
+    }
+  });
+  
+  console.log('✅ Dropdown toggle initialized');
+  console.log('✅ Modal event listeners initialized');
+}
+
+// ================= INIT =================
+window.onload = async () => {
+  renderChiDate();
+  renderThuDate();
+  chiInput.focus();
+  
+  const [chiTieuData, loaiChiData, moTaThuData, nguonTienData] = await Promise.all([
+    fetchData("Chi_Tieu_2026"),
+    fetchData("loai_chi"),
+    fetchData("mo_ta_thu"),
+    fetchData("nguon_tien")
+  ]);
+  
+  loaiChiList = loaiChiData || [];
+  moTaThuList = moTaThuData || [];
+  nguonTienList = nguonTienData || [];
+  
+  console.log('✅ Data loaded:', {
+    loaiChi: loaiChiList.length,
+    moTaThu: moTaThuList.length,
+    nguonTien: nguonTienList.length
+  });
+  
+  settings = loadSettings();
+  
+  renderChiChips();
+  renderThuChips();
+  renderSettings();
+  
+  updateHeader(chiTieuData);
+  populateChiDropdowns();
+  populateThuDropdowns();
+  
+  initModalEventListeners();
+  
+  console.log('✅ App initialized');
+};
