@@ -146,7 +146,6 @@ input, select, button {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
 }
 
 .card-title {
@@ -531,72 +530,244 @@ input, select, button {
 }
 
 /* =========================
-   RESPONSIVE
+   SETTINGS BUTTON IN HEADER
 ========================= */
-@media (max-width: 480px) {
-  .chip-grid {
-    grid-template-columns: repeat(2, 1fr);
+
+.btn-settings-icon {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.btn-settings-icon:hover {
+  background: rgba(0, 0, 0, 0.05);
+  transform: rotate(90deg);
+}
+
+.btn-settings-icon:active {
+  transform: rotate(90deg) scale(0.95);
+}
+
+/* =========================
+   MODAL POPUP
+========================= */
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--bg);
+  border-radius: var(--radius);
+  max-width: 500px;
+  width: 90%;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  line-height: 1;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: var(--bg-secondary);
+  color: var(--text);
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-section {
+  margin-bottom: 2rem;
+}
+
+.modal-section:last-child {
+  margin-bottom: 0;
+}
+
+.modal-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-section .input-std {
+  margin-bottom: 0.75rem;
+}
+
+.modal-section .btn-submit {
+  width: 100%;
+}
+
+/* Checkbox List in Modal */
+.checkbox-list {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  min-height: 44px;
+}
+
+.checkbox-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-right: 0.75rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.checkbox-item label {
+  cursor: pointer;
+  flex: 1;
+  font-size: 0.95rem;
+}
+
+.checkbox-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checkbox-item.disabled input,
+.checkbox-item.disabled label {
+  cursor: not-allowed;
+}
+
+.selected-count {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.selected-count span {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .modal-content {
+    max-width: 95%;
+    max-height: 90vh;
   }
   
-  .card {
-    margin: 12px 8px;
-    padding: 12px;
+  .modal-header {
+    padding: 1rem;
+  }
+  
+  .modal-body {
+    padding: 1rem;
+  }
+  
+  .checkbox-list {
+    max-height: 200px;
   }
 }
 
-/* ================= COLORED BORDERS FOR CHI/THU ================= */
-
-/* Card CHI - Red border */
-.card-chi {
-  border: 2px solid rgba(220, 38, 38, 0.3);
-  border-left: 4px solid var(--red);
+/* Scrollbar for checkbox list */
+.checkbox-list::-webkit-scrollbar {
+  width: 8px;
 }
 
-/* Card THU - Green border */
-.card-thu {
-  border: 2px solid rgba(34, 197, 94, 0.3);
-  border-left: 4px solid var(--green);
+.checkbox-list::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-radius: 4px;
 }
 
-/* ================= DATE INPUT OVERLAY FOR iOS ================= */
-
-/* Date display wrapper */
-.date-display-wrapper {
-  position: relative;
-  flex: 1;
-  min-height: 44px; /* iOS minimum touch target */
+.checkbox-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
 }
 
-/* Date input overlay - trong suốt nhưng vẫn clickable */
-.date-input-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  z-index: 10;
-  font-size: 16px; /* Prevent iOS zoom */
-  border: none;
-  background: transparent;
-}
-
-/* Calendar picker indicator (iOS Safari) */
-.date-input-overlay::-webkit-calendar-picker-indicator {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  cursor: pointer;
-  opacity: 0;
-}
-
-/* Active state for better UX */
-.date-display-wrapper:active .btn-date-display {
-  transform: scale(0.98);
-  opacity: 0.9;
+.checkbox-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
