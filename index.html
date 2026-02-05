@@ -1,236 +1,195 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sổ Thu Chi</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sổ Thu Chi</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<!-- ================= TOAST NOTIFICATION ================= -->
-<div id="toast" class="toast"></div>
+    <!-- ================= TOAST NOTIFICATION ================= -->
+    <div id="toast" class="toast"></div>
 
-<!-- ================= LOADING SPINNER ================= -->
-<div id="loading" class="loading">
-  <div class="spinner"></div>
-</div>
-
-<!-- ================= HEADER ================= -->
-<div class="header">
-  <div class="header-top">
-    <h1>Sổ Thu Chi</h1>
-  </div>
-  <div id="header-content">
-    <div class="last-chi-desc">Chưa có chi tiêu</div>
-    <div class="balance-tag">Số dư LT: 0</div>
-  </div>
-  <div class="version">v1.9.604</div>
-</div>
-
-<!-- ================= CHI ================= -->
-<div class="card card-chi">
-  <div class="card-header">
-    <div class="card-title red-text">CHI</div>
-    <button class="btn-settings-icon" id="chi-settings-btn">⚙️</button>
-  </div>
-
-  <div class="date-row">
-    <button class="btn-square" id="chi-date-prev">&lt;</button>
-    <div class="date-display-wrapper">
-      <button class="btn-date-display" id="chi-date-display"></button>
-      <input type="date" class="date-input-overlay" id="chi-date-input">
+    <!-- ================= LOADING SPINNER ================= -->
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
     </div>
-    <button class="btn-square" id="chi-date-next">&gt;</button>
-  </div>
 
-  <div class="calc-row">
-    <input class="calc-input" id="chi-input" type="text" placeholder="x1000">
-    <button class="btn-square btn-blue" id="chi-add">+</button>
-    <button class="btn-square btn-delete" id="chi-clear">↻</button>
-  </div>
-
-  <div class="chi-preview" id="chi-preview"></div>
-
-  <div class="stack-display" id="chi-stack">Chưa có số</div>
-
-  <div class="chip-grid" id="chi-chips"></div>
-
-  <select class="input-std" id="chi-desc-dropdown">
-    <option value="">-- Mô tả khác --</option>
-  </select>
-
-  <select class="input-std" id="chi-source">
-    <option value="">-- Nguồn tiền --</option>
-  </select>
-
-  <button class="btn-submit btn-red" id="chi-submit" disabled>
-    Thêm chi
-  </button>
-</div>
-
-<!-- ================= THU ================= -->
-<div class="card card-thu">
-  <div class="card-header">
-    <div class="card-title green-text">THU</div>
-    <button class="btn-settings-icon" id="thu-settings-btn">⚙️</button>
-  </div>
-
-  <div class="date-row">
-    <button class="btn-square" id="thu-date-prev">&lt;</button>
-    <div class="date-display-wrapper">
-      <button class="btn-date-display" id="thu-date-display"></button>
-      <input type="date" class="date-input-overlay" id="thu-date-input">
-    </div>
-    <button class="btn-square" id="thu-date-next">&gt;</button>
-  </div>
-
-  <div class="calc-row-thu">
-    <input class="calc-input-thu" id="thu-input" type="text" placeholder="x1000">
-  </div>
-
-  <div class="stack-display" id="thu-display">Chưa có số</div>
-
-  <div class="chip-grid" id="thu-chips"></div>
-
-  <input class="input-std" id="thu-desc-input" placeholder="Mô tả thu">
-
-  <select class="input-std" id="thu-loai">
-    <option value="">-- Loại thu --</option>
-  </select>
-
-  <select class="input-std" id="thu-source">
-    <option value="">-- Nguồn tiền --</option>
-  </select>
-
-  <button class="btn-submit btn-green" id="thu-submit" disabled>
-    Thêm thu
-  </button>
-</div>
-
-<!-- ================= TỔNG KẾT ================= -->
-<div class="card">
-  <div class="card-header">
-    <div class="card-title blue-text">TỔNG KẾT</div>
-  </div>
-
-  <button class="btn-submit btn-blue" id="tk-start">Làm tổng kết</button>
-
-  <div id="tk-form" style="display: none;">
-    <div class="tk-period">Nhập số dư thực tế:</div>
-    <div id="tk-inputs"></div>
-    <button class="btn-submit btn-gray" id="tk-check">Kiểm tra</button>
-    <div id="tk-result" style="display: none;"></div>
-    <button class="btn-submit btn-blue" id="tk-confirm" style="display: none;">Xác nhận tổng kết</button>
-  </div>
-</div>
-
-<!-- ================= SETTING ================= -->
-<div class="card">
-  <div class="card-header">
-    <div class="card-title">CÀI ĐẶT</div>
-  </div>
-
-  <div class="setting-section">
-    <h3>Quick Chips Chi</h3>
-    <div id="settings-chi-chips"></div>
-  </div>
-
-  <div class="setting-section">
-    <h3>Quick Chips Thu</h3>
-    <div id="settings-thu-chips"></div>
-  </div>
-
-  <button class="btn-submit btn-blue" id="save-settings">Lưu cài đặt</button>
-</div>
-
-<!-- ================= MODAL POPUP FOR SETTINGS ================= -->
-<!-- Thêm vào cuối, trước thẻ đóng </body> -->
-
-<!-- CHI Settings Modal -->
-<div id="chi-settings-modal" class="modal-overlay">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>⚙️ Cấu hình CHI</h3>
-      <button class="modal-close" id="chi-modal-close">&times;</button>
-    </div>
-    
-    <div class="modal-body">
-      <!-- Quick Chips Config - DROPDOWN VERSION -->
-      <div class="modal-section">
-        <h4>📋 Chọn 8 mô tả hiển thị nhanh</h4>
-        
-        <!-- Dropdown toggle button -->
-        <button type="button" class="dropdown-toggle" id="chi-dropdown-toggle">
-          <span class="dropdown-label">Chọn mô tả (<span id="chi-dropdown-count">0</span>/8)</span>
-          <span class="dropdown-arrow">▼</span>
-        </button>
-        
-        <!-- Dropdown content (hidden by default) -->
-        <div class="dropdown-content" id="chi-dropdown-content">
-          <div class="checkbox-list" id="chi-modal-checkbox-list">
-            <!-- Dynamically populated -->
-          </div>
+    <!-- ================= HEADER ================= -->
+    <div class="header">
+        <div class="header-top">
+            <h1>Sổ Thu Chi</h1>
         </div>
-      </div>
-
-      <!-- Add New -->
-      <div class="modal-section">
-        <h4>➕ Thêm mô tả chi mới</h4>
-        <input type="text" id="chi-modal-new-name" class="input-std" placeholder="Tên mô tả *">
-        <select id="chi-modal-new-phanloai" class="input-std">
-          <option value="">-- Chọn phân loại *--</option>
-          <!-- Dynamically populated from loaiChiList -->
-        </select>
-        <input type="text" id="chi-modal-new-note" class="input-std" placeholder="Ghi chú (optional)">
-        <button id="chi-modal-add-btn" class="btn-submit btn-blue" disabled>Thêm</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- THU Settings Modal -->
-<div id="thu-settings-modal" class="modal-overlay">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>⚙️ Cấu hình THU</h3>
-      <button class="modal-close" id="thu-modal-close">&times;</button>
-    </div>
-    
-    <div class="modal-body">
-      <!-- Quick Chips Config - DROPDOWN VERSION -->
-      <div class="modal-section">
-        <h4>📋 Chọn 8 mô tả hiển thị nhanh</h4>
-        
-        <!-- Dropdown toggle button -->
-        <button type="button" class="dropdown-toggle" id="thu-dropdown-toggle">
-          <span class="dropdown-label">Chọn mô tả (<span id="thu-dropdown-count">0</span>/8)</span>
-          <span class="dropdown-arrow">▼</span>
-        </button>
-        
-        <!-- Dropdown content (hidden by default) -->
-        <div class="dropdown-content" id="thu-dropdown-content">
-          <div class="checkbox-list" id="thu-modal-checkbox-list">
-            <!-- Dynamically populated -->
-          </div>
+        <div id="header-content">
+            <div class="last-chi-desc">Chưa có chi tiêu</div>
+            <div class="balance-tag">Số dư LT: 0</div>
         </div>
-      </div>
-
-      <!-- Add New -->
-      <div class="modal-section">
-        <h4>➕ Thêm mô tả thu mới</h4>
-        <input type="text" id="thu-modal-new-name" class="input-std" placeholder="Tên mô tả *">
-        <select id="thu-modal-new-loaithu" class="input-std">
-          <option value="">-- Chọn loại thu *--</option>
-          <!-- Dynamically populated from settings.quickLoaiThu -->
-        </select>
-        <input type="text" id="thu-modal-new-note" class="input-std" placeholder="Ghi chú (optional)">
-        <button id="thu-modal-add-btn" class="btn-submit btn-green" disabled>Thêm</button>
-      </div>
+        <div class="version">v1.9.708</div>
     </div>
-  </div>
-</div>
 
-<script src="app.js"></script>
+    <!-- ================= CHI ================= -->
+    <div class="card card-chi">
+        <div class="card-header">
+            <div class="card-title red-text">CHI</div>
+            <button class="btn-settings-icon" id="chi-settings-btn">⚙️</button>
+        </div>
+
+        <div class="date-row">
+            <button class="btn-square" id="chi-date-prev">&lt;</button>
+            <div class="date-display-wrapper">
+                <button class="btn-date-display" id="chi-date-display"></button>
+                <input type="date" class="date-input-overlay" id="chi-date-input">
+            </div>
+            <button class="btn-square" id="chi-date-next">&gt;</button>
+        </div>
+
+        <div class="calc-row">
+            <input class="calc-input" id="chi-input" type="text" placeholder="x1000">
+            <button class="btn-square btn-blue" id="chi-add">+</button>
+            <button class="btn-square btn-delete" id="chi-clear">↻</button>
+        </div>
+
+        <div class="chi-preview" id="chi-preview"></div>
+
+        <div class="stack-display" id="chi-stack">Chưa có số</div>
+
+        <div class="chip-grid" id="chi-chips"></div>
+
+        <select class="input-std" id="chi-desc-dropdown">
+            <option value="">-- Mô tả khác --</option>
+        </select>
+
+        <select class="input-std" id="chi-source">
+            <option value="">-- Nguồn tiền --</option>
+        </select>
+
+        <button class="btn-submit btn-red" id="chi-submit" disabled>
+            Thêm chi
+        </button>
+    </div>
+
+    <!-- ================= THU ================= -->
+    <div class="card card-thu">
+        <div class="card-header">
+            <div class="card-title green-text">THU</div>
+            <button class="btn-settings-icon" id="thu-settings-btn">⚙️</button>
+        </div>
+
+        <div class="date-row">
+            <button class="btn-square" id="thu-date-prev">&lt;</button>
+            <div class="date-display-wrapper">
+                <button class="btn-date-display" id="thu-date-display"></button>
+                <input type="date" class="date-input-overlay" id="thu-date-input">
+            </div>
+            <button class="btn-square" id="thu-date-next">&gt;</button>
+        </div>
+
+        <div class="calc-row-thu">
+            <input class="calc-input-thu" id="thu-input" type="text" placeholder="x1000">
+        </div>
+
+        <div class="stack-display" id="thu-display">Chưa có số</div>
+
+        <div class="chip-grid" id="thu-chips"></div>
+
+        <input class="input-std" id="thu-desc-input" placeholder="Mô tả thu">
+
+        <select class="input-std" id="thu-loai">
+            <option value="">-- Loại thu --</option>
+        </select>
+
+        <select class="input-std" id="thu-source">
+            <option value="">-- Nguồn tiền --</option>
+        </select>
+
+        <button class="btn-submit btn-green" id="thu-submit" disabled>
+            Thêm thu
+        </button>
+    </div>
+
+    <!-- ================= TỔNG KẾT ================= -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title blue-text">TỔNG KẾT</div>
+        </div>
+
+        <button class="btn-submit btn-blue" id="tk-start">Làm tổng kết</button>
+
+        <div id="tk-form" style="display: none;">
+            <div class="tk-period">Nhập số dư thực tế:</div>
+            <div id="tk-inputs"></div>
+            <button class="btn-submit btn-gray" id="tk-check">Kiểm tra</button>
+            <div id="tk-result" style="display: none;"></div>
+            <button class="btn-submit btn-blue" id="tk-confirm" style="display: none;">Xác nhận tổng kết</button>
+        </div>
+    </div>
+
+    <!-- ================= MODAL POPUP FOR SETTINGS ================= -->
+    <!-- CHI Settings Modal -->
+    <div id="chi-settings-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Cấu hình CHI</h3>
+                <button class="modal-close" id="chi-modal-close">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="modal-section">
+                    <h4>📋 Chọn 8 mô tả hiển thị nhanh</h4>
+
+                    <button type="button" class="dropdown-toggle" id="chi-dropdown-toggle">
+                        <span class="dropdown-label">Chọn mô tả (<span id="chi-dropdown-count">0</span>/8)</span>
+                        <span class="dropdown-arrow">▼</span>
+                    </button>
+
+                    <div class="dropdown-content" id="chi-dropdown-content">
+                        <div class="checkbox-list" id="chi-modal-checkbox-list">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <h4>➕ Thêm mô tả chi mới</h4>
+                    <input type="text" id="chi-modal-new-name" class="input-std" placeholder="Tên mô tả *">
+                    <select id="chi-modal-new-phanloai" class="input-std">
+                        <option value="">-- Chọn phân loại *--</option>
+                    </select>
+                    <input type="text" id="chi-modal-new-note" class="input-std" placeholder="Ghi chú (optional)">
+                    <button id="chi-modal-add-btn" class="btn-submit btn-blue" disabled>Thêm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- THU Settings Modal -->
+    <div id="thu-settings-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Cấu hình THU</h3>
+                <button class="modal-close" id="thu-modal-close">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="modal-section">
+                    <h4>📋 Chọn 8 mô tả hiển thị nhanh</h4>
+
+                    <button type="button" class="dropdown-toggle" id="thu-dropdown-toggle">
+                        <span class="dropdown-label">Chọn mô tả (<span id="thu-dropdown-count">0</span>/8)</span>
+                        <span class="dropdown-arrow">▼</span>
+                    </button>
+
+                    <div class="dropdown-content" id="thu-dropdown-content">
+                        <div class="checkbox-list" id="thu-modal-checkbox-list">
+                            <!-- Dynamically populated from Thu_2026 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>

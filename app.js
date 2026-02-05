@@ -2,7 +2,6 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
 // ================= UTIL =================
-// Vietnamese number formatting: . for thousands, , for decimals
 function formatVN(num, decimals = 0) {
   if (num === null || num === undefined || isNaN(num)) return "0";
   const parts = Number(num).toFixed(decimals).split(".");
@@ -48,7 +47,6 @@ function parseDateString(dateStr) {
   }
   
   if (dateStr instanceof Date) {
-    console.debug("parseDateString: Received Date object, returning as-is");
     return dateStr;
   }
   
@@ -56,10 +54,10 @@ function parseDateString(dateStr) {
   const datePattern = /^\d{4}-\d{2}-\d{2}$/;
   
   if (!datePattern.test(dateString)) {
-    console.warn(`parseDateString: Invalid date format "${dateString}", falling back to Date constructor`);
+    console.warn(`parseDateString: Invalid date format "${dateString}"`);
     const fallbackDate = new Date(dateString);
     if (isNaN(fallbackDate.getTime())) {
-      console.error(`parseDateString: Failed to parse "${dateString}", using current date`);
+      console.error(`parseDateString: Failed to parse "${dateString}"`);
       return new Date();
     }
     return fallbackDate;
@@ -68,18 +66,17 @@ function parseDateString(dateStr) {
   const [year, month, day] = dateString.split("-").map(Number);
   
   if (isNaN(year) || isNaN(month) || isNaN(day)) {
-    console.error(`parseDateString: Invalid date components in "${dateString}", using current date`);
+    console.error(`parseDateString: Invalid date components in "${dateString}"`);
     return new Date();
   }
   
   const parsedDate = new Date(year, month - 1, day);
   
   if (isNaN(parsedDate.getTime())) {
-    console.error(`parseDateString: Invalid date result from "${dateString}", using current date`);
+    console.error(`parseDateString: Invalid date result from "${dateString}"`);
     return new Date();
   }
   
-  console.debug(`parseDateString: Successfully parsed "${dateString}" to ${parsedDate}`);
   return parsedDate;
 }
 
@@ -111,9 +108,6 @@ async function fetchData(sheet) {
     
     if (result.data && result.data.length > 0) {
       console.log(`fetchData: First item from "${sheet}":`, result.data[0]);
-      if (result.data.length > 1) {
-        console.log(`fetchData: Last item from "${sheet}":`, result.data[result.data.length - 1]);
-      }
     }
     
     if (result.status === "success") {
@@ -134,16 +128,25 @@ async function fetchData(sheet) {
 async function postData(action, payload) {
   try {
     showLoading(true);
+    console.log(`📤 postData: action="${action}", payload=`, payload);
     const response = await fetch(API_URL, {
       method: "POST",
       body: JSON.stringify({ action, payload })
     });
     const data = await response.json();
     showLoading(false);
+    console.log(`📥 postData response:`, data);
+    
+    if (data.status === 'error') {
+      showToast("Lỗi: " + data.message);
+      return null;
+    }
+    
     return data;
   } catch (error) {
     showLoading(false);
     showToast("Lỗi kết nối API: " + error.message);
+    console.error("postData error:", error);
     return null;
   }
 }
@@ -156,26 +159,49 @@ const DEFAULT_SETTINGS = {
 };
 
 function getDefaultChips(type) {
-  const sourceList = type === 'chi' ? loaiChiList : moTaThuList;
-  const fieldName = type === 'chi' ? 'mo_ta_chi' : 'mo_ta_thu';
-  
-  if (!sourceList || sourceList.length === 0) {
-    console.warn(`getDefaultChips: No ${type} data available, returning empty array`);
-    return ["", "", "", "", "", "", "", ""];
+  if (type === 'chi') {
+    const sourceList = loaiChiList;
+    const fieldName = 'mo_ta_chi';
+    
+    if (!sourceList || sourceList.length === 0) {
+      console.warn(`getDefaultChips: No chi data available`);
+      return ["", "", "", "", "", "", "", ""];
+    }
+    
+    const activeItems = sourceList
+      .filter(item => item.active)
+      .sort((a, b) => a[fieldName].localeCompare(b[fieldName], 'vi', { sensitivity: 'base' }))
+      .slice(0, 8)
+      .map(item => item[fieldName]);
+    
+    while (activeItems.length < 8) {
+      activeItems.push("");
+    }
+    
+    console.log(`✅ getDefaultChips(chi): Generated ${activeItems.filter(c => c).length} default chips`);
+    return activeItems;
   }
   
-  const activeItems = sourceList
-    .filter(item => item.active)
-    .sort((a, b) => a[fieldName].localeCompare(b[fieldName], 'vi', { sensitivity: 'base' }))
-    .slice(0, 8)
-    .map(item => item[fieldName]);
-  
-  while (activeItems.length < 8) {
-    activeItems.push("");
+  if (type === 'thu') {
+    if (!thuList || thuList.length === 0) {
+      console.warn(`getDefaultChips: No thu data available`);
+      return ["", "", "", "", "", "", "", ""];
+    }
+    
+    const allMoTa = thuList.map(t => t["Mô tả"]).filter(Boolean);
+    const distinct = [...new Set(allMoTa)];
+    const sorted = distinct.sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
+    const top8 = sorted.slice(0, 8);
+    
+    while (top8.length < 8) {
+      top8.push("");
+    }
+    
+    console.log(`✅ getDefaultChips(thu): Generated ${top8.filter(c => c).length} default chips`);
+    return top8;
   }
   
-  console.log(`✅ getDefaultChips(${type}): Generated ${activeItems.filter(c => c).length} default chips`);
-  return activeItems;
+  return ["", "", "", "", "", "", "", ""];
 }
 
 function loadSettings() {
@@ -186,7 +212,7 @@ function loadSettings() {
     return JSON.parse(stored);
   }
   
-  console.log('⚠️ No localStorage found, generating defaults from data');
+  console.log('⚠️ No localStorage found, generating defaults');
   const defaults = { ...DEFAULT_SETTINGS };
   
   if (loaiChiList && loaiChiList.length > 0) {
@@ -195,7 +221,7 @@ function loadSettings() {
     defaults.quickChipsChi = ["", "", "", "", "", "", "", ""];
   }
   
-  if (moTaThuList && moTaThuList.length > 0) {
+  if (thuList && thuList.length > 0) {
     defaults.quickChipsThu = getDefaultChips('thu');
   } else {
     defaults.quickChipsThu = ["", "", "", "", "", "", "", ""];
@@ -224,15 +250,13 @@ let thuLoai = "";
 let thuSource = "";
 
 let loaiChiList = [];
-let moTaThuList = [];
+let thuList = [];
 let nguonTienList = [];
 let settings = null;
 
 // ================= HEADER =================
 function updateHeader(data) {
   const headerContent = document.getElementById("header-content");
-  
-  console.log("updateHeader: Received data array length:", data ? data.length : 0);
   
   if (!data || data.length === 0) {
     console.warn("updateHeader: No data available");
@@ -244,9 +268,6 @@ function updateHeader(data) {
   }
   
   const lastChi = data[data.length - 1];
-  
-  console.log("updateHeader: Last chi data:", lastChi);
-  console.log("updateHeader: Date field (Ngay):", lastChi.Ngay, "Type:", typeof lastChi.Ngay);
   
   headerContent.innerHTML = `
     <div class="header-title">Chi cuối</div>
@@ -612,10 +633,11 @@ document.getElementById("chi-submit").onclick = async () => {
     nguon_tien: chiSource
   };
   
+  console.log('📤 CHI Submit payload:', payload);
+  
   const result = await postData("insert_chi", payload);
-  if (result) {
-    const total = chiStack.reduce((a, b) => a + b, 0);
-    showToast(`Đã thêm vào chi tiêu ${chiDesc}\n${formatStack(chiStack)}\nNguồn ${chiSource}\n${formatDate(chiDate)}\nThành công`);
+  if (result && result.status === 'success') {
+    showToast(`Đã thêm chi tiêu ${chiDesc}\n${formatStack(chiStack)}\nNguồn ${chiSource}\n${formatDate(chiDate)}\nThành công`);
     const data = await fetchData("Chi_Tieu_2026");
     updateHeader(data);
     resetChiSection();
@@ -623,6 +645,33 @@ document.getElementById("chi-submit").onclick = async () => {
 };
 
 // ================= THU (INCOME) =================
+function onThuDescChange(desc) {
+  if (!desc) {
+    const loaiThuDropdown = document.getElementById("thu-loai");
+    loaiThuDropdown.disabled = false;
+    loaiThuDropdown.style.background = "";
+    loaiThuDropdown.style.cursor = "";
+    return;
+  }
+  
+  const existing = thuList.find(t => t["Mô tả"] === desc);
+  const loaiThuDropdown = document.getElementById("thu-loai");
+  
+  if (existing && existing["Loại thu"]) {
+    thuLoai = existing["Loại thu"];
+    loaiThuDropdown.value = thuLoai;
+    loaiThuDropdown.disabled = true;
+    loaiThuDropdown.style.background = "#f0f0f0";
+    loaiThuDropdown.style.cursor = "not-allowed";
+  } else {
+    loaiThuDropdown.disabled = false;
+    loaiThuDropdown.style.background = "";
+    loaiThuDropdown.style.cursor = "";
+  }
+  
+  checkThuReady();
+}
+
 function renderThuChips() {
   const chipGrid = document.getElementById("thu-chips");
   chipGrid.innerHTML = "";
@@ -636,7 +685,7 @@ function renderThuChips() {
         btn.classList.add("selected");
         thuDesc = chip;
         document.getElementById("thu-desc-input").value = "";
-        checkThuReady();
+        onThuDescChange(chip);
       };
       chipGrid.appendChild(btn);
     }
@@ -685,8 +734,10 @@ document.getElementById("thu-desc-input").oninput = (e) => {
   thuDesc = e.target.value;
   if (thuDesc) {
     document.querySelectorAll("#thu-chips .chip").forEach(c => c.classList.remove("selected"));
+    onThuDescChange(thuDesc);
+  } else {
+    onThuDescChange("");
   }
-  checkThuReady();
 };
 
 document.getElementById("thu-loai").onchange = (e) => {
@@ -711,7 +762,11 @@ function resetThuSection() {
   thuInput.value = "";
   document.getElementById("thu-display").textContent = "Chưa có số";
   document.getElementById("thu-desc-input").value = "";
-  document.getElementById("thu-loai").value = "";
+  const loaiThuDropdown = document.getElementById("thu-loai");
+  loaiThuDropdown.value = "";
+  loaiThuDropdown.disabled = false;
+  loaiThuDropdown.style.background = "";
+  loaiThuDropdown.style.cursor = "";
   document.getElementById("thu-source").value = "";
   document.querySelectorAll("#thu-chips .chip").forEach(c => c.classList.remove("selected"));
   document.getElementById("thu-submit").disabled = true;
@@ -727,11 +782,17 @@ document.getElementById("thu-submit").onclick = async () => {
     nguon_tien: thuSource
   };
   
+  console.log('📤 THU Submit payload:', payload);
+  
   const result = await postData("insert_thu", payload);
-  if (result) {
+  if (result && result.status === 'success') {
     showToast(`Đã thêm thu nhập ${thuDesc}\n${formatVN(thuAmount)}\nNguồn ${thuSource}\n${formatDate(thuDate)}\nThành công`);
     const data = await fetchData("Chi_Tieu_2026");
     updateHeader(data);
+    
+    const thuData = await fetchData("Thu_2026");
+    thuList = thuData || [];
+    
     resetThuSection();
   }
 };
@@ -821,60 +882,6 @@ function resetTongKet() {
   document.getElementById("tk-start").style.display = "block";
 }
 
-// ================= SETTINGS =================
-function renderSettings() {
-  const chiChipsContainer = document.getElementById("settings-chi-chips");
-  chiChipsContainer.innerHTML = "";
-  settings.quickChipsChi.forEach((chip, i) => {
-    const div = document.createElement("div");
-    div.className = "setting-chip-row";
-    div.innerHTML = `
-      <input type="text" value="${chip}" class="input-std" data-type="chi" data-index="${i}">
-      <button class="btn-square btn-gray" onclick="removeChip('chi', ${i})">×</button>
-    `;
-    chiChipsContainer.appendChild(div);
-  });
-  
-  const thuChipsContainer = document.getElementById("settings-thu-chips");
-  thuChipsContainer.innerHTML = "";
-  settings.quickChipsThu.forEach((chip, i) => {
-    const div = document.createElement("div");
-    div.className = "setting-chip-row";
-    div.innerHTML = `
-      <input type="text" value="${chip}" class="input-std" data-type="thu" data-index="${i}">
-      <button class="btn-square btn-gray" onclick="removeChip('thu', ${i})">×</button>
-    `;
-    thuChipsContainer.appendChild(div);
-  });
-}
-
-function removeChip(type, index) {
-  if (type === "chi") {
-    settings.quickChipsChi[index] = "";
-  } else {
-    settings.quickChipsThu[index] = "";
-  }
-  saveSettings(settings);
-  renderSettings();
-}
-
-document.getElementById("save-settings").onclick = () => {
-  document.querySelectorAll('[data-type="chi"]').forEach(input => {
-    const index = parseInt(input.dataset.index);
-    settings.quickChipsChi[index] = input.value;
-  });
-  
-  document.querySelectorAll('[data-type="thu"]').forEach(input => {
-    const index = parseInt(input.dataset.index);
-    settings.quickChipsThu[index] = input.value;
-  });
-  
-  saveSettings(settings);
-  showToast("Đã lưu cài đặt");
-  renderChiChips();
-  renderThuChips();
-};
-
 // ================= MODAL SETTINGS =================
 
 function renderModalCheckboxList(type) {
@@ -887,8 +894,19 @@ function renderModalCheckboxList(type) {
   }
   
   const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  const sourceList = type === 'chi' ? loaiChiList : moTaThuList;
-  const fieldName = type === 'chi' ? 'mo_ta_chi' : 'mo_ta_thu';
+  
+  let sourceList, fieldName;
+  
+  if (type === 'chi') {
+    sourceList = loaiChiList.filter(item => item.active);
+    fieldName = 'mo_ta_chi';
+  } else {
+    const allMoTa = thuList.map(t => t["Mô tả"]).filter(Boolean);
+    const distinct = [...new Set(allMoTa)];
+    sourceList = distinct.sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }))
+                        .map(desc => ({ desc }));
+    fieldName = 'desc';
+  }
   
   console.log('📊 Data check:', {
     type,
@@ -899,20 +917,15 @@ function renderModalCheckboxList(type) {
   
   if (!sourceList || sourceList.length === 0) {
     console.warn('⚠️ No source data available');
-    container.innerHTML = '<div style="padding: 1rem; text-align: center; color: #888;">Chưa có dữ liệu. Vui lòng reload trang.</div>';
+    container.innerHTML = '<div style="padding: 1rem; text-align: center; color: #888;">Chưa có dữ liệu</div>';
     return;
   }
   
   container.innerHTML = '';
   
-  const activeItems = sourceList
-    .filter(item => item.active)
-    .sort((a, b) => a[fieldName].localeCompare(b[fieldName], 'vi', { sensitivity: 'base' }));
-  
-  console.log(`✅ Rendering ${activeItems.length} items (${sourceList.length} total, ${sourceList.filter(i => i.active).length} active)`);
-  
-  activeItems.forEach((item, index) => {
-    const isChecked = currentChips.filter(c => c).includes(item[fieldName]);
+  sourceList.forEach((item, index) => {
+    const desc = type === 'chi' ? item.mo_ta_chi : item.desc;
+    const isChecked = currentChips.filter(c => c).includes(desc);
     
     const itemDiv = document.createElement('div');
     itemDiv.className = 'checkbox-item';
@@ -921,14 +934,14 @@ function renderModalCheckboxList(type) {
     checkbox.type = 'checkbox';
     checkbox.id = `${type}-modal-chip-${index}`;
     checkbox.checked = isChecked;
-    checkbox.dataset.desc = item[fieldName];
+    checkbox.dataset.desc = desc;
     
     const label = document.createElement('label');
     label.htmlFor = checkbox.id;
-    label.textContent = item[fieldName];
+    label.textContent = desc;
     
     checkbox.onchange = () => {
-      handleModalChipToggle(type, item[fieldName], checkbox.checked);
+      handleModalChipToggle(type, desc, checkbox.checked);
     };
     
     itemDiv.appendChild(checkbox);
@@ -970,8 +983,13 @@ function handleModalChipToggle(type, desc, checked) {
   }
   
   saveSettings(settings);
-  renderChiChips();
-  renderThuChips();
+  
+  if (type === 'chi') {
+    renderChiChips();
+  } else {
+    renderThuChips();
+  }
+  
   updateModalSelectedCount(type);
 }
 
@@ -996,7 +1014,10 @@ function showModal(type) {
   document.body.style.overflow = 'hidden';
   
   renderModalCheckboxList(type);
-  populateModalDropdowns(type);
+  
+  if (type === 'chi') {
+    populateModalDropdowns(type);
+  }
   
   console.log(`✅ Modal ${type} opened`);
 }
@@ -1024,21 +1045,6 @@ function populateModalDropdowns(type) {
       
       console.log(`✅ Populated ${uniquePhanLoai.length} phân loại options`);
     }
-  } else {
-    const loaithuSelect = document.getElementById('thu-modal-new-loaithu');
-    if (loaithuSelect && settings.quickLoaiThu.length > 0) {
-      loaithuSelect.innerHTML = '<option value="">-- Chọn loại thu *--</option>';
-      settings.quickLoaiThu.forEach(loai => {
-        if (loai) {
-          const option = document.createElement('option');
-          option.value = loai;
-          option.textContent = loai;
-          loaithuSelect.appendChild(option);
-        }
-      });
-      
-      console.log(`✅ Populated ${settings.quickLoaiThu.filter(l => l).length} loại thu options`);
-    }
   }
 }
 
@@ -1047,28 +1053,20 @@ function initModalEventListeners() {
   
   const chiBtn = document.getElementById('chi-settings-btn');
   if (chiBtn) {
-    console.log('✅ CHI button found, attaching listener');
     chiBtn.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('🟢 CHI settings button CLICKED');
       showModal('chi');
     };
-  } else {
-    console.error('❌ CHI button NOT found');
   }
   
   const thuBtn = document.getElementById('thu-settings-btn');
   if (thuBtn) {
-    console.log('✅ THU button found, attaching listener');
     thuBtn.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('🟢 THU settings button CLICKED');
       showModal('thu');
     };
-  } else {
-    console.error('❌ THU button NOT found');
   }
   
   const chiModalClose = document.getElementById("chi-modal-close");
@@ -1130,30 +1128,32 @@ function initModalEventListeners() {
     }
   });
   
-  console.log('✅ Dropdown toggle initialized');
   console.log('✅ Modal event listeners initialized');
 }
 
 // ================= INIT =================
 window.onload = async () => {
+  console.log('🚀 App starting...');
+  
   renderChiDate();
   renderThuDate();
   chiInput.focus();
   
-  const [chiTieuData, loaiChiData, moTaThuData, nguonTienData] = await Promise.all([
+  const [chiTieuData, loaiChiData, thuData, nguonTienData] = await Promise.all([
     fetchData("Chi_Tieu_2026"),
     fetchData("loai_chi"),
-    fetchData("mo_ta_thu"),
+    fetchData("Thu_2026"),
     fetchData("nguon_tien")
   ]);
   
   loaiChiList = loaiChiData || [];
-  moTaThuList = moTaThuData || [];
+  thuList = thuData || [];
   nguonTienList = nguonTienData || [];
   
   console.log('✅ Data loaded:', {
+    chiTieu: chiTieuData.length,
     loaiChi: loaiChiList.length,
-    moTaThu: moTaThuList.length,
+    thu: thuList.length,
     nguonTien: nguonTienList.length
   });
   
@@ -1161,7 +1161,6 @@ window.onload = async () => {
   
   renderChiChips();
   renderThuChips();
-  renderSettings();
   
   updateHeader(chiTieuData);
   populateChiDropdowns();
@@ -1169,5 +1168,5 @@ window.onload = async () => {
   
   initModalEventListeners();
   
-  console.log('✅ App initialized');
+  console.log('✅ App initialized successfully');
 };

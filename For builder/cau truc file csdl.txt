@@ -26,7 +26,7 @@ Index | Column Name      | Data Type | Ghi chú / Logic xử lý
 Mô tả: Bảng ghi chép các khoản thu nhập.
 -----------------------------------------------------
 Index | Column Name      | Data Type | Ghi chú / Logic xử lý
-0     | Thu              | Integer   | Số tiền thu (Hiển thị: 1.000.000)
+0     | Thu              | Integer   | Số tiền thu (truyền công thức từ app)
 1     | Ngày             | Date      | Định dạng yyyy-MM-dd
 2     | Mô tả            | String    | Nội dung thu
 3     | Nguồn tiền       | String    | (Ref: nguon_tien)
