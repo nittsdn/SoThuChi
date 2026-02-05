@@ -907,18 +907,25 @@ document.getElementById("save-settings").onclick = () => {
 
 // Show modal
 function showModal(type) {
+  console.log('showModal called with type:', type);
   const modal = document.getElementById(`${type}-settings-modal`);
+  
   if (!modal) {
-    console.error(`Modal not found: ${type}-settings-modal`);
+    console.error(`❌ Modal not found: ${type}-settings-modal`);
+    showToast("Lỗi: Không tìm thấy modal popup");
     return;
   }
+  
+  console.log('✅ Modal found, showing...');
   modal.classList.add('show');
   renderModalCheckboxList(type);
   document.body.style.overflow = 'hidden';
+  console.log('Modal should be visible now');
 }
 
 // Hide modal
 function hideModal(type) {
+  console.log('hideModal called with type:', type);
   const modal = document.getElementById(`${type}-settings-modal`);
   if (!modal) return;
   modal.classList.remove('show');
@@ -927,44 +934,32 @@ function hideModal(type) {
 
 // Render checkbox list in modal
 function renderModalCheckboxList(type) {
+  console.log('renderModalCheckboxList called for:', type);
   const container = document.getElementById(`${type}-modal-checkbox-list`);
-  const countSpan = document.getElementById(`${type}-modal-selected-count`);
   
   if (!container) {
-    console.error(`Container not found: ${type}-modal-checkbox-list`);
+    console.error(`❌ Container not found: ${type}-modal-checkbox-list`);
     return;
   }
   
-  // Get current chips from LocalStorage
   const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  
   const sourceList = loaiChiList;
   
   if (!sourceList || sourceList.length === 0) {
-    container.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--text-secondary);">Chưa có dữ liệu. Vui lòng reload trang.</div>';
+    console.warn('⚠️ No source data available');
+    container.innerHTML = '<div style="padding: 1rem; text-align: center; color: #888;">Chưa có dữ liệu. Vui lòng reload trang.</div>';
     return;
   }
   
-  console.log('renderModalCheckboxList:', {
-    type,
-    currentChips,
-    sourceListLength: sourceList.length
-  });
-  
   container.innerHTML = '';
   
-  // Filter active items and sort ALPHABETICALLY (A-Z)
   const activeItems = sourceList
     .filter(item => item.active)
-    .sort((a, b) => {
-      // Sort A-Z (Vietnamese locale aware)
-      return a.mo_ta_chi.localeCompare(b.mo_ta_chi, 'vi', { sensitivity: 'base' });
-    });
+    .sort((a, b) => a.mo_ta_chi.localeCompare(b.mo_ta_chi, 'vi', { sensitivity: 'base' }));
   
-  console.log('Active items after sort:', activeItems.length, activeItems.map(i => i.mo_ta_chi));
+  console.log(`✅ Rendering ${activeItems.length} items`);
   
   activeItems.forEach((item, index) => {
-    // Check if this item is in currentChips (filter empty strings)
     const isChecked = currentChips.filter(c => c).includes(item.mo_ta_chi);
     
     const itemDiv = document.createElement('div');
@@ -992,7 +987,7 @@ function renderModalCheckboxList(type) {
   updateModalSelectedCount(type);
 }
 
-// Handle checkbox toggle with 8-item limit
+// Handle checkbox toggle
 function handleModalChipToggle(type, desc, checked) {
   const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
   
@@ -1009,10 +1004,8 @@ function handleModalChipToggle(type, desc, checked) {
     const emptyIndex = currentChips.findIndex(c => !c);
     if (emptyIndex !== -1) {
       currentChips[emptyIndex] = desc;
-    } else {
-      if (currentChips.length < 8) {
-        currentChips.push(desc);
-      }
+    } else if (currentChips.length < 8) {
+      currentChips.push(desc);
     }
   } else {
     const index = currentChips.indexOf(desc);
@@ -1020,13 +1013,6 @@ function handleModalChipToggle(type, desc, checked) {
       currentChips[index] = "";
     }
   }
-  
-  console.log('After toggle:', {
-    type,
-    desc,
-    checked,
-    currentChips
-  });
   
   saveSettings(settings);
   updateModalSelectedCount(type);
@@ -1045,11 +1031,11 @@ function updateModalSelectedCount(type) {
   const countSpan = document.getElementById(`${type}-modal-selected-count`);
   if (countSpan) {
     countSpan.textContent = count;
-    countSpan.style.color = count === 8 ? 'var(--green)' : 'var(--text)';
+    countSpan.style.color = count === 8 ? '#34c759' : '#000';
   }
 }
 
-// Check if add new form is valid
+// Check if add form is valid
 function checkModalAddReady(type) {
   const name = document.getElementById(`${type}-modal-new-name`).value.trim();
   const field = type === 'chi' ? 'phanloai' : 'loaithu';
@@ -1059,7 +1045,7 @@ function checkModalAddReady(type) {
   document.getElementById(`${type}-modal-add-btn`).disabled = !isValid;
 }
 
-// Add new description from modal
+// Add new description
 async function addNewFromModal(type) {
   const name = document.getElementById(`${type}-modal-new-name`).value.trim();
   const field = type === 'chi' ? 'phanloai' : 'loaithu';
@@ -1084,87 +1070,94 @@ async function addNewFromModal(type) {
     
     loaiChiList = await fetchData("loai_chi");
     populateChiDropdowns();
-    if (type === 'thu') populateThuDropdowns();
-    
     renderModalCheckboxList(type);
     
     document.getElementById(`${type}-modal-new-name`).value = "";
     document.getElementById(`${type}-modal-new-${field}`).value = "";
     document.getElementById(`${type}-modal-new-note`).value = "";
     checkModalAddReady(type);
-    
   } else {
-    showToast("❌ Lỗi khi thêm mô tả: " + (result?.message || "Unknown error"));
+    showToast("❌ Lỗi khi thêm mô tả");
   }
 }
 
-// Initialize modal event listeners (called after DOM ready)
+// Initialize modal event listeners
 function initModalEventListeners() {
-  // CHI modal
-  const chiBtn = document.getElementById("chi-settings-btn");
-  const chiModalClose = document.getElementById("chi-modal-close");
-  const chiModal = document.getElementById("chi-settings-modal");
+  console.log('🔧 initModalEventListeners called');
   
+  // CHI modal button
+  const chiBtn = document.getElementById("chi-settings-btn");
   if (chiBtn) {
-    chiBtn.addEventListener('click', (e) => {
+    console.log('✅ CHI button found, attaching listener');
+    chiBtn.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('CHI settings button clicked');
+      console.log('🔴 CHI settings button CLICKED');
       showModal('chi');
-    });
+    };
+  } else {
+    console.error('❌ CHI button NOT found');
   }
   
+  // THU modal button
+  const thuBtn = document.getElementById("thu-settings-btn");
+  if (thuBtn) {
+    console.log('✅ THU button found, attaching listener');
+    thuBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('🟢 THU settings button CLICKED');
+      showModal('thu');
+    };
+  } else {
+    console.error('❌ THU button NOT found');
+  }
+  
+  // CHI modal close
+  const chiModalClose = document.getElementById("chi-modal-close");
   if (chiModalClose) {
-    chiModalClose.addEventListener('click', () => hideModal('chi'));
+    chiModalClose.onclick = () => hideModal('chi');
   }
   
+  const chiModal = document.getElementById("chi-settings-modal");
   if (chiModal) {
-    chiModal.addEventListener('click', (e) => {
+    chiModal.onclick = (e) => {
       if (e.target.id === 'chi-settings-modal') hideModal('chi');
-    });
+    };
   }
-
+  
+  // THU modal close
+  const thuModalClose = document.getElementById("thu-modal-close");
+  if (thuModalClose) {
+    thuModalClose.onclick = () => hideModal('thu');
+  }
+  
+  const thuModal = document.getElementById("thu-settings-modal");
+  if (thuModal) {
+    thuModal.onclick = (e) => {
+      if (e.target.id === 'thu-settings-modal') hideModal('thu');
+    };
+  }
+  
+  // CHI form inputs
   const chiNewName = document.getElementById("chi-modal-new-name");
   const chiNewPhanloai = document.getElementById("chi-modal-new-phanloai");
   const chiAddBtn = document.getElementById("chi-modal-add-btn");
   
-  if (chiNewName) chiNewName.addEventListener('input', () => checkModalAddReady('chi'));
-  if (chiNewPhanloai) chiNewPhanloai.addEventListener('change', () => checkModalAddReady('chi'));
-  if (chiAddBtn) chiAddBtn.addEventListener('click', () => addNewFromModal('chi'));
-
-  // THU modal
-  const thuBtn = document.getElementById("thu-settings-btn");
-  const thuModalClose = document.getElementById("thu-modal-close");
-  const thuModal = document.getElementById("thu-settings-modal");
+  if (chiNewName) chiNewName.oninput = () => checkModalAddReady('chi');
+  if (chiNewPhanloai) chiNewPhanloai.onchange = () => checkModalAddReady('chi');
+  if (chiAddBtn) chiAddBtn.onclick = () => addNewFromModal('chi');
   
-  if (thuBtn) {
-    thuBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log('THU settings button clicked');
-      showModal('thu');
-    });
-  }
-  
-  if (thuModalClose) {
-    thuModalClose.addEventListener('click', () => hideModal('thu'));
-  }
-  
-  if (thuModal) {
-    thuModal.addEventListener('click', (e) => {
-      if (e.target.id === 'thu-settings-modal') hideModal('thu');
-    });
-  }
-
+  // THU form inputs
   const thuNewName = document.getElementById("thu-modal-new-name");
   const thuNewLoaithu = document.getElementById("thu-modal-new-loaithu");
   const thuAddBtn = document.getElementById("thu-modal-add-btn");
   
-  if (thuNewName) thuNewName.addEventListener('input', () => checkModalAddReady('thu'));
-  if (thuNewLoaithu) thuNewLoaithu.addEventListener('change', () => checkModalAddReady('thu'));
-  if (thuAddBtn) thuAddBtn.addEventListener('click', () => addNewFromModal('thu'));
+  if (thuNewName) thuNewName.oninput = () => checkModalAddReady('thu');
+  if (thuNewLoaithu) thuNewLoaithu.onchange = () => checkModalAddReady('thu');
+  if (thuAddBtn) thuAddBtn.onclick = () => addNewFromModal('thu');
   
-  console.log('Modal event listeners initialized');
+  console.log('✅ Modal event listeners initialized');
 }
 
 // ================= INIT =================
