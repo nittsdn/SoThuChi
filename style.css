@@ -531,17 +531,164 @@ input, select, button {
 }
 
 /* =========================
-   RESPONSIVE
+   SETTINGS PANEL (Collapsible)
 ========================= */
-@media (max-width: 480px) {
-  .chip-grid {
-    grid-template-columns: repeat(2, 1fr);
+
+/* Settings toggle button */
+.btn-settings {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
+}
+
+.btn-settings:hover {
+  background: var(--bg-tertiary);
+  transform: scale(1.05);
+}
+
+.btn-settings.active {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+
+/* Settings panel container */
+.settings-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  margin: 0 -1rem;
+  padding: 0 1rem;
+}
+
+.settings-panel.expanded {
+  max-height: 1000px;
+  padding: 1rem;
+  transition: max-height 0.5s ease-in;
+}
+
+/* Settings section */
+.settings-section {
+  margin-bottom: 1.5rem;
+}
+
+.settings-section h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.settings-section:last-child {
+  margin-bottom: 0;
+}
+
+/* Checkbox list */
+.checkbox-list {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  background: var(--bg);
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.checkbox-item:hover {
+  background: var(--bg-secondary);
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-right: 0.75rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.checkbox-item label {
+  cursor: pointer;
+  flex: 1;
+  font-size: 0.95rem;
+}
+
+.checkbox-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checkbox-item.disabled input,
+.checkbox-item.disabled label {
+  cursor: not-allowed;
+}
+
+/* Selected count */
+.selected-count {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.selected-count span {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Add new form */
+.settings-section .input-std {
+  margin-bottom: 0.75rem;
+}
+
+.settings-section .btn-submit {
+  width: 100%;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .settings-panel.expanded {
+    max-height: 80vh;
   }
   
-  .card {
-    margin: 12px 8px;
-    padding: 12px;
+  .checkbox-list {
+    max-height: 200px;
   }
+  
+  .checkbox-item {
+    min-height: 44px; /* iOS touch target */
+  }
+}
+
+/* Scrollbar styling for checkbox list */
+.checkbox-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.checkbox-list::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.checkbox-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.checkbox-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
 /* ================= COLORED BORDERS FOR CHI/THU ================= */
