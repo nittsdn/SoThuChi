@@ -915,138 +915,15 @@ document.getElementById("save-settings").onclick = () => {
   renderThuChips();
 };
 
-// ================= MODAL SETTINGS =================
-
-// Show modal
-function showModal(type) {
-  const modal = document.getElementById(`${type}-settings-modal`);
-  modal.classList.add('show');
-  renderModalCheckboxList(type);
-  document.body.style.overflow = 'hidden'; // Prevent background scroll
-}
-
-// Hide modal
-function hideModal(type) {
-  const modal = document.getElementById(`${type}-settings-modal`);
-  modal.classList.remove('show');
-  document.body.style.overflow = ''; // Restore scroll
-}
-
-// Render checkbox list in modal
-function renderModalCheckboxList(type) {
-  const container = document.getElementById(`${type}-modal-checkbox-list`);
-  const countSpan = document.getElementById(`${type}-modal-selected-count`);
-  
-  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  const sourceList = loaiChiList; // TODO: Use separate list for thu if needed
-  
-  if (!sourceList || sourceList.length === 0) {
-    container.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--text-secondary);">Chưa có dữ liệu</div>';
-    return;
-  }
-  
-  container.innerHTML = '';
-  
-  const activeItems = sourceList
-    .filter(item => item.active)
-    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  
-  activeItems.forEach(item => {
-    const isChecked = currentChips.includes(item.mo_ta_chi);
-    
-    const itemDiv = document.createElement('div');
-    itemDiv.className = 'checkbox-item';
-    
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = `${type}-modal-chip-${item.id_chi || item.mo_ta_chi}`;
-    checkbox.checked = isChecked;
-    checkbox.dataset.desc = item.mo_ta_chi;
-    
-    const label = document.createElement('label');
-    label.htmlFor = checkbox.id;
-    label.textContent = item.mo_ta_chi;
-    
-    checkbox.onchange = () => {
-      handleModalChipToggle(type, item.mo_ta_chi, checkbox.checked);
-    };
-    
-    itemDiv.appendChild(checkbox);
-    itemDiv.appendChild(label);
-    container.appendChild(itemDiv);
-  });
-  
-  updateModalSelectedCount(type);
-}
-
-// Handle checkbox toggle with 8-item limit
-function handleModalChipToggle(type, desc, checked) {
-  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  
-  if (checked) {
-    if (currentChips.filter(c => c).length >= 8) {
-      showToast("Chỉ được chọn tối đa 8 mô tả");
-      const checkbox = document.querySelector(`input[data-desc="${desc}"]`);
-      if (checkbox) checkbox.checked = false;
-      return;
-    }
-    
-    const emptyIndex = currentChips.findIndex(c => !c);
-    if (emptyIndex !== -1) {
-      currentChips[emptyIndex] = desc;
-    } else {
-      currentChips.push(desc);
-    }
-  } else {
-    const index = currentChips.indexOf(desc);
-    if (index !== -1) {
-      currentChips[index] = "";
-    }
-  }
-  
-  saveSettings(settings);
-  updateModalSelectedCount(type);
-  
-  // Re-render quick chips in main UI
-  if (type === 'chi') {
-    renderChiChips();
-  } else {
-    renderThuChips();
-  }
-}
-
-// Update selected count
-function updateModalSelectedCount(type) {
-  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  const count = currentChips.filter(c => c).length;
-  const countSpan = document.getElementById(`${type}-modal-selected-count`);
-  if (countSpan) {
-    countSpan.textContent = count;
-    countSpan.style.color = count === 8 ? 'var(--green)' : 'var(--text)';
-  }
-}
-
-// Check if add new form is valid
-function checkModalAddReady(type) {
-  const name = document.getElementById(`${type}-modal-new-name`).value.trim();
-  const field = type === 'chi' ? 'phanloai' : 'loaithu';
-  const phanloai = document.getElementById(`${type}-modal-new-${field}`).value;
-  
-  const isValid = name && phanloai;
-  document.getElementById(`${type}-modal-add-btn`).disabled = !isValid;
-}
-
-// Add new description from modal
-async function addNewFromModal(type) {
-  const name = document.getElementById(`${type}-modal-new-name`).value.trim();
-  const field = type === 'chi' ? 'phanloai' : 'loaithu';
-  const phanloai = document.getElementById(`${type}-modal-new-${field}`).value;
-  const note = document.getElementById(`${type}-modal-new-note`).value.trim();
-  
-  if (!name || !phanloai) {
-    showToast("Vui lòng điền đầy đủ thông tin bắt buộc");
-    return;
-  }
+// ================= INIT =================
+window.onload = async () => {
+  // Render UI immediately (don't wait for API)
+  renderChiDate();
+  renderThuDate();
+  renderChiChips();
+  renderThuChips();
+  renderSettings();
+  chiInput.focus();
   
   // Load ALL data in parallel (3x faster!)
   const [chiTieuData, loaiChiData, nguonTienData] = await Promise.all([

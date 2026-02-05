@@ -25,7 +25,7 @@
     <div class="last-chi-desc">Chưa có chi tiêu</div>
     <div class="balance-tag">Số dư LT: 0</div>
   </div>
-  <div class="version">v1.3.248</div>
+  <div class="version">v1.951</div>
 </div>
 
 <!-- ================= CHI ================= -->
@@ -41,40 +41,6 @@
       <input type="date" class="date-input-overlay" id="chi-date-input">
     </div>
     <button class="btn-square" id="chi-date-next">&gt;</button>
-    <button class="btn-square btn-settings" id="chi-settings-toggle">⚙️</button>
-  </div>
-
-  <!-- ===== SETTINGS PANEL (Collapsible) ===== -->
-  <div class="settings-panel" id="chi-settings-panel">
-    
-    <!-- Quick Chips Configuration -->
-    <div class="settings-section">
-      <h4>📋 Cấu hình Quick Chips (8 mô tả hiển thị ngoài)</h4>
-      <div class="checkbox-list" id="chi-quick-chips-config">
-        <!-- Dynamically populated -->
-      </div>
-      <div class="selected-count">
-        Đã chọn: <span id="chi-selected-count">0</span>/8
-      </div>
-    </div>
-
-    <!-- Add New Description -->
-    <div class="settings-section">
-      <h4>➕ Thêm mô tả chi mới</h4>
-      <input type="text" id="chi-new-desc-name" class="input-std" placeholder="Tên mô tả *">
-      <select id="chi-new-desc-phanloai" class="input-std">
-        <option value="">-- Chọn phân loại *--</option>
-        <option value="Ăn uống">Ăn uống</option>
-        <option value="Di chuyển">Di chuyển</option>
-        <option value="Nhà cửa">Nhà cửa</option>
-        <option value="Y tế">Y tế</option>
-        <option value="Giải trí">Giải trí</option>
-        <option value="Khác">Khác</option>
-      </select>
-      <input type="text" id="chi-new-desc-note" class="input-std" placeholder="Ghi chú (optional)">
-      <button id="chi-add-new-desc" class="btn-submit btn-blue" disabled>Thêm</button>
-    </div>
-
   </div>
 
   <div class="calc-row">
@@ -82,6 +48,8 @@
     <button class="btn-square btn-blue" id="chi-add">+</button>
     <button class="btn-square btn-delete" id="chi-clear">↻</button>
   </div>
+
+  <div class="chi-preview" id="chi-preview"></div>
 
   <div class="stack-display" id="chi-stack">Chưa có số</div>
 
@@ -113,37 +81,6 @@
       <input type="date" class="date-input-overlay" id="thu-date-input">
     </div>
     <button class="btn-square" id="thu-date-next">&gt;</button>
-    <button class="btn-square btn-settings" id="thu-settings-toggle">⚙️</button>
-  </div>
-
-  <!-- ===== SETTINGS PANEL (Collapsible) ===== -->
-  <div class="settings-panel" id="thu-settings-panel">
-    
-    <!-- Quick Chips Configuration -->
-    <div class="settings-section">
-      <h4>📋 Cấu hình Quick Chips (8 mô tả hiển thị ngoài)</h4>
-      <div class="checkbox-list" id="thu-quick-chips-config">
-        <!-- Dynamically populated -->
-      </div>
-      <div class="selected-count">
-        Đã chọn: <span id="thu-selected-count">0</span>/8
-      </div>
-    </div>
-
-    <!-- Add New Description -->
-    <div class="settings-section">
-      <h4>➕ Thêm mô tả thu mới</h4>
-      <input type="text" id="thu-new-desc-name" class="input-std" placeholder="Tên mô tả *">
-      <select id="thu-new-desc-loaithu" class="input-std">
-        <option value="">-- Chọn loại thu *--</option>
-        <option value="Thu nhập">Thu nhập</option>
-        <option value="Tiền về">Tiền về</option>
-        <option value="Khác">Khác</option>
-      </select>
-      <input type="text" id="thu-new-desc-note" class="input-std" placeholder="Ghi chú (optional)">
-      <button id="thu-add-new-desc" class="btn-submit btn-green" disabled>Thêm</button>
-    </div>
-
   </div>
 
   <div class="calc-row-thu">
@@ -184,6 +121,25 @@
     <div id="tk-result" style="display: none;"></div>
     <button class="btn-submit btn-blue" id="tk-confirm" style="display: none;">Xác nhận tổng kết</button>
   </div>
+</div>
+
+<!-- ================= SETTING ================= -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">CÀI ĐẶT</div>
+  </div>
+
+  <div class="setting-section">
+    <h3>Quick Chips Chi</h3>
+    <div id="settings-chi-chips"></div>
+  </div>
+
+  <div class="setting-section">
+    <h3>Quick Chips Thu</h3>
+    <div id="settings-thu-chips"></div>
+  </div>
+
+  <button class="btn-submit btn-blue" id="save-settings">Lưu cài đặt</button>
 </div>
 
 <script src="app.js"></script>
