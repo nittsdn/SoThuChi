@@ -262,26 +262,29 @@ function changeDate(currentDate, delta) {
 function renderChiDate() {
   chiDateInput.value = formatDateAPI(chiDate);
   chiDateInput.max = formatDateAPI(new Date());
-  chiDateDisplay.textContent = `<< ${formatDate(chiDate)} >>`;
+  chiDateDisplay.textContent = `${formatDate(chiDate)}`;
 }
 
 function renderThuDate() {
   thuDateInput.value = formatDateAPI(thuDate);
   thuDateInput.max = formatDateAPI(new Date());
-  thuDateDisplay.textContent = `<< ${formatDate(thuDate)} >>`;
+  thuDateDisplay.textContent = `${formatDate(thuDate)}`;
 }
 
-// CHI date navigation event listeners
-chiDateDisplay.onclick = () => {
-  if (chiDateInput.showPicker) {
-    chiDateInput.showPicker();
-  } else {
-    chiDateInput.click();
-  }
+// CHI date navigation - SIMPLIFIED for iOS
+chiDateDisplay.onclick = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  chiDateInput.click();
 };
 
 chiDateInput.onchange = (e) => {
-  const selected = new Date(e.target.value);
+  const dateStr = e.target.value;
+  if (!dateStr) return;
+  
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const selected = new Date(year, month - 1, day);
+  
   const today = new Date();
   today.setHours(23, 59, 59, 999);
   
@@ -304,17 +307,20 @@ document.getElementById("chi-date-next").onclick = () => {
   renderChiDate();
 };
 
-// THU date navigation event listeners
-thuDateDisplay.onclick = () => {
-  if (thuDateInput.showPicker) {
-    thuDateInput.showPicker();
-  } else {
-    thuDateInput.click();
-  }
+// THU date navigation - SIMPLIFIED for iOS
+thuDateDisplay.onclick = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  thuDateInput.click();
 };
 
 thuDateInput.onchange = (e) => {
-  const selected = new Date(e.target.value);
+  const dateStr = e.target.value;
+  if (!dateStr) return;
+  
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const selected = new Date(year, month - 1, day);
+  
   const today = new Date();
   today.setHours(23, 59, 59, 999);
   

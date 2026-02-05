@@ -25,20 +25,22 @@
     <div class="last-chi-desc">Chưa có chi tiêu</div>
     <div class="balance-tag">Số dư LT: 0</div>
   </div>
-  <div class="version">v1.0</div>
+  <div class="version">v1.951</div>
 </div>
 
 <!-- ================= CHI ================= -->
-<div class="card">
+<div class="card card-chi">
   <div class="card-header">
     <div class="card-title red-text">CHI</div>
   </div>
 
   <div class="date-row">
-    <button class="btn-square" id="chi-date-prev">&lt;&lt;</button>
-    <button class="btn-date-display" id="chi-date-display"></button>
-    <input type="date" class="btn-date-input-hidden" id="chi-date-input">
-    <button class="btn-square" id="chi-date-next">&gt;&gt;</button>
+    <button class="btn-square" id="chi-date-prev">&lt;</button>
+    <div class="date-display-wrapper">
+      <button class="btn-date-display" id="chi-date-display"></button>
+      <input type="date" class="date-input-overlay" id="chi-date-input">
+    </div>
+    <button class="btn-square" id="chi-date-next">&gt;</button>
   </div>
 
   <div class="calc-row">
@@ -67,16 +69,18 @@
 </div>
 
 <!-- ================= THU ================= -->
-<div class="card">
+<div class="card card-thu">
   <div class="card-header">
     <div class="card-title green-text">THU</div>
   </div>
 
   <div class="date-row">
-    <button class="btn-square" id="thu-date-prev">&lt;&lt;</button>
-    <button class="btn-date-display" id="thu-date-display"></button>
-    <input type="date" class="btn-date-input-hidden" id="thu-date-input">
-    <button class="btn-square" id="thu-date-next">&gt;&gt;</button>
+    <button class="btn-square" id="thu-date-prev">&lt;</button>
+    <div class="date-display-wrapper">
+      <button class="btn-date-display" id="thu-date-display"></button>
+      <input type="date" class="date-input-overlay" id="thu-date-input">
+    </div>
+    <button class="btn-square" id="thu-date-next">&gt;</button>
   </div>
 
   <div class="calc-row-thu">
