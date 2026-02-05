@@ -25,7 +25,7 @@
     <div class="last-chi-desc">Chưa có chi tiêu</div>
     <div class="balance-tag">Số dư LT: 0</div>
   </div>
-  <div class="version">v1.942</div>
+  <div class="version">v1.950</div>
 </div>
 
 <!-- ================= CHI ================= -->
@@ -36,8 +36,11 @@
 
   <div class="date-row">
     <button class="btn-square" id="chi-date-prev">&lt;&lt;</button>
-    <button class="btn-date-display" id="chi-date-display"></button>
-    <input type="date" class="btn-date-input-hidden" id="chi-date-input">
+    <!-- THAY ĐỔI: Wrap display và input trong container -->
+    <div class="date-display-wrapper">
+      <button class="btn-date-display" id="chi-date-display"></button>
+      <input type="date" class="date-input-overlay" id="chi-date-input">
+    </div>
     <button class="btn-square" id="chi-date-next">&gt;&gt;</button>
   </div>
 
@@ -74,8 +77,11 @@
 
   <div class="date-row">
     <button class="btn-square" id="thu-date-prev">&lt;&lt;</button>
-    <button class="btn-date-display" id="thu-date-display"></button>
-    <input type="date" class="btn-date-input-hidden" id="thu-date-input">
+    <!-- THAY ĐỔI: Wrap display và input trong container -->
+    <div class="date-display-wrapper">
+      <button class="btn-date-display" id="thu-date-display"></button>
+      <input type="date" class="date-input-overlay" id="thu-date-input">
+    </div>
     <button class="btn-square" id="thu-date-next">&gt;&gt;</button>
   </div>
 

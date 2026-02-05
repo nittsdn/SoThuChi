@@ -271,27 +271,15 @@ function renderThuDate() {
   thuDateDisplay.textContent = `${formatDate(thuDate)}`;
 }
 
-// CHI date navigation event listeners - FIX CHO iOS
-chiDateDisplay.onclick = () => {
-  // Focus để trigger native picker trên iOS
-  chiDateInput.focus();
-  
-  // Delay nhỏ để tránh conflict giữa focus và showPicker
-  setTimeout(() => {
-    if (chiDateInput.showPicker) {
-      try {
-        chiDateInput.showPicker(); // Chỉ gọi nếu browser hỗ trợ (Chrome desktop)
-      } catch (e) {
-        // iOS không hỗ trợ, nhưng focus() đã hoạt động rồi
-        console.log("showPicker not supported, using focus() instead");
-      }
-    }
-  }, 100);
+// CHI date navigation - SIMPLIFIED for iOS
+chiDateDisplay.onclick = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  chiDateInput.click();
 };
 
 chiDateInput.onchange = (e) => {
-  // FIX: Parse đúng cách cho iOS Safari
-  const dateStr = e.target.value; // Format: YYYY-MM-DD
+  const dateStr = e.target.value;
   if (!dateStr) return;
   
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -319,27 +307,15 @@ document.getElementById("chi-date-next").onclick = () => {
   renderChiDate();
 };
 
-// THU date navigation event listeners - FIX CHO iOS
-thuDateDisplay.onclick = () => {
-  // Focus để trigger native picker trên iOS
-  thuDateInput.focus();
-  
-  // Delay nhỏ để tránh conflict giữa focus và showPicker
-  setTimeout(() => {
-    if (thuDateInput.showPicker) {
-      try {
-        thuDateInput.showPicker(); // Chỉ gọi nếu browser hỗ trợ (Chrome desktop)
-      } catch (e) {
-        // iOS không hỗ trợ, nhưng focus() đã hoạt động rồi
-        console.log("showPicker not supported, using focus() instead");
-      }
-    }
-  }, 100);
+// THU date navigation - SIMPLIFIED for iOS
+thuDateDisplay.onclick = (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  thuDateInput.click();
 };
 
 thuDateInput.onchange = (e) => {
-  // FIX: Parse đúng cách cho iOS Safari
-  const dateStr = e.target.value; // Format: YYYY-MM-DD
+  const dateStr = e.target.value;
   if (!dateStr) return;
   
   const [year, month, day] = dateStr.split('-').map(Number);
