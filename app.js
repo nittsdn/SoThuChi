@@ -1028,10 +1028,11 @@ function handleModalChipToggle(type, desc, checked) {
 function updateModalSelectedCount(type) {
   const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
   const count = currentChips.filter(c => c).length;
-  const countSpan = document.getElementById(`${type}-modal-selected-count`);
+  
+  // Update dropdown label count
+  const countSpan = document.getElementById(`${type}-dropdown-count`);
   if (countSpan) {
     countSpan.textContent = count;
-    countSpan.style.color = count === 8 ? '#34c759' : '#000';
   }
 }
 
@@ -1157,6 +1158,47 @@ function initModalEventListeners() {
   if (thuNewLoaithu) thuNewLoaithu.onchange = () => checkModalAddReady('thu');
   if (thuAddBtn) thuAddBtn.onclick = () => addNewFromModal('thu');
   
+  // ===== THÊM DROPDOWN TOGGLE LOGIC =====
+  
+  // CHI dropdown toggle
+  const chiDropdownToggle = document.getElementById('chi-dropdown-toggle');
+  const chiDropdownContent = document.getElementById('chi-dropdown-content');
+  
+  if (chiDropdownToggle && chiDropdownContent) {
+    chiDropdownToggle.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      chiDropdownToggle.classList.toggle('open');
+      chiDropdownContent.classList.toggle('open');
+    };
+  }
+  
+  // THU dropdown toggle
+  const thuDropdownToggle = document.getElementById('thu-dropdown-toggle');
+  const thuDropdownContent = document.getElementById('thu-dropdown-content');
+  
+  if (thuDropdownToggle && thuDropdownContent) {
+    thuDropdownToggle.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      thuDropdownToggle.classList.toggle('open');
+      thuDropdownContent.classList.toggle('open');
+    };
+  }
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (chiDropdownToggle && !chiDropdownToggle.contains(e.target) && !chiDropdownContent.contains(e.target)) {
+      chiDropdownToggle.classList.remove('open');
+      chiDropdownContent.classList.remove('open');
+    }
+    if (thuDropdownToggle && !thuDropdownToggle.contains(e.target) && !thuDropdownContent.contains(e.target)) {
+      thuDropdownToggle.classList.remove('open');
+      thuDropdownContent.classList.remove('open');
+    }
+  });
+  
+  console.log('✅ Dropdown toggle initialized');
   console.log('✅ Modal event listeners initialized');
 }
 
