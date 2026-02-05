@@ -262,13 +262,13 @@ function changeDate(currentDate, delta) {
 function renderChiDate() {
   chiDateInput.value = formatDateAPI(chiDate);
   chiDateInput.max = formatDateAPI(new Date());
-  chiDateDisplay.textContent = `<< ${formatDate(chiDate)} >>`;
+  chiDateDisplay.textContent = `${formatDate(chiDate)}`;
 }
 
 function renderThuDate() {
   thuDateInput.value = formatDateAPI(thuDate);
   thuDateInput.max = formatDateAPI(new Date());
-  thuDateDisplay.textContent = `<< ${formatDate(thuDate)} >>`;
+  thuDateDisplay.textContent = `${formatDate(thuDate)}`;
 }
 
 // CHI date navigation event listeners
