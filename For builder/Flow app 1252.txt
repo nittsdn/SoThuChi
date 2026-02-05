@@ -1,22 +1,21 @@
-
 ---
 
-# FLOW APP SỔ THU CHI – ONE PAGE SCROLL (FINAL)
+# FLOW APP SỔ THU CHI – ONE PAGE SCROLL (FINAL v1.3)
 
 ## TINH THẦN CHUNG (CHỐT)
 
 * 1 trang duy nhất, scroll từ trên xuống
 * Thứ tự cố định:
-  **Header → Chi → Thu → Tổng kết → Setting**
+  **Header → Chi → Thu → Tổng kết**
 * Mỗi section:
-
   * Có **ngày riêng**
   * Giao diện & tính năng tương đồng (nếu cùng loại)
 * Không khoá cứng dữ liệu
-* Có cảnh báo khi thao tác “nguy hiểm”
+* Có cảnh báo khi thao tác "nguy hiểm"
 * App dùng cá nhân → ưu tiên **nhanh – rõ – không vòng vo**
 * Quy ước dấu . là phân cách hàng nghìn, dấu , là thập phân. Nếu đánh số tới hàng nghìn (ở mọi textbox) vd: 3000 app phải đưa ngay dấu . vào thành 3.000
 * cái nào user nhập số thì đưa công thức chứ ko đưa tổng cho gas
+
 ---
 
 ## 1️⃣ HEADER (READ-ONLY – LOAD THEO DATA)
@@ -66,16 +65,22 @@ dùng tính năng mở lịch giống như trong ios khi nhấn chọn ngày
 * Mỗi section có ngày riêng
 * Không ảnh hưởng Thu / Tổng kết
 * Không cho chọn ngày tương lai
+* Nút ⚙️ (settings) để expand/collapse cấu hình (xem 2.4.1)
+
+**Implementation Note:**
+* Date input overlay (invisible) đặt trên button display để trigger native picker trên iOS
+* Input type="date" có `opacity: 0` nhưng vẫn clickable
+* Không dùng `display: none` vì iOS Safari không thể mở picker
 
 ---
 
 ### 2.3 Chi – Nhập số tiền (x1000, stack)
 
-**Hành vi chuẩn (giữ 100% flow cũ)**
+**Hành vi chuẩn**
 
-* Gõ `25` → hiện `25.000` ở phần thông báo tổng ngay bên dưới(chứ ko phải trong textbox) (lắng nghe input type và chỉ cho phép số)
+* Gõ `25` → hiện `Tổng: 25.000` ở display bên dưới (không hiện trong textbox)
+* Lắng nghe input type, chỉ cho phép số
 * Nhấn `+`
-
   * Clear textbox
   * Focus lại input
 * Gõ `35`
@@ -107,200 +112,164 @@ dùng tính năng mở lịch giống như trong ios khi nhấn chọn ngày
 
 ---
 
+#### **Auto-add khi blur**
+
+* Khi user gõ số và click ra ngoài textbox (blur):
+* **Tự động thêm số vào stack** (không cần nhấn +)
+* **Ngoại trừ** khi đang click vào nút `+` hoặc `🗑️`
+* Sử dụng flags `isAddingFromButton` và `isDeletingFromButton`
+
+#### **Sửa số đã nhập (Edit Mode)**
+
+**Vào Edit Mode:**
+* Click vào số trong công thức (vd: click vào `25.000`)
+* Số được **highlight** (class `.editing`)
+* Load `25` vào textbox
+* Nút `+` đổi thành `✓` (confirm button, màu xanh)
+* Nút `↻` đổi thành `🗑️` (delete button, màu đỏ)
+* **Auto focus** vào textbox
+
+**Real-time update:**
+* Khi gõ số mới, công thức cập nhật **ngay lập tức**
+* Sau xác nhận (nhấn ✓ hoặc blur):
+  * Textbox reset
+  * Nút đổi lại `+` và `↻`
+  * Exit edit mode
+
+#### **Xoá số**
+
+**1. Input Mode (nút `↻`):**
+* Nhấn `↻` → confirm dialog → Reset toàn bộ section Chi
+
+**2. Edit Mode (nút `🗑️`):**
+* Nhấn `🗑️` → xóa ngay số đang edit (không confirm)
+
+---
+
 ### 2.4 Chi – Mô tả chi
 
-* 8 quick chip (từ Setting)
+**UI mặc định (collapsed):**
+* 8 quick chips (load từ LocalStorage `quickChipsChi`)
 * Chỉ chọn **1**
-* Các mô tả khác:
+* Dropdown "Mô tả khác" (load từ `loai_chi`, filter `active=true`)
 
-  * Dropdown list
-* Nút **Thêm mô tả**
+**Chọn mô tả:**
+* Click chip → deselect các chip khác, lưu vào `chiDesc`
+* Chọn dropdown → deselect tất cả chips, lưu vào `chiDesc`
 
-  * Popup nhỏ
-  * Nhập:
+---
 
-    * Tên mô tả
-    * Loại chi
-  * Nút thêm enable khi đủ điều kiện
+### 2.4.1 Chi – Settings Panel (Collapsible)
+
+**Trigger:**
+* Click nút ⚙️ bên cạnh date picker
+* Expand/collapse settings panel (smooth animation)
+
+**Nội dung panel:**
+
+**Logic:**
+* Load tất cả mô tả từ `loai_chi` (active=true)
+* Hiển thị checkbox, mặc định check 8 mô tả hiện tại (từ LocalStorage)
+* **Validation:** Chỉ cho check tối đa 8 items
+* Khi check item thứ 9 → hiện message: *"Chỉ được chọn tối đa 8 mô tả"*
+* Khi thay đổi selection → Save vào LocalStorage → Re-render quick chips
+
+**Data flow:**
+
+
+
+
+
+
+
+
+---
+
+#### **B. Thêm mô tả mới**
+
+**UI:**
+
+
+
+
+
+
+
+
+**Validation:**
+* Enable nút "Thêm" khi:
+  * Tên mô tả không rỗng (trim)
+  * Đã chọn phân loại
+
+**Khi nhấn "Thêm":**
+1. Gửi POST lên GAS:
+
+
+
+
+
+
+
+
+2. GAS xử lý:
+
+3. Success:
+   - Reload `loai_chi` list
+   - Auto-select mô tả vừa thêm vào dropdown
+   - Clear form
+   - Show toast: "Đã thêm mô tả: ..."
+   - **Auto-collapse** settings panel
 
 ---
 
 ### 2.5 Chi – Nguồn tiền
 
-* UI + hành vi **giống mô tả chi**
+* Dropdown list (load từ `nguon_tien`, filter `active=true`)
 * Chỉ chọn **1 nguồn**
-* Có dropdown + thêm mới
+
+**Lưu ý:**
+* Không có nút "Thêm nguồn tiền" trong Section CHI
+* Nếu cần thêm → chỉnh sửa trực tiếp trong Google Sheet
 
 ---
 
 ### 2.6 Chi – Thêm chi tiêu (SUBMIT)
 
-**Enable khi**
-
-* Có ≥1 số tiền
+**Enable khi:**
+* Có ≥1 số tiền trong stack
 * Có mô tả
 * Có nguồn tiền
 
-**Khi nhấn**
-
+**Khi nhấn:**
 * Gửi dữ liệu lên Google Sheet
-* Không phá:
-
-  * ID
-  * Cột công thức
-* Thông báo chi tiết:
-
-> Đã thêm vào chi tiêu **đi chợ**
-> 25.000 + 35.000 = 60.000
-> Nguồn `<nguồn tiền>`
-> Thứ Hai ngày 30/01/2026
-> **Thành công**
-
-**Sau submit**
-
-* Reload “Chi cuối” ở Header
+* Thông báo thành công
+* Reload Header
 * Reset section Chi
-* Focus lại ô nhập tiền (sẵn sàng nhập tiếp)
+* **Auto-collapse** settings panel (nếu đang mở)
+* Focus lại ô nhập tiền
 
 ---
 
-## 3️⃣ SECTION THU (FLOW GIỐNG – NHẸ HƠN)
+### 2.7 Chi – Visual Styling
 
-> **Giao diện & hành vi tương đồng Chi**, nhưng logic đơn giản hơn.
+**Card CHI:**
+* Border trái: `4px solid var(--red)`
+* Border xung quanh: `2px solid rgba(220, 38, 38, 0.3)`
+* Class: `.card-chi`
 
-### 3.1 Thu – Ngày (RIÊNG)
-
-* Có bộ chọn ngày riêng
-* Không ảnh hưởng Chi / Tổng kết
-
----
-
-### 3.2 Thu – Số tiền
-
-* Giống chức năng ở phần chi, chỉ lưu ý là sẽ đưa cho gas dạng công thức dạng: "=25000 + 30000" 
-* Auto format khi gõ (vd: `60.000`)
+**Settings Panel:**
+* Background: `var(--bg-secondary)`
+* Border-top: `1px solid var(--border)`
+* Max-height animation cho smooth expand/collapse
+* Padding: `1rem`
 
 ---
 
-### 3.3 Thu – Mô tả & loại thu
+## 3️⃣ SECTION THU (FLOW TƯƠI
 
-* Quick chip (từ Setting)
-* Dropdown
-* Chỉ chọn 1
 
----
 
-### 3.4 Thu – Nguồn tiền & submit
 
-* Chọn nguồn
-* Nút **Thêm thu nhập**
-* Map dữ liệu theo **bảng Thu (khác Chi)**
 
----
-
-## 4️⃣ SECTION TỔNG KẾT (FLOW KIỂM KÊ – BẢN TẠM)
-
-### 4.1 Làm tổng kết
-
-* Nhấn **Làm tổng kết**
-* App load:
-
-  * Danh sách tài khoản / nguồn tiền
-  * Mỗi nguồn = 1 textbox nhập số dư thực tế
-
-**Nhập số**
-
-* Auto format: `1.253.251,157`
-* `.` phân cách
-* `,` thập phân
-
----
-
-### 4.2 Kiểm tra (BẢN TẠM)
-
-* Khi nhập đủ → enable **Kiểm tra**
-* App tính:
-
-  ```
-  Chênh lệch = Số dư LT - Số dư TT
-  ```
-
-Hiển thị:
-
-```
-Từ ngày <ngày TK trước + 1> đến <ngày hiện tại>
-
-Số dư LT: 1000
-Số dư TT: 900
-Thiếu: 100
-```
-
----
-
-### 4.3 Bảng chi tiết theo nguồn (EDIT TẠM)
-
-Ví dụ:
-
-```
-Nguồn A: 200   [Xem chi tiết]
-```
-
-* Nhấn **Xem chi tiết**
-
-  * Load đầy đủ chi trong kỳ
-  * Cho phép **sửa số tiền**
-  * Khi sửa:
-
-    * App **tính lại số dư LT ngay**
-    * Nhưng **chưa ghi DB**
-
-⚠️ Nếu chi đã nằm trong vùng tổng kết:
-
-* Hiện **cảnh báo nhẹ**
-
-  > Chi này thuộc kỳ đã tổng kết, việc sửa có thể làm lệch số liệu
-
----
-
-### 4.4 Xác nhận tổng kết (GHI THẬT)
-
-* Khi user chấp nhận chênh lệch
-* Nhấn **Xác nhận tổng kết**
-* App:
-
-  * Ghi dữ liệu tổng kết
-  * Ghi các chỉnh sửa chi (nếu có)
-* Thông báo:
-
-> Đã tổng kết thành công
-> Kỳ từ ngày … đến …
-> Số dư LT: …
-> Số dư TT: …
-> Chênh lệch: …
-
----
-
-## 5️⃣ SECTION SETTING
-
-* Quản lý:
-
-  * Mô tả chi
-  * Mô tả thu
-  * Loại thu
-  * Nguồn tiền
-* Active / inactive
-* Version (read-only)
-
----
-
-# TRẠNG THÁI HIỆN TẠI
-
-✅ Flow đã **đóng**
-✅ Có thể dùng trực tiếp để:
-
-* Chỉnh UI
-* Viết JS
-* Update MP
-* Debug logic
 
 
