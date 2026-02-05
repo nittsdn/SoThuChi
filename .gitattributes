@@ -1,2 +1,12 @@
+# Visual Studio cache/internal files
+.vs/
+.vscode/
+
+# Visual Studio solution files
+*.slnx.user
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 # Auto detect text files and perform LF normalization
 * text=auto

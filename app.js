@@ -271,17 +271,32 @@ function renderThuDate() {
   thuDateDisplay.textContent = `${formatDate(thuDate)}`;
 }
 
-// CHI date navigation event listeners
+// CHI date navigation event listeners - FIX CHO iOS
 chiDateDisplay.onclick = () => {
-  if (chiDateInput.showPicker) {
-    chiDateInput.showPicker();
-  } else {
-    chiDateInput.click();
-  }
+  // Focus để trigger native picker trên iOS
+  chiDateInput.focus();
+  
+  // Delay nhỏ để tránh conflict giữa focus và showPicker
+  setTimeout(() => {
+    if (chiDateInput.showPicker) {
+      try {
+        chiDateInput.showPicker(); // Chỉ gọi nếu browser hỗ trợ (Chrome desktop)
+      } catch (e) {
+        // iOS không hỗ trợ, nhưng focus() đã hoạt động rồi
+        console.log("showPicker not supported, using focus() instead");
+      }
+    }
+  }, 100);
 };
 
 chiDateInput.onchange = (e) => {
-  const selected = new Date(e.target.value);
+  // FIX: Parse đúng cách cho iOS Safari
+  const dateStr = e.target.value; // Format: YYYY-MM-DD
+  if (!dateStr) return;
+  
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const selected = new Date(year, month - 1, day);
+  
   const today = new Date();
   today.setHours(23, 59, 59, 999);
   
@@ -304,17 +319,32 @@ document.getElementById("chi-date-next").onclick = () => {
   renderChiDate();
 };
 
-// THU date navigation event listeners
+// THU date navigation event listeners - FIX CHO iOS
 thuDateDisplay.onclick = () => {
-  if (thuDateInput.showPicker) {
-    thuDateInput.showPicker();
-  } else {
-    thuDateInput.click();
-  }
+  // Focus để trigger native picker trên iOS
+  thuDateInput.focus();
+  
+  // Delay nhỏ để tránh conflict giữa focus và showPicker
+  setTimeout(() => {
+    if (thuDateInput.showPicker) {
+      try {
+        thuDateInput.showPicker(); // Chỉ gọi nếu browser hỗ trợ (Chrome desktop)
+      } catch (e) {
+        // iOS không hỗ trợ, nhưng focus() đã hoạt động rồi
+        console.log("showPicker not supported, using focus() instead");
+      }
+    }
+  }, 100);
 };
 
 thuDateInput.onchange = (e) => {
-  const selected = new Date(e.target.value);
+  // FIX: Parse đúng cách cho iOS Safari
+  const dateStr = e.target.value; // Format: YYYY-MM-DD
+  if (!dateStr) return;
+  
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const selected = new Date(year, month - 1, day);
+  
   const today = new Date();
   today.setHours(23, 59, 59, 999);
   
