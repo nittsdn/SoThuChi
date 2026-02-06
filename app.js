@@ -739,11 +739,13 @@ document.getElementById("chi-submit").onclick = async () => {
   if (result && result.status === 'success') {
     showToast(`Đã thêm chi tiêu ${chiDesc}\n${formatStack(chiStack)}\nNguồn ${chiSource}\n${formatDate(chiDate)}\nThành công`);
     
-    const [chiData, thuData] = await Promise.all([
-      fetchData("Chi_Tieu_2026"),
-      fetchData("Thu_2026")
-    ]);
-    updateHeader(chiData, thuData);
+    const [chiDataRaw, thuDataRaw] = await Promise.all([
+  fetchData("Chi_Tieu_2026"),
+  fetchData("Thu_2026")
+]);
+const chiData = chiDataRaw.filter(item => item.IDChi && item.IDChi.trim());
+const thuData = thuDataRaw.filter(item => item.IDThu && item.IDThu.trim());
+updateHeader(chiData, thuData);
     
     resetChiSection();
   }
@@ -1076,13 +1078,15 @@ document.getElementById("thu-submit").onclick = async () => {
   if (result && result.status === 'success') {
     showToast(`Đã thêm thu nhập ${thuDesc}\n${formatVN(thuAmount)}\nNguồn ${thuSource}\n${formatDate(thuDate)}\nThành công`);
     
-    const [chiData, thuData] = await Promise.all([
-      fetchData("Chi_Tieu_2026"),
-      fetchData("Thu_2026")
-    ]);
-    updateHeader(chiData, thuData);
-    
-    thuList = thuData || [];
+    const [chiDataRaw, thuDataRaw] = await Promise.all([
+  fetchData("Chi_Tieu_2026"),
+  fetchData("Thu_2026")
+]);
+const chiData = chiDataRaw.filter(item => item.IDChi && item.IDChi.trim());
+const thuData = thuDataRaw.filter(item => item.IDThu && item.IDThu.trim());
+updateHeader(chiData, thuData);
+
+thuList = thuData || [];
     
     resetThuSection();
   }
@@ -1164,11 +1168,13 @@ document.getElementById("tk-confirm").onclick = async () => {
     const chenhLech = tkSoDuTT - tkSoDuLT;
     showToast(`Đã tổng kết thành công\nSố dư LT: ${formatVN(tkSoDuLT, 2)}\nSố dư TT: ${formatVN(tkSoDuTT, 2)}\nChênh lệch: ${formatVN(chenhLech, 2)}`);
     
-    const [chiData, thuData] = await Promise.all([
-      fetchData("Chi_Tieu_2026"),
-      fetchData("Thu_2026")
-    ]);
-    updateHeader(chiData, thuData);
+    const [chiDataRaw, thuDataRaw] = await Promise.all([
+  fetchData("Chi_Tieu_2026"),
+  fetchData("Thu_2026")
+]);
+const chiData = chiDataRaw.filter(item => item.IDChi && item.IDChi.trim());
+const thuData = thuDataRaw.filter(item => item.IDThu && item.IDThu.trim());
+updateHeader(chiData, thuData);
     
     resetTongKet();
   }
@@ -1556,24 +1562,27 @@ window.onload = async () => {
   renderThuDate();
   chiInput.focus();
   
-  const [chiTieuDataRaw, loaiChiData, thuDataRaw, nguonTienData] = await Promise.all([
+  const [chiDataRaw, thuDataRaw] = await Promise.all([
     fetchData("Chi_Tieu_2026"),
+    fetchData("Thu_2026")
+  ]);
+  const chiData = chiDataRaw.filter(item => item.IDChi && item.IDChi.trim());
+  const thuData = thuDataRaw.filter(item => item.IDThu && item.IDThu.trim());
+  updateHeader(chiData, thuData);
+
+  thuList = thuData || [];
+  
+  const [loaiChiData, nguonTienData] = await Promise.all([
     fetchData("loai_chi"),
-    fetchData("Thu_2026"),
     fetchData("nguon_tien")
   ]);
   
-  // ✅ FILTER EMPTY ROWS theo Primary Key
-  const chiTieuData = chiTieuDataRaw.filter(item => item.IDChi && item.IDChi.trim());
-  const thuData = thuDataRaw.filter(item => item.IDThu && item.IDThu.trim());
-  
   loaiChiList = loaiChiData || [];
-  thuList = thuData || [];
   nguonTienList = nguonTienData || [];
   
   console.log('✅ Data loaded:', {
-    chiTieuRaw: chiTieuDataRaw.length,
-    chiTieuValid: chiTieuData.length,
+    chiTieuRaw: chiDataRaw.length,
+    chiTieuValid: chiData.length,
     thuRaw: thuDataRaw.length,
     thuValid: thuData.length,
     loaiChi: loaiChiList.length,
@@ -1581,9 +1590,9 @@ window.onload = async () => {
   });
   
   // ✅ DEBUG 3 CHI CUỐI
-  if (chiTieuData.length > 0) {
-    console.log('🔍 Last 3 CHI:', chiTieuData.slice(-3));
-    console.log('🔍 Field "Ngày" của 3 CHI:', chiTieuData.slice(-3).map(c => c["Ngày"]));
+  if (chiData.length > 0) {
+    console.log('🔍 Last 3 CHI:', chiData.slice(-3));
+    console.log('🔍 Field "Ngày" của 3 CHI:', chiData.slice(-3).map(c => c["Ngày"]));
   }
   
   // ✅ DEBUG 1 THU CUỐI
@@ -1597,7 +1606,8 @@ window.onload = async () => {
   renderChiChips();
   renderThuChips();
   
-  updateHeader(chiTieuData, thuData);
+  updateHeader(chiData, thuData);
+  
   populateChiDropdowns();
   populateThuDropdowns();
   
