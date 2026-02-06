@@ -1302,6 +1302,84 @@ function initModalEventListeners() {
   });
   
   console.log('✅ Modal event listeners initialized');
+  
+  // ✅ THÊM MỚI: Event listeners cho form thêm mô tả chi
+  const chiModalNewName = document.getElementById('chi-modal-new-name');
+  const chiModalNewPhanloai = document.getElementById('chi-modal-new-phanloai');
+  const chiModalNewNote = document.getElementById('chi-modal-new-note');
+  const chiModalAddBtn = document.getElementById('chi-modal-add-btn');
+  
+  function checkChiModalAddReady() {
+    if (!chiModalAddBtn) return;
+    const hasName = chiModalNewName && chiModalNewName.value.trim();
+    const hasPhanloai = chiModalNewPhanloai && chiModalNewPhanloai.value;
+    chiModalAddBtn.disabled = !(hasName && hasPhanloai);
+  }
+  
+  if (chiModalNewName) {
+    chiModalNewName.oninput = checkChiModalAddReady;
+  }
+  
+  if (chiModalNewPhanloai) {
+    chiModalNewPhanloai.onchange = checkChiModalAddReady;
+  }
+  
+  if (chiModalAddBtn) {
+    chiModalAddBtn.onclick = async () => {
+      const name = chiModalNewName.value.trim();
+      const phanloai = chiModalNewPhanloai.value;
+      const note = chiModalNewNote ? chiModalNewNote.value.trim() : '';
+      
+      if (!name || !phanloai) {
+        showToast('Vui lòng nhập đầy đủ thông tin bắt buộc');
+        return;
+      }
+      
+      // Check trùng tên
+      const existing = loaiChiList.find(item => 
+        item.mo_ta_chi.toLowerCase() === name.toLowerCase()
+      );
+      
+      if (existing) {
+        showToast('Mô tả này đã tồn tại');
+        return;
+      }
+      
+      const payload = {
+        mo_ta_chi: name,
+        phan_loai: phanloai,
+        nhom: phanloai, // Tạm dùng phanloai làm nhom
+        icon: '',
+        note: note
+      };
+      
+      console.log('📤 Insert loai_chi payload:', payload);
+      
+      const result = await postData('insert_loai_chi', payload);
+      
+      if (result && result.status === 'success') {
+        showToast(`Đã thêm mô tả "${name}" thành công`);
+        
+        // Reload data
+        const loaiChiData = await fetchData('loai_chi');
+        loaiChiList = loaiChiData || [];
+        
+        // Reset form
+        chiModalNewName.value = '';
+        chiModalNewPhanloai.value = '';
+        if (chiModalNewNote) chiModalNewNote.value = '';
+        chiModalAddBtn.disabled = true;
+        
+        // Refresh dropdown và chips
+        populateChiDropdowns();
+        renderModalCheckboxList('chi');
+        
+        console.log('✅ Mô tả chi mới đã được thêm');
+      }
+    };
+  }
+  
+  console.log('✅ Chi modal add form event listeners initialized');
 }
 
 // ================= INIT =================
