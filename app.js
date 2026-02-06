@@ -1525,21 +1525,27 @@ window.onload = async () => {
   renderThuDate();
   chiInput.focus();
   
-  const [chiTieuData, loaiChiData, thuData, nguonTienData] = await Promise.all([
+  const [chiTieuDataRaw, loaiChiData, thuDataRaw, nguonTienData] = await Promise.all([
     fetchData("Chi_Tieu_2026"),
     fetchData("loai_chi"),
     fetchData("Thu_2026"),
     fetchData("nguon_tien")
   ]);
   
+  // ✅ FILTER EMPTY ROWS theo Primary Key
+  const chiTieuData = chiTieuDataRaw.filter(item => item.IDChi && item.IDChi.trim());
+  const thuData = thuDataRaw.filter(item => item.IDThu && item.IDThu.trim());
+  
   loaiChiList = loaiChiData || [];
   thuList = thuData || [];
   nguonTienList = nguonTienData || [];
   
   console.log('✅ Data loaded:', {
-    chiTieu: chiTieuData.length,
+    chiTieuRaw: chiTieuDataRaw.length,
+    chiTieuValid: chiTieuData.length,
+    thuRaw: thuDataRaw.length,
+    thuValid: thuData.length,
     loaiChi: loaiChiList.length,
-    thu: thuList.length,
     nguonTien: nguonTienList.length
   });
   
