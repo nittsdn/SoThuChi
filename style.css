@@ -148,6 +148,71 @@ input, select, button {
 }
 
 /* =========================
+   HEADER SECTIONS
+========================= */
+.header-section-title {
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: 12px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chi-title {
+  color: #d9534f;
+}
+
+.thu-title {
+  color: #34c759;
+}
+
+.header-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.item-desc {
+  font-weight: 600;
+  color: #000;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-amount {
+  font-weight: 600;
+  text-align: right;
+  min-width: 80px;
+}
+
+.chi-amount {
+  color: #d9534f;
+}
+
+.thu-amount {
+  color: #34c759;
+}
+
+.item-date {
+  color: #888;
+  font-size: 12px;
+  text-align: right;
+  min-width: 120px;
+}
+
+.header-empty {
+  color: #888;
+  font-size: 13px;
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* =========================
    CARD
 ========================= */
 .card {

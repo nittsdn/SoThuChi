@@ -33,6 +33,14 @@ function formatDate(d) {
   return `${days[d.getDay()]} ngày ${day}/${month}/${year}`;
 }
 
+function formatDateShort(d) {
+  const days = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${days[d.getDay()]} - ${day}/${month}/${year}`;
+}
+
 function formatDateAPI(d) {
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -255,27 +263,55 @@ let nguonTienList = [];
 let settings = null;
 
 // ================= HEADER =================
-function updateHeader(data) {
+function updateHeader(chiData, thuData) {
   const headerContent = document.getElementById("header-content");
   
-  if (!data || data.length === 0) {
-    console.warn("updateHeader: No data available");
-    headerContent.innerHTML = `
-      <div class="last-chi-desc">Chưa có chi tiêu</div>
-      <div class="balance-tag">Số dư lý thuyết: 0</div>
-    `;
-    return;
+  let html = '';
+  
+  // ===== CHI SECTION =====
+  html += '<div class="header-section-title chi-title">CHI</div>';
+  
+  if (!chiData || chiData.length === 0) {
+    html += '<div class="header-empty">Chưa có chi tiêu</div>';
+  } else {
+    const last3Chi = chiData.slice(-3); // Lấy 3 cuối
+    last3Chi.forEach(chi => {
+      const date = parseDateString(chi["Ngày"]);
+      html += `
+        <div class="header-item">
+          <span class="item-desc">${chi.mo_ta_chi || 'N/A'}</span>
+          <span class="item-amount chi-amount">${formatVN(chi["Số tiền vnđ"])}</span>
+          <span class="item-date">${formatDateShort(date)}</span>
+        </div>
+      `;
+    });
   }
   
-  const lastChi = data[data.length - 1];
+  // ===== THU SECTION =====
+  html += '<div class="header-section-title thu-title">THU</div>';
   
-  headerContent.innerHTML = `
-    <div class="header-title">Chi cuối</div>
-    <div class="last-chi-desc">${lastChi.mo_ta_chi}</div>
-    <div class="last-chi-date">${formatDate(parseDateString(lastChi.Ngay))}</div>
-    <div class="last-chi-formula">Tổng ${lastChi["Nghìn VND"]} = ${formatVN(lastChi["Số tiền vnđ"])}</div>
-    <div class="balance-tag">Số dư lý thuyết: ${formatVN(lastChi["Số dư lý thuyết"])}</div>
-  `;
+  if (!thuData || thuData.length === 0) {
+    html += '<div class="header-empty">Chưa có thu nhập</div>';
+  } else {
+    const lastThu = thuData[thuData.length - 1]; // Lấy 1 cuối
+    const date = parseDateString(lastThu["Ngày"]);
+    html += `
+      <div class="header-item">
+        <span class="item-desc">${lastThu["Mô tả"] || 'N/A'}</span>
+        <span class="item-amount thu-amount">${formatVN(lastThu.Thu)}</span>
+        <span class="item-date">${formatDateShort(date)}</span>
+      </div>
+    `;
+  }
+  
+  // ===== SỐ DƯ LÝ THUYẾT =====
+  const soDuLT = (chiData && chiData.length > 0) 
+    ? chiData[chiData.length - 1]["Số dư lý thuyết"] 
+    : 0;
+  
+  html += `<div class="balance-tag">Số dư LT: ${formatVN(soDuLT)}</div>`;
+  
+  headerContent.innerHTML = html;
 }
 
 // ================= DATE NAVIGATION =================
@@ -650,14 +686,19 @@ document.getElementById("chi-submit").onclick = async () => {
   const result = await postData("insert_chi", payload);
   if (result && result.status === 'success') {
     showToast(`Đã thêm chi tiêu ${chiDesc}\n${formatStack(chiStack)}\nNguồn ${chiSource}\n${formatDate(chiDate)}\nThành công`);
-    const data = await fetchData("Chi_Tieu_2026");
-    updateHeader(data);
+    
+    const [chiData, thuData] = await Promise.all([
+      fetchData("Chi_Tieu_2026"),
+      fetchData("Thu_2026")
+    ]);
+    updateHeader(chiData, thuData);
+    
     resetChiSection();
   }
 };
 
 // ================= THU (INCOME) =================
-let thuStack = [];  // ✅ THÊM: Stack số giống CHI
+let thuStack = [];
 let thuEditMode = false;
 let thuEditIndex = -1;
 
@@ -748,9 +789,8 @@ const thuInput = document.getElementById("thu-input");
 const thuAddBtn = document.getElementById("thu-add");
 const thuClearBtn = document.getElementById("thu-clear");
 
-// ✅ SỬA: Input chỉ cho phép số, format dấu chấm ngàn
 thuInput.oninput = () => {
-  let val = thuInput.value.replace(/\D/g, "");  // Chỉ giữ số
+  let val = thuInput.value.replace(/\D/g, "");
   
   if (thuEditMode) {
     if (val && val !== "0") {
@@ -766,7 +806,6 @@ thuInput.oninput = () => {
     thuClearBtn.textContent = "↻";
   }
   
-  // Format hiển thị với dấu chấm ngàn
   if (val) {
     const formatted = parseInt(val).toLocaleString('vi-VN');
     thuInput.value = formatted;
@@ -984,10 +1023,13 @@ document.getElementById("thu-submit").onclick = async () => {
   const result = await postData("insert_thu", payload);
   if (result && result.status === 'success') {
     showToast(`Đã thêm thu nhập ${thuDesc}\n${formatVN(thuAmount)}\nNguồn ${thuSource}\n${formatDate(thuDate)}\nThành công`);
-    const data = await fetchData("Chi_Tieu_2026");
-    updateHeader(data);
     
-    const thuData = await fetchData("Thu_2026");
+    const [chiData, thuData] = await Promise.all([
+      fetchData("Chi_Tieu_2026"),
+      fetchData("Thu_2026")
+    ]);
+    updateHeader(chiData, thuData);
+    
     thuList = thuData || [];
     
     resetThuSection();
@@ -1014,7 +1056,6 @@ async function loadTongKet() {
   const inputsContainer = document.getElementById("tk-inputs");
   inputsContainer.innerHTML = "";
   
-  // ✅ Sort A-Z trước khi forEach
   const sortedNguonTien = nguonTienList
     .filter(n => n.active)
     .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi', { sensitivity: 'base' }));
@@ -1070,8 +1111,13 @@ document.getElementById("tk-confirm").onclick = async () => {
     const tkSoDuTT = Object.values(tkInputs).reduce((a, b) => a + b, 0);
     const chenhLech = tkSoDuTT - tkSoDuLT;
     showToast(`Đã tổng kết thành công\nSố dư LT: ${formatVN(tkSoDuLT, 2)}\nSố dư TT: ${formatVN(tkSoDuTT, 2)}\nChênh lệch: ${formatVN(chenhLech, 2)}`);
-    const data = await fetchData("Chi_Tieu_2026");
-    updateHeader(data);
+    
+    const [chiData, thuData] = await Promise.all([
+      fetchData("Chi_Tieu_2026"),
+      fetchData("Thu_2026")
+    ]);
+    updateHeader(chiData, thuData);
+    
     resetTongKet();
   }
 };
@@ -1101,7 +1147,6 @@ function renderModalCheckboxList(type) {
   let sourceList, fieldName;
   
   if (type === 'chi') {
-    // ✅ Sort A-Z
     sourceList = loaiChiList
       .filter(item => item.active)
       .sort((a, b) => a.mo_ta_chi.localeCompare(b.mo_ta_chi, 'vi', { sensitivity: 'base' }));
@@ -1239,7 +1284,6 @@ function populateModalDropdowns(type) {
   if (type === 'chi') {
     const phanloaiSelect = document.getElementById('chi-modal-new-phanloai');
     if (phanloaiSelect && loaiChiList.length > 0) {
-      // ✅ Sort A-Z
       const uniquePhanLoai = [...new Set(loaiChiList.map(item => item.phan_loai))]
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
@@ -1339,7 +1383,6 @@ function initModalEventListeners() {
   
   console.log('✅ Modal event listeners initialized');
   
-  // ✅ THÊM MỚI: Event listeners cho form thêm mô tả chi
   const chiModalNewName = document.getElementById('chi-modal-new-name');
   const chiModalNewPhanloai = document.getElementById('chi-modal-new-phanloai');
   const chiModalNewNote = document.getElementById('chi-modal-new-note');
@@ -1371,7 +1414,6 @@ function initModalEventListeners() {
         return;
       }
       
-      // Check trùng tên
       const existing = loaiChiList.find(item => 
         item.mo_ta_chi.toLowerCase() === name.toLowerCase()
       );
@@ -1384,7 +1426,7 @@ function initModalEventListeners() {
       const payload = {
         mo_ta_chi: name,
         phan_loai: phanloai,
-        nhom: phanloai, // Tạm dùng phanloai làm nhom
+        nhom: phanloai,
         icon: '',
         note: note
       };
@@ -1396,17 +1438,14 @@ function initModalEventListeners() {
       if (result && result.status === 'success') {
         showToast(`Đã thêm mô tả "${name}" thành công`);
         
-        // Reload data
         const loaiChiData = await fetchData('loai_chi');
         loaiChiList = loaiChiData || [];
         
-        // Reset form
         chiModalNewName.value = '';
         chiModalNewPhanloai.value = '';
         if (chiModalNewNote) chiModalNewNote.value = '';
         chiModalAddBtn.disabled = true;
         
-        // Refresh dropdown và chips
         populateChiDropdowns();
         renderModalCheckboxList('chi');
         
@@ -1415,7 +1454,6 @@ function initModalEventListeners() {
     };
   }
   
-  // ✅ THÊM: Reset Settings handlers
   const chiResetBtn = document.getElementById('chi-modal-reset');
   const thuResetBtn = document.getElementById('thu-modal-reset');
   
@@ -1438,19 +1476,16 @@ function initModalEventListeners() {
   console.log('✅ Reset settings buttons initialized');
 }
 
-// ✅ THÊM: Function reset settings
 function resetSettings(type) {
   console.log(`🔄 Resetting ${type} settings to default...`);
   
   if (type === 'chi') {
-    // Reset CHI về mặc định
     settings.quickChipsChi = getDefaultChips('chi');
     saveSettings(settings);
     renderChiChips();
     renderModalCheckboxList('chi');
     showToast('✅ Đã reset CHI về mặc định');
   } else if (type === 'thu') {
-    // Reset THU về mặc định
     settings.quickChipsThu = getDefaultChips('thu');
     saveSettings(settings);
     renderThuChips();
@@ -1492,7 +1527,7 @@ window.onload = async () => {
   renderChiChips();
   renderThuChips();
   
-  updateHeader(chiTieuData);
+  updateHeader(chiTieuData, thuData);
   populateChiDropdowns();
   populateThuDropdowns();
   
