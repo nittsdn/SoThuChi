@@ -406,7 +406,13 @@ function populateChiDropdowns() {
   if (loaiChiList) {
     const select = document.getElementById("chi-desc-dropdown");
     select.innerHTML = '<option value="">-- Mô tả khác --</option>';
-    loaiChiList.filter(item => item.active).forEach(item => {
+    
+    // ✅ Sort A-Z theo Tiếng Việt
+    const sortedList = loaiChiList
+      .filter(item => item.active)
+      .sort((a, b) => a.mo_ta_chi.localeCompare(b.mo_ta_chi, 'vi', { sensitivity: 'base' }));
+    
+    sortedList.forEach(item => {
       const option = document.createElement("option");
       option.value = item.mo_ta_chi;
       option.textContent = item.mo_ta_chi;
@@ -417,7 +423,13 @@ function populateChiDropdowns() {
   if (nguonTienList) {
     const select = document.getElementById("chi-source");
     select.innerHTML = '<option value="">-- Nguồn tiền --</option>';
-    nguonTienList.filter(item => item.active).forEach(item => {
+    
+    // ✅ Sort A-Z theo Tiếng Việt
+    const sortedList = nguonTienList
+      .filter(item => item.active)
+      .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi', { sensitivity: 'base' }));
+    
+    sortedList.forEach(item => {
       const option = document.createElement("option");
       option.value = item.nguon_tien;
       option.textContent = item.nguon_tien;
@@ -700,7 +712,13 @@ function populateThuDropdowns() {
   if (nguonTienList) {
     const select = document.getElementById("thu-source");
     select.innerHTML = '<option value="">-- Nguồn tiền --</option>';
-    nguonTienList.filter(item => item.active).forEach(item => {
+    
+    // ✅ Sort A-Z theo Tiếng Việt
+    const sortedList = nguonTienList
+      .filter(item => item.active)
+      .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi', { sensitivity: 'base' }));
+    
+    sortedList.forEach(item => {
       const option = document.createElement("option");
       option.value = item.nguon_tien;
       option.textContent = item.nguon_tien;
@@ -710,7 +728,13 @@ function populateThuDropdowns() {
   
   const loaiSelect = document.getElementById("thu-loai");
   loaiSelect.innerHTML = '<option value="">-- Loại thu --</option>';
-  settings.quickLoaiThu.forEach(loai => {
+  
+  // ✅ Sort A-Z
+  const sortedLoai = [...settings.quickLoaiThu].sort((a, b) => 
+    a.localeCompare(b, 'vi', { sensitivity: 'base' })
+  );
+  
+  sortedLoai.forEach(loai => {
     if (loai) {
       const option = document.createElement("option");
       option.value = loai;
@@ -1206,7 +1230,10 @@ function populateModalDropdowns(type) {
   if (type === 'chi') {
     const phanloaiSelect = document.getElementById('chi-modal-new-phanloai');
     if (phanloaiSelect && loaiChiList.length > 0) {
-      const uniquePhanLoai = [...new Set(loaiChiList.map(item => item.phan_loai))].filter(Boolean).sort();
+      // ✅ Sort A-Z
+      const uniquePhanLoai = [...new Set(loaiChiList.map(item => item.phan_loai)))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
       
       phanloaiSelect.innerHTML = '<option value="">-- Chọn phân loại *--</option>';
       uniquePhanLoai.forEach(phanLoai => {
@@ -1216,7 +1243,7 @@ function populateModalDropdowns(type) {
         phanloaiSelect.appendChild(option);
       });
       
-      console.log(`✅ Populated ${uniquePhanLoai.length} phân loại options`);
+      console.log(`✅ Populated ${uniquePhanLoai.length} phân loại options (sorted A-Z)`);
     }
   }
 }
