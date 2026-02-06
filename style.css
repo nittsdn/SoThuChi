@@ -37,15 +37,15 @@ input, select, button {
 ========================= */
 .toast {
   position: fixed;
-  top: -100px;
+  top: -100px;              /* ← Ẩn phía trên */
   left: 50%;
   transform: translateX(-50%);
   background: #333;
   color: #fff;
-  padding: 16px 24px;
-  border-radius: 12px;
+  padding: 12px 20px;
+  border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  z-index: 1000;
+  z-index: 95;              /* ← THẤP HƠN HEADER (100) */
   transition: top 0.3s ease;
   max-width: 90%;
   text-align: center;
@@ -53,7 +53,7 @@ input, select, button {
 }
 
 .toast.show {
-  top: 20px;
+  top: 120px;               /* ← DƯỚI HEADER (~110px cao) */
 }
 
 /* =========================
