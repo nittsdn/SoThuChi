@@ -472,26 +472,62 @@ input, select, button {
   font-weight: 600;
   margin-top: 16px;
   cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.btn-submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-submit:disabled {
-  opacity: 0.5;
+  background: #d1d1d6 !important;
+  color: #8e8e93 !important;
+  opacity: 0.4;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-red {
-  background: #f0b1ad;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
   color: #fff;
+}
+
+.btn-red:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff5252 0%, #e04e5f 100%);
 }
 
 .btn-green {
-  background: #9be3ad;
+  background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
   color: #fff;
 }
 
+.btn-green:hover:not(:disabled) {
+  background: linear-gradient(135deg, #40c057 0%, #2f9e44 100%);
+}
+
 .btn-blue {
-  background: #007bff;
+  background: linear-gradient(135deg, #339af0 0%, #1c7ed6 100%);
   color: #fff;
+}
+
+.btn-blue:hover:not(:disabled) {
+  background: linear-gradient(135deg, #228be6 0%, #1971c2 100%);
+}
+
+.btn-gray {
+  background: linear-gradient(135deg, #868e96 0%, #495057 100%);
+  color: #fff;
+}
+
+.btn-gray:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6c757d 0%, #343a40 100%);
 }
 
 /* =========================
@@ -725,4 +761,38 @@ input, select, textarea {
 
 .modal-close:active {
   transform: scale(0.95);
+}
+
+.modal-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-reset-settings {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: #fff3cd; /* Màu vàng nhạt */
+  color: #856404;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+  padding: 0;
+}
+
+.btn-reset-settings:hover {
+  background: #ffc107;
+  color: #000;
+  transform: rotate(180deg) scale(1.1);
+}
+
+.btn-reset-settings:active {
+  transform: rotate(180deg) scale(0.95);
 }

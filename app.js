@@ -1013,7 +1013,13 @@ async function loadTongKet() {
   
   const inputsContainer = document.getElementById("tk-inputs");
   inputsContainer.innerHTML = "";
-  nguonTienList.filter(n => n.active).forEach(nguon => {
+  
+  // ✅ Sort A-Z trước khi forEach
+  const sortedNguonTien = nguonTienList
+    .filter(n => n.active)
+    .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi', { sensitivity: 'base' }));
+  
+  sortedNguonTien.forEach(nguon => {
     const div = document.createElement("div");
     div.className = "tk-input-row";
     div.innerHTML = `
@@ -1095,7 +1101,10 @@ function renderModalCheckboxList(type) {
   let sourceList, fieldName;
   
   if (type === 'chi') {
-    sourceList = loaiChiList.filter(item => item.active);
+    // ✅ Sort A-Z
+    sourceList = loaiChiList
+      .filter(item => item.active)
+      .sort((a, b) => a.mo_ta_chi.localeCompare(b.mo_ta_chi, 'vi', { sensitivity: 'base' }));
     fieldName = 'mo_ta_chi';
   } else {
     const allMoTa = thuList.map(t => t["Mô tả"]).filter(Boolean);
@@ -1406,7 +1415,50 @@ function initModalEventListeners() {
     };
   }
   
-  console.log('✅ Chi modal add form event listeners initialized');
+  // ✅ THÊM: Reset Settings handlers
+  const chiResetBtn = document.getElementById('chi-modal-reset');
+  const thuResetBtn = document.getElementById('thu-modal-reset');
+  
+  if (chiResetBtn) {
+    chiResetBtn.onclick = () => {
+      if (confirm('⚠️ Reset về mặc định?\n\nThao tác này sẽ:\n- Xóa 8 mô tả đã chọn\n- Load lại mặc định từ CSDL\n- Không thể hoàn tác')) {
+        resetSettings('chi');
+      }
+    };
+  }
+  
+  if (thuResetBtn) {
+    thuResetBtn.onclick = () => {
+      if (confirm('⚠️ Reset về mặc định?\n\nThao tác này sẽ:\n- Xóa 8 mô tả đã chọn\n- Load lại mặc định từ CSDL\n- Không thể hoàn tác')) {
+        resetSettings('thu');
+      }
+    };
+  }
+  
+  console.log('✅ Reset settings buttons initialized');
+}
+
+// ✅ THÊM: Function reset settings
+function resetSettings(type) {
+  console.log(`🔄 Resetting ${type} settings to default...`);
+  
+  if (type === 'chi') {
+    // Reset CHI về mặc định
+    settings.quickChipsChi = getDefaultChips('chi');
+    saveSettings(settings);
+    renderChiChips();
+    renderModalCheckboxList('chi');
+    showToast('✅ Đã reset CHI về mặc định');
+  } else if (type === 'thu') {
+    // Reset THU về mặc định
+    settings.quickChipsThu = getDefaultChips('thu');
+    saveSettings(settings);
+    renderThuChips();
+    renderModalCheckboxList('thu');
+    showToast('✅ Đã reset THU về mặc định');
+  }
+  
+  console.log(`✅ ${type} settings reset complete`);
 }
 
 // ================= INIT =================
