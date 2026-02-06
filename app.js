@@ -1231,7 +1231,7 @@ function populateModalDropdowns(type) {
     const phanloaiSelect = document.getElementById('chi-modal-new-phanloai');
     if (phanloaiSelect && loaiChiList.length > 0) {
       // ✅ Sort A-Z
-      const uniquePhanLoai = [...new Set(loaiChiList.map(item => item.phan_loai)))
+      const uniquePhanLoai = [...new Set(loaiChiList.map(item => item.phan_loai))]
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
       
