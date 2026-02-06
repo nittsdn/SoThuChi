@@ -155,7 +155,7 @@ async function postData(action, payload) {
 const DEFAULT_SETTINGS = {
   quickChipsChi: null,
   quickChipsThu: null,
-  quickLoaiThu: ["Thu nhập", "Tiền về", "Khác"]
+  quickLoaiThu: ["Thu income", "Tiền về", "Khác"]
 };
 
 function getDefaultChips(type) {
@@ -645,6 +645,10 @@ document.getElementById("chi-submit").onclick = async () => {
 };
 
 // ================= THU (INCOME) =================
+let thuStack = [];  // ✅ THÊM: Stack số giống CHI
+let thuEditMode = false;
+let thuEditIndex = -1;
+
 function onThuDescChange(desc) {
   if (!desc) {
     const loaiThuDropdown = document.getElementById("thu-loai");
@@ -717,17 +721,178 @@ function populateThuDropdowns() {
 }
 
 const thuInput = document.getElementById("thu-input");
+const thuAddBtn = document.getElementById("thu-add");
+const thuClearBtn = document.getElementById("thu-clear");
+
+// ✅ SỬA: Input chỉ cho phép số, format dấu chấm ngàn
 thuInput.oninput = () => {
-  const val = thuInput.value = thuInput.value.replace(/\D/g, "");
+  let val = thuInput.value.replace(/\D/g, "");  // Chỉ giữ số
   
-  if (val) {
-    thuAmount = parseInt(val) * 1000;
-    document.getElementById("thu-display").textContent = formatVN(thuAmount);
+  if (thuEditMode) {
+    if (val && val !== "0") {
+      const num = parseInt(val);
+      thuStack[thuEditIndex] = num;
+    }
+    thuAddBtn.textContent = "✓";
+    thuAddBtn.classList.add("btn-confirm");
+    thuClearBtn.textContent = "🗑️";
   } else {
-    thuAmount = 0;
-    document.getElementById("thu-display").textContent = "Chưa có số";
+    thuAddBtn.textContent = "+";
+    thuAddBtn.classList.remove("btn-confirm");
+    thuClearBtn.textContent = "↻";
   }
+  
+  // Format hiển thị với dấu chấm ngàn
+  if (val) {
+    const formatted = parseInt(val).toLocaleString('vi-VN');
+    thuInput.value = formatted;
+  }
+  
+  renderThuStack();
+};
+
+function addThuValue() {
+  const val = thuInput.value.replace(/\D/g, "");
+  if (!val || val === "0") return;
+  
+  const num = parseInt(val);
+  
+  if (thuEditMode) {
+    thuStack[thuEditIndex] = num;
+    thuEditMode = false;
+    thuEditIndex = -1;
+  } else {
+    thuStack.push(num);
+  }
+  
+  thuInput.value = "";
+  
+  thuAddBtn.textContent = "+";
+  thuAddBtn.classList.remove("btn-confirm");
+  thuClearBtn.textContent = "↻";
+  
+  renderThuStack();
+}
+
+let isThuAddingFromButton = false;
+let isThuDeletingFromButton = false;
+
+thuAddBtn.onmousedown = () => {
+  isThuAddingFromButton = true;
+};
+
+thuAddBtn.onkeydown = (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    isThuAddingFromButton = true;
+  }
+};
+
+thuAddBtn.onclick = () => {
+  addThuValue();
+  thuInput.focus();
+  isThuAddingFromButton = false;
+};
+
+thuInput.onblur = () => {
+  if (!isThuAddingFromButton && !isThuDeletingFromButton) {
+    addThuValue();
+  }
+  setTimeout(() => {
+    isThuAddingFromButton = false;
+    isThuDeletingFromButton = false;
+  }, 0);
+};
+
+window.enterThuEditMode = function(index) {
+  thuEditMode = true;
+  thuEditIndex = index;
+  thuInput.value = thuStack[index].toLocaleString('vi-VN');
+  thuInput.focus();
+  thuAddBtn.textContent = "✓";
+  thuAddBtn.classList.add("btn-confirm");
+  thuClearBtn.textContent = "🗑️";
+  renderThuStack();
+};
+
+function renderThuStack() {
+  const display = document.getElementById("thu-display");
+  const currentInputVal = thuInput.value.replace(/\D/g, "");
+  const currentInputNum = currentInputVal ? parseInt(currentInputVal) : 0;
+  
+  if (!thuStack.length && !currentInputNum) {
+    display.innerHTML = "Chưa có số";
+    thuAmount = 0;
+    checkThuReady();
+    return;
+  }
+  
+  const existingTotal = thuStack.reduce((a, b) => a + b, 0);
+  
+  if (!thuStack.length && currentInputNum && !thuEditMode) {
+    display.innerHTML = `Tổng: ${formatVN(currentInputNum)}`;
+    thuAmount = currentInputNum;
+    checkThuReady();
+    return;
+  }
+  
+  if (thuStack.length && currentInputNum && !thuEditMode) {
+    const parts = thuStack.map((n, i) => {
+      return `<span class="stack-num" data-index="${i}" onclick="window.enterThuEditMode(${i})">${formatVN(n)}</span>`;
+    });
+    const newTotal = existingTotal + currentInputNum;
+    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum)} = ${formatVN(newTotal)}`;
+    thuAmount = newTotal;
+  } else {
+    const parts = thuStack.map((n, i) => {
+      const className = (thuEditMode && i === thuEditIndex) ? "stack-num editing" : "stack-num";
+      return `<span class="${className}" data-index="${i}" onclick="window.enterThuEditMode(${i})">${formatVN(n)}</span>`;
+    });
+    display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
+    thuAmount = existingTotal;
+  }
+  
   checkThuReady();
+}
+
+function deleteThuStackNumber(index) {
+  thuStack.splice(index, 1);
+  
+  thuEditMode = false;
+  thuEditIndex = -1;
+  
+  const originalOnInput = thuInput.oninput;
+  thuInput.oninput = null;
+  
+  thuInput.value = "";
+  
+  thuInput.oninput = originalOnInput;
+  
+  thuAddBtn.textContent = "+";
+  thuAddBtn.classList.remove("btn-confirm");
+  thuClearBtn.textContent = "↻";
+  
+  renderThuStack();
+}
+
+thuClearBtn.onmousedown = () => {
+  isThuDeletingFromButton = true;
+};
+
+thuClearBtn.onkeydown = (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    isThuDeletingFromButton = true;
+  }
+};
+
+thuClearBtn.onclick = () => {
+  if (thuEditMode) {
+    deleteThuStackNumber(thuEditIndex);
+  } else {
+    if (confirm("Xóa hết tất cả dữ liệu thu?")) {
+      resetThuSection();
+    }
+  }
+  isThuDeletingFromButton = false;
 };
 
 document.getElementById("thu-desc-input").oninput = (e) => {
@@ -755,10 +920,13 @@ function checkThuReady() {
 }
 
 function resetThuSection() {
+  thuStack = [];
   thuAmount = 0;
   thuDesc = "";
   thuLoai = "";
   thuSource = "";
+  thuEditMode = false;
+  thuEditIndex = -1;
   thuInput.value = "";
   document.getElementById("thu-display").textContent = "Chưa có số";
   document.getElementById("thu-desc-input").value = "";
@@ -770,13 +938,18 @@ function resetThuSection() {
   document.getElementById("thu-source").value = "";
   document.querySelectorAll("#thu-chips .chip").forEach(c => c.classList.remove("selected"));
   document.getElementById("thu-submit").disabled = true;
+  thuAddBtn.textContent = "+";
+  thuAddBtn.classList.remove("btn-confirm");
+  thuClearBtn.textContent = "↻";
   thuInput.focus();
 }
 
 document.getElementById("thu-submit").onclick = async () => {
+  const formula = thuStack.length ? `=${thuStack.join("+")}` : `=${thuAmount}`;
+  
   const payload = {
     ngay: formatDateAPI(thuDate),
-    so_tien: thuAmount,
+    so_tien: formula,
     mo_ta: thuDesc,
     loai_thu: thuLoai,
     nguon_tien: thuSource

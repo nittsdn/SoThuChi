@@ -169,7 +169,7 @@ function insertThu(payload) {
   const r = sh.getLastRow() + 1;
   const idThu = getNextId(sh, 7, 't');  // Cột 7 = G = IDThu
 
-  sh.getRange(r, 1).setValue(payload.so_tien);   // A: Thu (VNĐ đầy đủ)
+  sh.getRange(r, 1).setFormula(payload.so_tien);   // A: Thu (VNĐ đầy đủ)
   sh.getRange(r, 2).setValue(payload.ngay);      // B: Ngày
   sh.getRange(r, 3).setValue(payload.mo_ta);     // C: Mô tả
   sh.getRange(r, 4).setValue(payload.nguon_tien); // D: Nguồn tiền
