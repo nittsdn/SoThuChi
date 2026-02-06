@@ -264,11 +264,20 @@ let settings = null;
 
 // ================= HEADER =================
 function updateHeader(chiData, thuData) {
-  const headerContent = document.getElementById("header-content");
+  // ===== UPDATE SUMMARY (BALANCE) =====
+  const soDuLT = (chiData && chiData.length > 0) 
+    ? (chiData[chiData.length - 1]["Số dư lý thuyết"] || 0)
+    : 0;
+  
+  document.querySelector('.header-summary .balance-tag').textContent = 
+    `Số dư LT: ${formatVN(soDuLT)}`;
+  
+  // ===== UPDATE DETAILS (CHI/THU) =====
+  const headerDetails = document.getElementById("header-details");
   
   let html = '';
   
-  // ===== CHI SECTION =====
+  // CHI SECTION
   html += '<div class="header-section-title chi-title">CHI</div>';
   
   if (!chiData || chiData.length === 0) {
@@ -279,7 +288,6 @@ function updateHeader(chiData, thuData) {
     last3Chi.forEach(chi => {
       const ngay = chi["Ngày"];
       
-      // ✅ SKIP nếu thiếu data quan trọng
       if (!ngay || !chi.mo_ta_chi) {
         console.warn('⚠️ Chi item thiếu data:', chi);
         return;
@@ -298,7 +306,7 @@ function updateHeader(chiData, thuData) {
     });
   }
   
-  // ===== THU SECTION =====
+  // THU SECTION
   html += '<div class="header-section-title thu-title">THU</div>';
   
   if (!thuData || thuData.length === 0) {
@@ -307,7 +315,6 @@ function updateHeader(chiData, thuData) {
     const lastThu = thuData[thuData.length - 1];
     const ngay = lastThu["Ngày"];
     
-    // ✅ CHECK null
     if (!ngay || !lastThu["Mô tả"]) {
       console.warn('⚠️ Thu item thiếu data:', lastThu);
       html += '<div class="header-empty">Dữ liệu thu chưa đầy đủ</div>';
@@ -325,15 +332,39 @@ function updateHeader(chiData, thuData) {
     }
   }
   
-  // ===== SỐ DƯ LÝ THUYẾT =====
-  const soDuLT = (chiData && chiData.length > 0) 
-    ? (chiData[chiData.length - 1]["Số dư lý thuyết"] || 0)
-    : 0;
-  
-  html += `<div class="balance-tag">Số dư LT: ${formatVN(soDuLT)}</div>`;
-  
-  headerContent.innerHTML = html;
+  headerDetails.innerHTML = html;
 }
+
+// ================= HEADER TOGGLE =================
+function initHeaderToggle() {
+  const toggleBtn = document.getElementById('header-toggle-btn');
+  const headerDetails = document.getElementById('header-details');
+  
+  if (!toggleBtn || !headerDetails) {
+    console.warn('⚠️ Header toggle elements not found');
+    return;
+  }
+  
+  // Load trạng thái từ localStorage (mặc định: mở)
+  const isCollapsed = localStorage.getItem('headerCollapsed') === 'true';
+  
+  if (isCollapsed) {
+    headerDetails.classList.add('collapsed');
+    toggleBtn.classList.add('collapsed');
+  }
+  
+  // Toggle handler
+  toggleBtn.onclick = () => {
+    const nowCollapsed = headerDetails.classList.toggle('collapsed');
+    toggleBtn.classList.toggle('collapsed');
+    
+    // Lưu trạng thái
+    localStorage.setItem('headerCollapsed', nowCollapsed);
+  };
+  
+  console.log('✅ Header toggle initialized');
+}
+
 
 // ================= DATE NAVIGATION =================
 const chiDateInput = document.getElementById("chi-date-input");
@@ -1571,6 +1602,7 @@ window.onload = async () => {
   populateThuDropdowns();
   
   initModalEventListeners();
-  
+  initHeaderToggle(); // ← THÊM DÒNG NÀY
+
   console.log('✅ App initialized successfully');
 };

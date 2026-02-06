@@ -102,6 +102,7 @@ input, select, button {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
 }
 
 .header-top h1 {
@@ -148,7 +149,59 @@ input, select, button {
 }
 
 /* =========================
-   HEADER SECTIONS
+   HEADER TOGGLE BUTTON
+========================= */
+.btn-header-toggle {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: transform 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+  color: #007bff;
+}
+
+.btn-header-toggle:hover {
+  transform: scale(1.1);
+}
+
+.btn-header-toggle.collapsed {
+  transform: rotate(-90deg); /* Quay ngang khi đóng */
+}
+
+/* =========================
+   HEADER SUMMARY (Always visible)
+========================= */
+.header-summary {
+  margin-top: 8px;
+}
+
+.header-summary .balance-tag {
+  font-weight: bold;
+  color: #007bff;
+  font-size: 16px;
+}
+
+/* =========================
+   HEADER DETAILS (Collapsible)
+========================= */
+.header-details {
+  max-height: 500px;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease, margin-top 0.3s ease;
+  opacity: 1;
+  margin-top: 12px;
+}
+
+.header-details.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
+/* =========================
+   HEADER SECTIONS (CHI/THU)
 ========================= */
 .header-section-title {
   font-size: 14px;
