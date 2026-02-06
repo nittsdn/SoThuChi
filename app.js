@@ -274,13 +274,24 @@ function updateHeader(chiData, thuData) {
   if (!chiData || chiData.length === 0) {
     html += '<div class="header-empty">Chưa có chi tiêu</div>';
   } else {
-    const last3Chi = chiData.slice(-3); // Lấy 3 cuối
+    const last3Chi = chiData.slice(-3);
+    
     last3Chi.forEach(chi => {
-      const date = parseDateString(chi["Ngày"]);
+      const ngay = chi["Ngày"];
+      
+      // ✅ SKIP nếu thiếu data quan trọng
+      if (!ngay || !chi.mo_ta_chi) {
+        console.warn('⚠️ Chi item thiếu data:', chi);
+        return;
+      }
+      
+      const date = parseDateString(ngay);
+      const soTien = chi["Số tiền vnđ"] || 0;
+      
       html += `
         <div class="header-item">
-          <span class="item-desc">${chi.mo_ta_chi || 'N/A'}</span>
-          <span class="item-amount chi-amount">${formatVN(chi["Số tiền vnđ"])}</span>
+          <span class="item-desc">${chi.mo_ta_chi}</span>
+          <span class="item-amount chi-amount">${formatVN(soTien)}</span>
           <span class="item-date">${formatDateShort(date)}</span>
         </div>
       `;
@@ -293,20 +304,30 @@ function updateHeader(chiData, thuData) {
   if (!thuData || thuData.length === 0) {
     html += '<div class="header-empty">Chưa có thu nhập</div>';
   } else {
-    const lastThu = thuData[thuData.length - 1]; // Lấy 1 cuối
-    const date = parseDateString(lastThu["Ngày"]);
-    html += `
-      <div class="header-item">
-        <span class="item-desc">${lastThu["Mô tả"] || 'N/A'}</span>
-        <span class="item-amount thu-amount">${formatVN(lastThu.Thu)}</span>
-        <span class="item-date">${formatDateShort(date)}</span>
-      </div>
-    `;
+    const lastThu = thuData[thuData.length - 1];
+    const ngay = lastThu["Ngày"];
+    
+    // ✅ CHECK null
+    if (!ngay || !lastThu["Mô tả"]) {
+      console.warn('⚠️ Thu item thiếu data:', lastThu);
+      html += '<div class="header-empty">Dữ liệu thu chưa đầy đủ</div>';
+    } else {
+      const date = parseDateString(ngay);
+      const soTien = lastThu.Thu || 0;
+      
+      html += `
+        <div class="header-item">
+          <span class="item-desc">${lastThu["Mô tả"]}</span>
+          <span class="item-amount thu-amount">${formatVN(soTien)}</span>
+          <span class="item-date">${formatDateShort(date)}</span>
+        </div>
+      `;
+    }
   }
   
   // ===== SỐ DƯ LÝ THUYẾT =====
   const soDuLT = (chiData && chiData.length > 0) 
-    ? chiData[chiData.length - 1]["Số dư lý thuyết"] 
+    ? (chiData[chiData.length - 1]["Số dư lý thuyết"] || 0)
     : 0;
   
   html += `<div class="balance-tag">Số dư LT: ${formatVN(soDuLT)}</div>`;
@@ -1521,6 +1542,18 @@ window.onload = async () => {
     thu: thuList.length,
     nguonTien: nguonTienList.length
   });
+  
+  // ✅ DEBUG 3 CHI CUỐI
+  if (chiTieuData.length > 0) {
+    console.log('🔍 Last 3 CHI:', chiTieuData.slice(-3));
+    console.log('🔍 Field "Ngày" của 3 CHI:', chiTieuData.slice(-3).map(c => c["Ngày"]));
+  }
+  
+  // ✅ DEBUG 1 THU CUỐI
+  if (thuData.length > 0) {
+    console.log('🔍 Last THU:', thuData[thuData.length - 1]);
+    console.log('🔍 Field "Ngày" của THU:', thuData[thuData.length - 1]["Ngày"]);
+  }
   
   settings = loadSettings();
   
