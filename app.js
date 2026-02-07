@@ -753,9 +753,10 @@ document.getElementById("chi-submit").onclick = async () => {
   console.log('📤 CHI Submit payload:', payload);
   const result = await postData("insert_chi", payload);
   if (result && result.status === 'success') {
-    // Lấy số vừa nhập (input number), nhân 1000, hiển thị tối đa 6 số thập phân
-    let lastInput = chiInput.value ? parseVN(chiInput.value) : (chiStack.length ? chiStack[chiStack.length-1] : 0);
-    let notifyNum = Math.floor(lastInput * 1000000 * 1000) / 1000000;
+    // Lấy giá trị từ input, nhân 1000, hiển thị tối đa 6 số thập phân
+    let inputVal = parseVN(chiInput.value);
+    let notifyNum = Math.floor(inputVal * 1000000) / 1000000 * 1000;
+    notifyNum = Math.floor(notifyNum * 1e6) / 1e6;
     showToast(`Đã thêm chi: <b>${formatVN(notifyNum)}</b> VNĐ`, 3000);
     const [chiDataRaw, thuDataRaw] = await Promise.all([
       fetchData("Chi_Tieu_2026"),
