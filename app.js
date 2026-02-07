@@ -1125,11 +1125,90 @@ async function loadTongKet() {
     inputsContainer.appendChild(div);
     
     const input = div.querySelector("input");
-    input.oninput = () => {
-      let val = input.value.replace(/[^\d,]/g, "");
-      tkInputs[nguon.nguon_tien] = parseVN(val);
-      input.value = val ? formatVN(parseVN(val), 2) : "";
+    input.oninput = (e) => {
+      let oldValue = input.value;
+      let oldPos = input.selectionStart;
+      // Chỉ cho phép số, dấu chấm, dấu phẩy
+      let val = oldValue.replace(/[^\d.,]/g, "");
+      // Chỉ giữ 1 dấu phẩy (thập phân), loại các dấu phẩy thừa
+      let parts = val.split(",");
+      if (parts.length > 2) {
+        val = parts[0] + "," + parts.slice(1).join("");
+      }
+      // Format lại value
+      let num = parseVN(val);
+      let formatted = val ? formatVN(num, 2) : "";
+      input.value = formatted;
+      tkInputs[nguon.nguon_tien] = num;
+      // Giữ vị trí con trỏ gần đúng (nếu user nhập ở cuối sẽ không bị nhảy)
+      let diff = formatted.length - oldValue.length;
+      let newPos = oldPos + diff;
+      setTimeout(() => { input.setSelectionRange(newPos, newPos); }, 0);
     };
+  chiInput.oninput = () => {
+    let oldValue = chiInput.value;
+    let oldPos = chiInput.selectionStart;
+    // Chỉ cho phép số, dấu chấm, dấu phẩy
+    let val = oldValue.replace(/[^\d.,]/g, "");
+    // Chỉ giữ 1 dấu phẩy (thập phân), loại các dấu phẩy thừa
+    let parts = val.split(",");
+    if (parts.length > 2) {
+      val = parts[0] + "," + parts.slice(1).join("");
+    }
+    // Format lại value
+    let num = parseVN(val);
+    let formatted = val ? formatVN(num, 2) : "";
+    chiInput.value = formatted;
+    if (editMode) {
+      if (val && val !== "0") {
+        chiStack[editIndex] = num;
+      }
+      chiAddBtn.textContent = "✓";
+      chiAddBtn.classList.add("btn-confirm");
+      chiClearBtn.textContent = "🗑️";
+    } else {
+      chiAddBtn.textContent = "+";
+      chiAddBtn.classList.remove("btn-confirm");
+      chiClearBtn.textContent = "↻";
+    }
+    // Giữ vị trí con trỏ gần đúng
+    let diff = formatted.length - oldValue.length;
+    let newPos = oldPos + diff;
+    setTimeout(() => { chiInput.setSelectionRange(newPos, newPos); }, 0);
+    renderChiStack();
+  };
+  thuInput.oninput = () => {
+    let oldValue = thuInput.value;
+    let oldPos = thuInput.selectionStart;
+    // Chỉ cho phép số, dấu chấm, dấu phẩy
+    let val = oldValue.replace(/[^\d.,]/g, "");
+    // Chỉ giữ 1 dấu phẩy (thập phân), loại các dấu phẩy thừa
+    let parts = val.split(",");
+    if (parts.length > 2) {
+      val = parts[0] + "," + parts.slice(1).join("");
+    }
+    // Format lại value
+    let num = parseVN(val);
+    let formatted = val ? formatVN(num, 2) : "";
+    thuInput.value = formatted;
+    if (thuEditMode) {
+      if (val && val !== "0") {
+        thuStack[thuEditIndex] = num;
+      }
+      thuAddBtn.textContent = "✓";
+      thuAddBtn.classList.add("btn-confirm");
+      thuClearBtn.textContent = "🗑️";
+    } else {
+      thuAddBtn.textContent = "+";
+      thuAddBtn.classList.remove("btn-confirm");
+      thuClearBtn.textContent = "↻";
+    }
+    // Giữ vị trí con trỏ gần đúng
+    let diff = formatted.length - oldValue.length;
+    let newPos = oldPos + diff;
+    setTimeout(() => { thuInput.setSelectionRange(newPos, newPos); }, 0);
+    renderThuStack();
+  };
   });
 }
 
