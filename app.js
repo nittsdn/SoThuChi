@@ -752,11 +752,9 @@ document.getElementById("chi-submit").onclick = async () => {
   console.log('📤 CHI Submit payload:', payload);
   const result = await postData("insert_chi", payload);
   if (result && result.status === 'success') {
-    // Lấy giá trị từ input, nhân 1000, hiển thị tối đa 6 số thập phân
-    let inputVal = parseVN(chiInput.value);
-    let notifyNum = Math.floor(inputVal * 1000000) / 1000000 * 1000;
-    notifyNum = Math.floor(notifyNum * 1e6) / 1e6;
-    showToast(`Đã thêm chi: <b>${formatVN(notifyNum)}</b> VNĐ`, 3000);
+    // Thông báo giống phần THU, chỉ format số gốc, không nhân 1000
+    let chiTotal = chiStack.reduce((a, b) => a + b, 0);
+    showToast(`Đã thêm chi: <b>${formatVN(chiTotal)}</b> VNĐ`, 3000);
     const [chiDataRaw, thuDataRaw] = await Promise.all([
       fetchData("Chi_Tieu_2026"),
       fetchData("Thu_2026")
