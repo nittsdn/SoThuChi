@@ -639,8 +639,7 @@ function renderChiStack() {
     existingTotalStr = thapphan ? nguyen + '.' + thapphan : nguyen;
   }
   existingTotal = parseFloat(existingTotalStr);
-  // Tổng thực tế để hiển thị (sau khi nhân 1000)
-  let totalDisplay = (existingTotal + currentInputNum) * 1000;
+  let totalDisplay = existingTotal + currentInputNum;
   let totalDisplayStr = String(totalDisplay);
   if (totalDisplayStr.includes('.')) {
     let [nguyen, thapphan] = totalDisplayStr.split('.');
@@ -648,21 +647,21 @@ function renderChiStack() {
     totalDisplayStr = thapphan ? nguyen + '.' + thapphan : nguyen;
   }
   if (!chiStack.length && currentInputNum && !editMode) {
-    display.innerHTML = `Tổng: ${formatVN(currentInputNum * 1000)}`;
+    display.innerHTML = `Tổng: ${formatVN(currentInputNum)}`;
     checkChiReady();
     return;
   }
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
-      return `<span class="stack-num" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n * 1000)}</span>`;
+      return `<span class="stack-num" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n)}</span>`;
     });
-    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(totalDisplayStr)}`;
+    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum)} = ${formatVN(totalDisplayStr)}`;
   } else {
     const parts = chiStack.map((n, i) => {
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
-      return `<span class=\"${className}\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(n * 1000)}</span>`;
+      return `<span class=\"${className}\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(n)}</span>`;
     });
-    display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal * 1000)}`;
+    display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
   }
   checkChiReady();
 }
