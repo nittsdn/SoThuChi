@@ -125,7 +125,23 @@ function getNextId(sheet, colIndex, prefix) {
  **************************************************/
 function insertChi(payload) {
   const sh = SpreadsheetApp.getActive().getSheetByName('Chi_Tieu_2026');
-  const r = sh.getLastRow() + 1;
+  
+  // ✅ FIX: Tìm dòng cuối cùng có IDChi thực sự, không dùng getLastRow()
+  const lastRow = sh.getLastRow();
+  let r = 2; // Mặc định dòng 2 nếu sheet trống
+  
+  if (lastRow >= 2) {
+    // Đọc tất cả giá trị trong cột A (IDChi)
+    const ids = sh.getRange(2, 1, lastRow - 1, 1).getValues().flat();
+    
+    // Tìm dòng cuối cùng có IDChi không rỗng
+    for (let i = ids.length - 1; i >= 0; i--) {
+      if (ids[i] && ids[i].toString().trim() !== '') {
+        r = i + 3; // i+2 là dòng hiện tại, +1 để lấy dòng kế tiếp
+        break;
+      }
+    }
+  }
 
   const idChi = getNextId(sh, 1, 'c');  // Cột 1 = A = IDChi
 
@@ -166,15 +182,32 @@ function updateChiById(payload) {
  **************************************************/
 function insertThu(payload) {
   const sh = SpreadsheetApp.getActive().getSheetByName('Thu_2026');
-  const r = sh.getLastRow() + 1;
+  
+  // ✅ FIX: Tìm dòng cuối cùng có IDThu thực sự, không dùng getLastRow()
+  const lastRow = sh.getLastRow();
+  let r = 2; // Mặc định dòng 2 nếu sheet trống
+  
+  if (lastRow >= 2) {
+    // Đọc tất cả giá trị trong cột G (IDThu)
+    const ids = sh.getRange(2, 7, lastRow - 1, 1).getValues().flat();
+    
+    // Tìm dòng cuối cùng có IDThu không rỗng
+    for (let i = ids.length - 1; i >= 0; i--) {
+      if (ids[i] && ids[i].toString().trim() !== '') {
+        r = i + 3; // i+2 là dòng hiện tại, +1 để lấy dòng kế tiếp
+        break;
+      }
+    }
+  }
+  
   const idThu = getNextId(sh, 7, 't');  // Cột 7 = G = IDThu
 
   sh.getRange(r, 1).setFormula(payload.so_tien);   // A: Thu (VNĐ đầy đủ)
-  sh.getRange(r, 2).setValue(payload.ngay);      // B: Ngày
-  sh.getRange(r, 3).setValue(payload.mo_ta);     // C: Mô tả
-  sh.getRange(r, 4).setValue(payload.nguon_tien); // D: Nguồn tiền
-  sh.getRange(r, 5).setValue(payload.loai_thu);  // E: Loại thu
-  sh.getRange(r, 7).setValue(idThu);             // G: IDThu
+  sh.getRange(r, 2).setValue(payload.ngay);        // B: Ngày
+  sh.getRange(r, 3).setValue(payload.mo_ta);       // C: Mô tả
+  sh.getRange(r, 4).setValue(payload.nguon_tien);  // D: Nguồn tiền
+  sh.getRange(r, 5).setValue(payload.loai_thu);    // E: Loại thu
+  sh.getRange(r, 7).setValue(idThu);               // G: IDThu
   // Không set F: Tổng thu (formula)
 }
 
