@@ -535,16 +535,8 @@ const chiAddBtn = document.getElementById("chi-add");
 const chiClearBtn = document.getElementById("chi-clear");
 
 chiInput.oninput = () => {
-  // Cho phép nhập số thập phân, dấu phẩy hoặc chấm
-  let val = chiInput.value.replace(/[^\d.,]/g, "");
-  // Chuyển dấu chấm thành dấu phẩy nếu có nhiều dấu
-  val = val.replace(/\./g, ",");
-  // Chỉ giữ lại 1 dấu phẩy
-  const parts = val.split(",");
-  if (parts.length > 2) {
-    val = parts[0] + "," + parts.slice(1).join("");
-  }
-  chiInput.value = val;
+  // Không cần lọc ký tự, chỉ lấy giá trị trực tiếp
+  let val = chiInput.value;
   let num = parseVN(val);
   if (editMode) {
     if (val && num !== 0) {
