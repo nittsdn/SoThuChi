@@ -5,10 +5,16 @@ const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yh
 // ================= UTIL =================
 function formatVN(num, decimals = 0) {
   if (num === null || num === undefined || isNaN(num)) return "0";
-  const str = String(num);
-  const [nguyen, thapphan] = str.split(".");
+  let str = String(num);
+  let [nguyen, thapphan] = str.split(".");
   const nguyenFmt = nguyen.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return thapphan !== undefined ? nguyenFmt + "," + thapphan : nguyenFmt;
+  if (thapphan !== undefined) {
+    thapphan = thapphan.slice(0, 6);
+    thapphan = thapphan.replace(/0+$/, "");
+    return thapphan ? nguyenFmt + "," + thapphan : nguyenFmt;
+  } else {
+    return nguyenFmt;
+  }
 }
 
 function parseVN(str) {
@@ -529,11 +535,19 @@ const chiAddBtn = document.getElementById("chi-add");
 const chiClearBtn = document.getElementById("chi-clear");
 
 chiInput.oninput = () => {
-  const val = chiInput.value = chiInput.value.replace(/\D/g, "");
-  
+  // Cho phép nhập số thập phân, dấu phẩy hoặc chấm
+  let val = chiInput.value.replace(/[^\d.,]/g, "");
+  // Chuyển dấu chấm thành dấu phẩy nếu có nhiều dấu
+  val = val.replace(/\./g, ",");
+  // Chỉ giữ lại 1 dấu phẩy
+  const parts = val.split(",");
+  if (parts.length > 2) {
+    val = parts[0] + "," + parts.slice(1).join("");
+  }
+  chiInput.value = val;
+  let num = parseVN(val);
   if (editMode) {
-    if (val && val !== "0") {
-      const num = parseFloat(val);
+    if (val && num !== 0) {
       chiStack[editIndex] = num;
     }
     chiAddBtn.textContent = "✓";
@@ -544,16 +558,13 @@ chiInput.oninput = () => {
     chiAddBtn.classList.remove("btn-confirm");
     chiClearBtn.textContent = "↻";
   }
-  
   renderChiStack();
 };
 
 function addChiValue() {
-  const val = chiInput.value.replace(/\D/g, "");
-  if (!val || val === "0") return;
-  
-  const num = parseFloat(val);
-  
+  let val = chiInput.value;
+  let num = parseVN(val);
+  if (!val || num === 0) return;
   if (editMode) {
     chiStack[editIndex] = num;
     editMode = false;
@@ -561,13 +572,10 @@ function addChiValue() {
   } else {
     chiStack.push(num);
   }
-  
   chiInput.value = "";
-  
   chiAddBtn.textContent = "+";
   chiAddBtn.classList.remove("btn-confirm");
   chiClearBtn.textContent = "↻";
-  
   renderChiStack();
 }
 
@@ -613,37 +621,32 @@ window.enterChiEditMode = function(index) {
 
 function renderChiStack() {
   const display = document.getElementById("chi-stack");
-  const currentInputVal = chiInput.value.replace(/\D/g, "");
-  const currentInputNum = currentInputVal ? parseFloat(currentInputVal) : 0;
-  
+  let val = chiInput.value;
+  let currentInputNum = parseVN(val);
   if (!chiStack.length && !currentInputNum) {
     display.innerHTML = "Chưa có số";
     checkChiReady();
     return;
   }
-  
-  const existingTotal = chiStack.reduce((a, b) => a + b, 0) * 1000;
-  
+  const existingTotal = chiStack.reduce((a, b) => a + b, 0);
   if (!chiStack.length && currentInputNum && !editMode) {
-    display.innerHTML = `Tổng: ${formatVN(currentInputNum * 1000)}`;
+    display.innerHTML = `Tổng: ${formatVN(currentInputNum)}`;
     checkChiReady();
     return;
   }
-  
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
-      return `<span class="stack-num" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n * 1000)}</span>`;
+      return `<span class="stack-num" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n)}</span>`;
     });
-    const newTotal = existingTotal + (currentInputNum * 1000);
-    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(newTotal)}`;
+    const newTotal = existingTotal + currentInputNum;
+    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum)} = ${formatVN(newTotal)}`;
   } else {
     const parts = chiStack.map((n, i) => {
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
-      return `<span class="${className}" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n * 1000)}</span>`;
+      return `<span class="${className}" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n)}</span>`;
     });
     display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
   }
-  
   checkChiReady();
 }
 
@@ -730,19 +733,16 @@ document.getElementById("chi-submit").onclick = async () => {
     mo_ta_chi: chiDesc,
     nguon_tien: chiSource
   };
-  
   console.log('📤 CHI Submit payload:', payload);
-  
   const result = await postData("insert_chi", payload);
   if (result && result.status === 'success') {
-    // Hiển thị thông báo cạnh chữ CHI
     setTimeout(() => {
       const chiNotify = document.getElementById("header-chi-notify");
       if (chiNotify) {
         chiNotify.textContent = "Thêm mới thành công!";
         setTimeout(() => { chiNotify.textContent = ""; }, 3000);
       }
-    }, 100); // Đợi updateHeader render xong
+    }, 100);
     const [chiDataRaw, thuDataRaw] = await Promise.all([
       fetchData("Chi_Tieu_2026"),
       fetchData("Thu_2026")
