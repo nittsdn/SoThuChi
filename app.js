@@ -1,4 +1,4 @@
-// Version: v2.3.1557
+// Version: v2.3.1602
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -24,7 +24,13 @@ function formatStack(stack) {
 }
 
 function createFormula(stack) {
-  return "=" + stack.join("+");
+  // Truyền đúng định dạng số kiểu xxxx,yyy (không có dấu chấm ngăn cách nghìn), chỉ dùng dấu phẩy cho thập phân
+  const formatted = stack.map(n => {
+    const str = String(n);
+    const [nguyen, thapphan] = str.split(".");
+    return thapphan !== undefined ? nguyen + "," + thapphan : nguyen;
+  });
+  return "=" + formatted.join("+");
 }
 
 function formatDate(d) {
