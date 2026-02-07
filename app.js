@@ -1,4 +1,4 @@
-// Version: v2.3.1410
+// Version: v2.3.1453
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -839,12 +839,18 @@ const thuInput = document.getElementById("thu-input");
 const thuAddBtn = document.getElementById("thu-add");
 const thuClearBtn = document.getElementById("thu-clear");
 
+// Cải tiến: cho phép 1 dấu phẩy làm thập phân
 thuInput.oninput = () => {
-  let val = thuInput.value.replace(/\D/g, "");
-  
+  let val = thuInput.value.replace(/[^\d,]/g, ""); // chỉ cho số và dấu phẩy
+  // Chỉ giữ 1 dấu phẩy (thập phân), loại các dấu phẩy thừa
+  let parts = val.split(",");
+  if (parts.length > 2) {
+    val = parts[0] + "," + parts.slice(1).join("");
+  }
   if (thuEditMode) {
     if (val && val !== "0") {
-      const num = parseInt(val);
+      // Cho phép số thập phân
+      const num = parseFloat(val.replace(",", "."));
       thuStack[thuEditIndex] = num;
     }
     thuAddBtn.textContent = "✓";
@@ -855,12 +861,12 @@ thuInput.oninput = () => {
     thuAddBtn.classList.remove("btn-confirm");
     thuClearBtn.textContent = "↻";
   }
-  
   if (val) {
-    const formatted = parseInt(val).toLocaleString('vi-VN');
-    thuInput.value = formatted;
+    // Hiển thị lại với dấu chấm ngăn cách nghìn, dấu phẩy thập phân
+    let num = parseFloat(val.replace(",", "."));
+    let formatted = val.includes(",") ? num.toLocaleString('vi-VN', {minimumFractionDigits: 0, maximumFractionDigits: 2}) : parseInt(val).toLocaleString('vi-VN');
+    thuInput.value = formatted.replace(".", ","); // Đảm bảo dấu phẩy là thập phân
   }
-  
   renderThuStack();
 };
 
@@ -1178,38 +1184,7 @@ async function loadTongKet() {
     setTimeout(() => { chiInput.setSelectionRange(newPos, newPos); }, 0);
     renderChiStack();
   };
-  thuInput.oninput = () => {
-    let oldValue = thuInput.value;
-    let oldPos = thuInput.selectionStart;
-    // Chỉ cho phép số, dấu chấm, dấu phẩy
-    let val = oldValue.replace(/[^\d.,]/g, "");
-    // Chỉ giữ 1 dấu phẩy (thập phân), loại các dấu phẩy thừa
-    let parts = val.split(",");
-    if (parts.length > 2) {
-      val = parts[0] + "," + parts.slice(1).join("");
-    }
-    // Format lại value
-    let num = parseVN(val);
-    let formatted = val ? formatVN(num, 2) : "";
-    thuInput.value = formatted;
-    if (thuEditMode) {
-      if (val && val !== "0") {
-        thuStack[thuEditIndex] = num;
-      }
-      thuAddBtn.textContent = "✓";
-      thuAddBtn.classList.add("btn-confirm");
-      thuClearBtn.textContent = "🗑️";
-    } else {
-      thuAddBtn.textContent = "+";
-      thuAddBtn.classList.remove("btn-confirm");
-      thuClearBtn.textContent = "↻";
-    }
-    // Giữ vị trí con trỏ gần đúng
-    let diff = formatted.length - oldValue.length;
-    let newPos = oldPos + diff;
-    setTimeout(() => { thuInput.setSelectionRange(newPos, newPos); }, 0);
-    renderThuStack();
-  };
+  // ...existing code...
   });
 }
 
