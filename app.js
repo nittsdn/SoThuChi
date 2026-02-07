@@ -1,4 +1,4 @@
-// Version: v2.3.1602
+// Version: v2.3.1610
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1069,7 +1069,7 @@ function resetThuSection() {
 }
 
 document.getElementById("thu-submit").onclick = async () => {
-  const formula = thuStack.length ? `=${thuStack.join("+")}` : `=${thuAmount}`;
+  const formula = thuStack.length ? createFormula(thuStack) : createFormula([thuAmount]);
   
   const payload = {
     ngay: formatDateAPI(thuDate),
