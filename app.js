@@ -1,4 +1,4 @@
-// Version: v2.3.1453
+// Version: v2.3.1508
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -839,19 +839,13 @@ const thuInput = document.getElementById("thu-input");
 const thuAddBtn = document.getElementById("thu-add");
 const thuClearBtn = document.getElementById("thu-clear");
 
-// Cải tiến: cho phép 1 dấu phẩy làm thập phân
+// Đơn giản hóa: dùng input type="number" để chỉ nhập số
 thuInput.oninput = () => {
-  let val = thuInput.value.replace(/[^\d,]/g, ""); // chỉ cho số và dấu phẩy
-  // Chỉ giữ 1 dấu phẩy (thập phân), loại các dấu phẩy thừa
-  let parts = val.split(",");
-  if (parts.length > 2) {
-    val = parts[0] + "," + parts.slice(1).join("");
-  }
+  const val = parseFloat(thuInput.value) || 0;
+  
   if (thuEditMode) {
-    if (val && val !== "0") {
-      // Cho phép số thập phân
-      const num = parseFloat(val.replace(",", "."));
-      thuStack[thuEditIndex] = num;
+    if (val > 0) {
+      thuStack[thuEditIndex] = val;
     }
     thuAddBtn.textContent = "✓";
     thuAddBtn.classList.add("btn-confirm");
@@ -861,20 +855,15 @@ thuInput.oninput = () => {
     thuAddBtn.classList.remove("btn-confirm");
     thuClearBtn.textContent = "↻";
   }
-  if (val) {
-    // Hiển thị lại với dấu chấm ngăn cách nghìn, dấu phẩy thập phân
-    let num = parseFloat(val.replace(",", "."));
-    let formatted = val.includes(",") ? num.toLocaleString('vi-VN', {minimumFractionDigits: 0, maximumFractionDigits: 2}) : parseInt(val).toLocaleString('vi-VN');
-    thuInput.value = formatted.replace(".", ","); // Đảm bảo dấu phẩy là thập phân
-  }
+  
   renderThuStack();
 };
 
 function addThuValue() {
-  const val = thuInput.value.replace(/\D/g, "");
-  if (!val || val === "0") return;
+  const val = parseFloat(thuInput.value) || 0;
+  if (val <= 0) return;
   
-  const num = parseInt(val);
+  const num = val;
   
   if (thuEditMode) {
     thuStack[thuEditIndex] = num;
