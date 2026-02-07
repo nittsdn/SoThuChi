@@ -615,12 +615,17 @@ function renderChiStack() {
   const display = document.getElementById("chi-stack");
   let val = chiInput.value;
   let currentInputNum = parseVN(val);
+  // Giới hạn 6 số thập phân khi hiển thị tổng
+  if (typeof currentInputNum === 'number') {
+    currentInputNum = Math.floor(currentInputNum * 1e6) / 1e6;
+  }
   if (!chiStack.length && !currentInputNum) {
     display.innerHTML = "Chưa có số";
     checkChiReady();
     return;
   }
-  const existingTotal = chiStack.reduce((a, b) => a + b, 0);
+  let existingTotal = chiStack.reduce((a, b) => a + b, 0);
+  existingTotal = Math.floor(existingTotal * 1e6) / 1e6;
   if (!chiStack.length && currentInputNum && !editMode) {
     display.innerHTML = `Tổng: ${formatVN(currentInputNum)}`;
     checkChiReady();
@@ -628,14 +633,15 @@ function renderChiStack() {
   }
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
-      return `<span class="stack-num" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n)}</span>`;
+      return `<span class="stack-num" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(Math.floor(n * 1e6) / 1e6)}</span>`;
     });
-    const newTotal = existingTotal + currentInputNum;
+    let newTotal = existingTotal + currentInputNum;
+    newTotal = Math.floor(newTotal * 1e6) / 1e6;
     display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum)} = ${formatVN(newTotal)}`;
   } else {
     const parts = chiStack.map((n, i) => {
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
-      return `<span class="${className}" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n)}</span>`;
+      return `<span class="${className}" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(Math.floor(n * 1e6) / 1e6)}</span>`;
     });
     display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
   }
@@ -728,13 +734,9 @@ document.getElementById("chi-submit").onclick = async () => {
   console.log('📤 CHI Submit payload:', payload);
   const result = await postData("insert_chi", payload);
   if (result && result.status === 'success') {
-    setTimeout(() => {
-      const chiNotify = document.getElementById("header-chi-notify");
-      if (chiNotify) {
-        chiNotify.textContent = "Thêm mới thành công!";
-        setTimeout(() => { chiNotify.textContent = ""; }, 3000);
-      }
-    }, 100);
+    // Hiển thị thông báo giống THU, dùng showToast với số đúng định dạng
+    let total = chiStack.reduce((a, b) => a + b, 0);
+    showToast(`Đã thêm chi: <b>${formatVN(total)}</b> VNĐ`, 3000);
     const [chiDataRaw, thuDataRaw] = await Promise.all([
       fetchData("Chi_Tieu_2026"),
       fetchData("Thu_2026")
