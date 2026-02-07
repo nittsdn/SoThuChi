@@ -1,13 +1,14 @@
-// Version: v2.3.1529
+// Version: v2.3.1546
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
 // ================= UTIL =================
 function formatVN(num, decimals = 0) {
   if (num === null || num === undefined || isNaN(num)) return "0";
-  const parts = Number(num).toFixed(decimals).split(".");
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return decimals > 0 ? parts.join(",") : parts[0];
+  const str = String(num);
+  const [nguyen, thapphan] = str.split(".");
+  const nguyenFmt = nguyen.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return thapphan !== undefined ? nguyenFmt + "," + thapphan : nguyenFmt;
 }
 
 function parseVN(str) {
@@ -937,18 +938,18 @@ function renderThuStack() {
   const existingTotal = thuStack.reduce((a, b) => a + b, 0);
   
   if (!thuStack.length && currentInputNum && !thuEditMode) {
-    display.innerHTML = `Tổng: ${formatVN(currentInputNum)}`;
+    display.innerHTML = `Tổng: ${formatVN(thuInput.value)}`;
     thuAmount = currentInputNum;
     checkThuReady();
     return;
   }
-  
+
   if (thuStack.length && currentInputNum && !thuEditMode) {
     const parts = thuStack.map((n, i) => {
       return `<span class="stack-num" data-index="${i}" onclick="window.enterThuEditMode(${i})">${formatVN(n)}</span>`;
     });
     const newTotal = existingTotal + currentInputNum;
-    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum)} = ${formatVN(newTotal)}`;
+    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(thuInput.value)} = ${formatVN(newTotal)}`;
     thuAmount = newTotal;
   } else {
     const parts = thuStack.map((n, i) => {
