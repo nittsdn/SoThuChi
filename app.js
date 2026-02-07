@@ -614,9 +614,8 @@ window.enterChiEditMode = function(index) {
 function renderChiStack() {
   const display = document.getElementById("chi-stack");
   let val = chiInput.value;
-  // Lấy số nhập nhân 1000
-  let currentInputNum = val ? parseFloat(val) * 1000 : 0;
-  // Giới hạn 6 số thập phân
+  let currentInputNum = val ? parseFloat(val) : 0;
+  // Giới hạn 6 số thập phân cho số nhập
   if (typeof currentInputNum === 'number') {
     let str = String(currentInputNum);
     if (str.includes('.')) {
@@ -631,8 +630,8 @@ function renderChiStack() {
     checkChiReady();
     return;
   }
-  let existingTotal = chiStack.reduce((a, b) => a + b * 1000, 0);
-  // Giới hạn 6 số thập phân cho tổng
+  let existingTotal = chiStack.reduce((a, b) => a + b, 0);
+  // Giới hạn 6 số thập phân cho tổng gốc
   let existingTotalStr = String(existingTotal);
   if (existingTotalStr.includes('.')) {
     let [nguyen, thapphan] = existingTotalStr.split('.');
@@ -640,8 +639,16 @@ function renderChiStack() {
     existingTotalStr = thapphan ? nguyen + '.' + thapphan : nguyen;
   }
   existingTotal = parseFloat(existingTotalStr);
+  // Tổng thực tế để hiển thị (sau khi nhân 1000)
+  let totalDisplay = (existingTotal + currentInputNum) * 1000;
+  let totalDisplayStr = String(totalDisplay);
+  if (totalDisplayStr.includes('.')) {
+    let [nguyen, thapphan] = totalDisplayStr.split('.');
+    thapphan = thapphan.slice(0, 6).replace(/0+$/, "");
+    totalDisplayStr = thapphan ? nguyen + '.' + thapphan : nguyen;
+  }
   if (!chiStack.length && currentInputNum && !editMode) {
-    display.innerHTML = `Tổng: ${formatVN(currentInputNum)}`;
+    display.innerHTML = `Tổng: ${formatVN(currentInputNum * 1000)}`;
     checkChiReady();
     return;
   }
@@ -649,20 +656,13 @@ function renderChiStack() {
     const parts = chiStack.map((n, i) => {
       return `<span class="stack-num" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n * 1000)}</span>`;
     });
-    let newTotal = existingTotal + currentInputNum;
-    let newTotalStr = String(newTotal);
-    if (newTotalStr.includes('.')) {
-      let [nguyen, thapphan] = newTotalStr.split('.');
-      thapphan = thapphan.slice(0, 6).replace(/0+$/, "");
-      newTotalStr = thapphan ? nguyen + '.' + thapphan : nguyen;
-    }
-    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum)} = ${formatVN(newTotalStr)}`;
+    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(totalDisplayStr)}`;
   } else {
     const parts = chiStack.map((n, i) => {
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
-      return `<span class="${className}" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n * 1000)}</span>`;
+      return `<span class=\"${className}\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(n * 1000)}</span>`;
     });
-    display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
+    display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal * 1000)}`;
   }
   checkChiReady();
 }
