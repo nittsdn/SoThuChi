@@ -1,4 +1,4 @@
-// Version: v2.3.1610
+// Version: v2.3.1918
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -554,8 +554,8 @@ chiInput.oninput = () => {
 };
 
 function addChiValue() {
-  let val = chiInput.value;
-  let num = parseVN(val);
+  const val = chiInput.value;
+  const num = parseFloat(val) || 0;
   if (!val || num === 0) return;
   if (editMode) {
     chiStack[editIndex] = num;
@@ -613,49 +613,34 @@ window.enterChiEditMode = function(index) {
 
 function renderChiStack() {
   const display = document.getElementById("chi-stack");
-  let val = chiInput.value;
-  let currentInputNum = val ? parseFloat(val) : 0;
-  // Giới hạn 6 số thập phân cho số nhập
-  if (typeof currentInputNum === 'number') {
-    let str = String(currentInputNum);
-    if (str.includes('.')) {
-      let [nguyen, thapphan] = str.split('.');
-      thapphan = thapphan.slice(0, 6).replace(/0+$/, "");
-      str = thapphan ? nguyen + '.' + thapphan : nguyen;
-    }
-    currentInputNum = parseFloat(str);
-  }
+  // Lấy trực tiếp số từ input number, không lọc, chỉ format
+  const currentInputNum = chiInput.value ? parseVN(chiInput.value) : 0;
   if (!chiStack.length && !currentInputNum) {
     display.innerHTML = "Chưa có số";
     checkChiReady();
     return;
   }
-  let existingTotal = chiStack.reduce((a, b) => a + b, 0);
-  // Giới hạn 6 số thập phân cho tổng gốc
-  let existingTotalStr = String(existingTotal);
-  if (existingTotalStr.includes('.')) {
-    let [nguyen, thapphan] = existingTotalStr.split('.');
-    thapphan = thapphan.slice(0, 6).replace(/0+$/, "");
-    existingTotalStr = thapphan ? nguyen + '.' + thapphan : nguyen;
-  }
-  existingTotal = parseFloat(existingTotalStr);
-  let totalDisplay = existingTotal + currentInputNum;
-  let totalDisplayStr = String(totalDisplay);
-  if (totalDisplayStr.includes('.')) {
-    let [nguyen, thapphan] = totalDisplayStr.split('.');
-    thapphan = thapphan.slice(0, 6).replace(/0+$/, "");
-    totalDisplayStr = thapphan ? nguyen + '.' + thapphan : nguyen;
-  }
+  const existingTotal = chiStack.reduce((a, b) => a + b, 0);
   if (!chiStack.length && currentInputNum && !editMode) {
-    display.innerHTML = `Tổng: ${formatVN(currentInputNum)}`;
+    display.innerHTML = `Tổng: ${formatVN(chiInput.value)}`;
     checkChiReady();
     return;
   }
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
-      return `<span class="stack-num" data-index="${i}" onclick="window.enterChiEditMode(${i})">${formatVN(n)}</span>`;
+      return `<span class=\"stack-num\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(n)}</span>`;
     });
-    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum)} = ${formatVN(totalDisplayStr)}`;
+    let newTotal = existingTotal + currentInputNum;
+    // Cắt phần thập phân về tối đa 6 số, không thêm số 0 thừa
+    let newTotalStr = String(newTotal);
+    if (newTotalStr.includes(".")) {
+      let [nguyen, thapphan] = newTotalStr.split(".");
+      thapphan = thapphan.slice(0, 6);
+      // Xoá số 0 thừa phía sau
+      thapphan = thapphan.replace(/0+$/, "");
+      newTotalStr = thapphan ? nguyen + "." + thapphan : nguyen;
+    }
+    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(chiInput.value)} = ${formatVN(newTotalStr)}`;
   } else {
     const parts = chiStack.map((n, i) => {
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
