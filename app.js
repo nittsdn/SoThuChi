@@ -1,4 +1,4 @@
-// Version: v2.3.1546
+// Version: v2.3.1557
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -948,9 +948,18 @@ function renderThuStack() {
     const parts = thuStack.map((n, i) => {
       return `<span class="stack-num" data-index="${i}" onclick="window.enterThuEditMode(${i})">${formatVN(n)}</span>`;
     });
-    const newTotal = existingTotal + currentInputNum;
-    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(thuInput.value)} = ${formatVN(newTotal)}`;
-    thuAmount = newTotal;
+    let newTotal = existingTotal + currentInputNum;
+    // Cắt phần thập phân về tối đa 6 số, không thêm số 0 thừa
+    let newTotalStr = String(newTotal);
+    if (newTotalStr.includes(".")) {
+      let [nguyen, thapphan] = newTotalStr.split(".");
+      thapphan = thapphan.slice(0, 6);
+      // Xoá số 0 thừa phía sau
+      thapphan = thapphan.replace(/0+$/, "");
+      newTotalStr = thapphan ? nguyen + "." + thapphan : nguyen;
+    }
+    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(thuInput.value)} = ${formatVN(newTotalStr)}`;
+    thuAmount = parseFloat(newTotalStr);
   } else {
     const parts = thuStack.map((n, i) => {
       const className = (thuEditMode && i === thuEditIndex) ? "stack-num editing" : "stack-num";
