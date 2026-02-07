@@ -278,12 +278,12 @@ function updateHeader(chiData, thuData) {
   let html = '';
   
   // CHI SECTION
-  html += '<div class="header-section-title chi-title">CHI</div>';
+  html += '<div class="header-section-title chi-title" id="header-chi-title">CHI<span id="header-chi-notify" style="margin-left:8px;font-size:14px;color:#007bff;font-weight:normal"></span></div>';
   if (!chiData || chiData.length === 0) {
     html += '<div class="header-empty">Chưa có chi tiêu</div>';
   } else {
     const last3Chi = chiData.slice(-3);
-    last3Chi.forEach((chi, idx) => {
+    last3Chi.forEach((chi) => {
       const ngay = chi["Ngày"];
       if (!ngay || !chi.mo_ta_chi) {
         console.warn('⚠️ Chi item thiếu data:', chi);
@@ -291,10 +291,8 @@ function updateHeader(chiData, thuData) {
       }
       const date = parseDateString(ngay);
       const soTien = chi["Số tiền vnđ"] || 0;
-      // Highlight nếu là dòng mới nhất
-      const highlight = (idx === last3Chi.length - 1) ? ' style="background:#ebf3ff;font-weight:bold;border-radius:8px;"' : '';
       html += `
-        <div class="header-item"${highlight}>
+        <div class="header-item">
           <span class="item-desc">${chi.mo_ta_chi}</span>
           <span class="item-amount chi-amount">${formatVN(soTien)}</span>
           <span class="item-date">${formatDateShort(date)}</span>
@@ -302,31 +300,26 @@ function updateHeader(chiData, thuData) {
       `;
     });
   }
-  
   // THU SECTION
-  html += '<div class="header-section-title thu-title">THU</div>';
+  html += '<div class="header-section-title thu-title" id="header-thu-title">THU<span id="header-thu-notify" style="margin-left:8px;font-size:14px;color:#34c759;font-weight:normal"></span></div>';
   if (!thuData || thuData.length === 0) {
     html += '<div class="header-empty">Chưa có thu nhập</div>';
   } else {
-    const last3Thu = thuData.slice(-3);
-    last3Thu.forEach((thu, idx) => {
-      const ngay = thu["Ngày"];
-      if (!ngay || !thu["Mô tả"]) {
-        console.warn('⚠️ Thu item thiếu data:', thu);
-        return;
-      }
-      const date = parseDateString(ngay);
-      const soTien = thu.Thu || 0;
-      // Highlight nếu là dòng mới nhất
-      const highlight = (idx === last3Thu.length - 1) ? ' style="background:#ebf3ff;font-weight:bold;border-radius:8px;"' : '';
-      html += `
-        <div class="header-item"${highlight}>
-          <span class="item-desc">${thu["Mô tả"]}</span>
-          <span class="item-amount thu-amount">${formatVN(soTien)}</span>
-          <span class="item-date">${formatDateShort(date)}</span>
-        </div>
-      `;
-    });
+    const lastThu = thuData[thuData.length - 1];
+    const ngay = lastThu["Ngày"];
+    if (!ngay || !lastThu["Mô tả"]) {
+      console.warn('⚠️ Thu item thiếu data:', lastThu);
+      return;
+    }
+    const date = parseDateString(ngay);
+    const soTien = lastThu.Thu || 0;
+    html += `
+      <div class="header-item">
+        <span class="item-desc">${lastThu["Mô tả"]}</span>
+        <span class="item-amount thu-amount">${formatVN(soTien)}</span>
+        <span class="item-date">${formatDateShort(date)}</span>
+      </div>
+    `;
   }
   
   headerDetails.innerHTML = html;
@@ -734,9 +727,14 @@ document.getElementById("chi-submit").onclick = async () => {
   
   const result = await postData("insert_chi", payload);
   if (result && result.status === 'success') {
-    // Hiển thị thông báo trên header
-    document.getElementById("header-notify").textContent = "Chi - Thêm mới thành công!";
-    setTimeout(() => { document.getElementById("header-notify").textContent = ""; }, 3000);
+    // Hiển thị thông báo cạnh chữ CHI
+    setTimeout(() => {
+      const chiNotify = document.getElementById("header-chi-notify");
+      if (chiNotify) {
+        chiNotify.textContent = "Thêm mới thành công!";
+        setTimeout(() => { chiNotify.textContent = ""; }, 3000);
+      }
+    }, 100); // Đợi updateHeader render xong
     const [chiDataRaw, thuDataRaw] = await Promise.all([
       fetchData("Chi_Tieu_2026"),
       fetchData("Thu_2026")
@@ -1073,9 +1071,14 @@ document.getElementById("thu-submit").onclick = async () => {
   
   const result = await postData("insert_thu", payload);
   if (result && result.status === 'success') {
-    // Hiển thị thông báo trên header
-    document.getElementById("header-notify").textContent = "Thu - Thêm mới thành công!";
-    setTimeout(() => { document.getElementById("header-notify").textContent = ""; }, 3000);
+    // Hiển thị thông báo cạnh chữ THU
+    setTimeout(() => {
+      const thuNotify = document.getElementById("header-thu-notify");
+      if (thuNotify) {
+        thuNotify.textContent = "Thêm mới thành công!";
+        setTimeout(() => { thuNotify.textContent = ""; }, 3000);
+      }
+    }, 100); // Đợi updateHeader render xong
     const [chiDataRaw, thuDataRaw] = await Promise.all([
       fetchData("Chi_Tieu_2026"),
       fetchData("Thu_2026")
