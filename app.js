@@ -1,4 +1,4 @@
-// Version: v2.4.1325
+// Version: v2.4.1332
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -631,7 +631,7 @@ function renderChiStack() {
     const parts = chiStack.map((n, i) => {
       return `<span class=\"stack-num\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(n * 1000)}</span>`;
     });
-    let newTotal = existingTotal + currentInputNum;
+    let newTotal = (existingTotal + currentInputNum) * 1000;
     // Cắt phần thập phân về tối đa 6 số, không thêm số 0 thừa
     let newTotalStr = String(newTotal);
     if (newTotalStr.includes(".")) {
@@ -639,9 +639,11 @@ function renderChiStack() {
       thapphan = thapphan.slice(0, 6);
       // Xoá số 0 thừa phía sau
       thapphan = thapphan.replace(/0+$/, "");
-      newTotalStr = thapphan ? nguyen + "." + thapphan : nguyen;
+      newTotalStr = thapphan ? nguyen + "," + thapphan : nguyen;
+    } else {
+      newTotalStr = newTotalStr;
     }
-    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(parseFloat(newTotalStr) * 1000)}`;
+    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${newTotalStr}`;
   } else {
     const parts = chiStack.map((n, i) => {
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
