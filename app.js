@@ -1,4 +1,4 @@
-// Version: v2.4.1457
+// Version: v2.4.1517
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1121,34 +1121,46 @@ async function loadTongKet() {
     .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi', { sensitivity: 'base' }));
   
   sortedNguonTien.forEach(nguon => {
+    // Tìm snapshot tổng kết gần nhất cho nguồn này
+    let lastSnapshot = null;
+    if (window.tkDetailList && Array.isArray(window.tkDetailList)) {
+      lastSnapshot = window.tkDetailList
+        .filter(row => row.nguon_tien === nguon.nguon_tien)
+        .sort((a, b) => new Date(b.ngay_tk) - new Date(a.ngay_tk))[0];
+    }
+    let lastDate = lastSnapshot ? lastSnapshot.ngay_tk : null;
+    let lastSoDu = lastSnapshot ? (parseFloat(lastSnapshot.so_tien) || 0) : 0;
+
+    // Tính tổng thu mới
+    let thuMoi = 0;
+    if (window.thuList && Array.isArray(window.thuList)) {
+      thuMoi = window.thuList
+        .filter(row => row["Nguồn tiền"] === nguon.nguon_tien && (!lastDate || new Date(row["Ngày"]) > new Date(lastDate)))
+        .reduce((sum, row) => sum + (parseFloat(row["Thu"]) || 0), 0);
+    }
+    // Tính tổng chi mới
+    let chiMoi = 0;
+    if (window.chiList && Array.isArray(window.chiList)) {
+      chiMoi = window.chiList
+        .filter(row => row["Nguồn tiền"] === nguon.nguon_tien && (!lastDate || new Date(row["Ngày"]) > new Date(lastDate)))
+        .reduce((sum, row) => sum + (parseFloat(row["Số tiền vnđ"]) || 0), 0);
+    }
+    let tamTinh = lastSoDu + thuMoi - chiMoi;
+
     const div = document.createElement("div");
     div.className = "tk-input-row";
     div.innerHTML = `
       <label>${nguon.nguon_tien}</label>
-      <input type="text" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0">
+      <input type="number" step="0.000001" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0">
+      <div class="tk-tamtinh" style="font-size:12px;color:#888;margin-top:2px;margin-left:2px;">Tạm tính: <span>${formatVN(tamTinh)}</span> VNĐ</div>
     `;
     inputsContainer.appendChild(div);
-    
+
     const input = div.querySelector("input");
     input.oninput = (e) => {
-      let oldValue = input.value;
-      let oldPos = input.selectionStart;
-      // Chỉ cho phép số, dấu chấm, dấu phẩy
-      let val = oldValue.replace(/[^\d.,]/g, "");
-      // Chỉ giữ 1 dấu phẩy (thập phân), loại các dấu phẩy thừa
-      let parts = val.split(",");
-      if (parts.length > 2) {
-        val = parts[0] + "," + parts.slice(1).join("");
-      }
-      // Format lại value
-      let num = parseVN(val);
-      let formatted = val ? formatVN(num, 2) : "";
-      input.value = formatted;
+      let val = input.value;
+      let num = parseFloat(val) || 0;
       tkInputs[nguon.nguon_tien] = num;
-      // Giữ vị trí con trỏ gần đúng (nếu user nhập ở cuối sẽ không bị nhảy)
-      let diff = formatted.length - oldValue.length;
-      let newPos = oldPos + diff;
-      setTimeout(() => { input.setSelectionRange(newPos, newPos); }, 0);
     };
   chiInput.oninput = () => {
     let oldValue = chiInput.value;
