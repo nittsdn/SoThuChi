@@ -1,4 +1,4 @@
-// Version: v2.4.1454
+// Version: v2.4.1609
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1160,11 +1160,11 @@ async function loadTongKet() {
     const div = document.createElement("div");
     div.className = "tk-input-row";
     div.innerHTML = `
-      <label class="tk-label">${nguon.nguon_tien}</label>
-      <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="tk-amount-input calc-input" placeholder="0">
-      <div class="tk-tamtinh-row">
-        <span class="tk-tamtinh-label">Tạm tính:</span>
-        <span class="tk-tamtinh-value">${formatVN(tamTinh)}</span>
+      <label>${nguon.nguon_tien}</label>
+      <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0">
+      <div class="tk-tamtinh-row" style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
+        <div class="tk-tamtinh-label" style="min-width:80px;max-width:120px;width:100px;text-align:center;color:#888;">Tạm tính:</div>
+        <div class="tk-tamtinh-value" style="min-width:110px;max-width:130px;width:120px;text-align:right;font-weight:bold;color:#888;">${formatVN(tamTinh)}</div>
       </div>
     `;
     inputsContainer.appendChild(div);
