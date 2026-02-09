@@ -1158,13 +1158,17 @@ async function loadTongKet() {
     let tamTinh = lastSoDu + thuMoi - chiMoi;
 
     const div = document.createElement("div");
-    div.className = "tk-input-row";
+    div.className = "tk-input-row-group";
     div.innerHTML = `
-      <label>${nguon.nguon_tien}</label>
-      <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0">
-      <div class="tk-tamtinh-row" style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
-        <div class="tk-tamtinh-label" style="min-width:80px;max-width:120px;width:100px;text-align:center;color:#888;">Tạm tính:</div>
-        <div class="tk-tamtinh-value" style="min-width:110px;max-width:130px;width:120px;text-align:right;font-weight:bold;color:#888;">${formatVN(tamTinh)}</div>
+      <div class="tk-input-row">
+        <div class="tk-label">${nguon.nguon_tien}</div>
+        <div class="tk-input-wrap">
+          <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0">
+        </div>
+      </div>
+      <div class="tk-tamtinh-row">
+        <div class="tk-tamtinh-label">Tạm tính:</div>
+        <div class="tk-tamtinh-value">${formatVN(tamTinh)}</div>
       </div>
     `;
     inputsContainer.appendChild(div);

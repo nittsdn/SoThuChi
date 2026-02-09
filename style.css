@@ -1,3 +1,43 @@
+.tk-input-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0;
+}
+.tk-label {
+  width: 30%;
+  text-align: left;
+  font-weight: 500;
+}
+.tk-input-wrap {
+  width: 70%;
+  text-align: right;
+}
+.tk-input-wrap input {
+  width: 90%;
+  text-align: right;
+}
+.tk-tamtinh-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-top: 2px;
+}
+.tk-tamtinh-label {
+  width: 40%;
+  text-align: right;
+  color: #888;
+}
+.tk-tamtinh-value {
+  width: 60%;
+  text-align: right;
+  font-weight: bold;
+  color: #888;
+}
+.tk-input-row-group {
+  border-bottom: 1px solid #eee;
+  padding: 8px 0 4px 0;
+}
 /* =========================
    CSS VARIABLES
 ========================= */
