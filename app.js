@@ -1,4 +1,4 @@
-// Version: v2.4.1301
+// Version: v2.4.1325
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -622,14 +622,14 @@ function renderChiStack() {
   }
   const existingTotal = chiStack.reduce((a, b) => a + b, 0);
   if (!chiStack.length && currentInputNum && !editMode) {
-    display.innerHTML = `Tổng: ${formatVN(chiInput.value)}`;
+    display.innerHTML = `Tổng: ${formatVN(currentInputNum * 1000)}`;
     checkChiReady();
     return;
   }
 
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
-      return `<span class=\"stack-num\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(n)}</span>`;
+      return `<span class=\"stack-num\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(n * 1000)}</span>`;
     });
     let newTotal = existingTotal + currentInputNum;
     // Cắt phần thập phân về tối đa 6 số, không thêm số 0 thừa
@@ -641,13 +641,13 @@ function renderChiStack() {
       thapphan = thapphan.replace(/0+$/, "");
       newTotalStr = thapphan ? nguyen + "." + thapphan : nguyen;
     }
-    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(chiInput.value)} = ${formatVN(newTotalStr)}`;
+    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${formatVN(parseFloat(newTotalStr) * 1000)}`;
   } else {
     const parts = chiStack.map((n, i) => {
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
-      return `<span class=\"${className}\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(n)}</span>`;
+      return `<span class=\"${className}\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(n * 1000)}</span>`;
     });
-    display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal)}`;
+    display.innerHTML = `Tổng: ${parts.join(" + ")} = ${formatVN(existingTotal * 1000)}`;
   }
   checkChiReady();
 }
