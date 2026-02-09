@@ -1,4 +1,4 @@
-// Version: v2.4.1517
+// Version: v2.4.1538
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1103,7 +1103,17 @@ let tkSoDuLT = 0;
 document.getElementById("tk-start").onclick = () => {
   document.getElementById("tk-form").style.display = "block";
   document.getElementById("tk-start").style.display = "none";
-  loadTongKet();
+  // Lấy dữ liệu tk_detail, Chi_Tieu_2026, Thu_2026 trước khi load tổng kết
+  Promise.all([
+    fetchData('tk_detail'),
+    fetchData('Chi_Tieu_2026'),
+    fetchData('Thu_2026')
+  ]).then(([tkDetail, chi, thu]) => {
+    window.tkDetailList = tkDetail;
+    window.chiList = chi;
+    window.thuList = thu;
+    loadTongKet();
+  });
 };
 
 async function loadTongKet() {
