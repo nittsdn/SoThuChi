@@ -1,4 +1,4 @@
-// Version: v2.3.1918
+// Version: v2.4.1301
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -614,7 +614,7 @@ window.enterChiEditMode = function(index) {
 function renderChiStack() {
   const display = document.getElementById("chi-stack");
   // Lấy trực tiếp số từ input number, không lọc, chỉ format
-  const currentInputNum = chiInput.value ? parseVN(chiInput.value) : 0;
+  const currentInputNum = chiInput.value ? parseFloat(chiInput.value) : 0;
   if (!chiStack.length && !currentInputNum) {
     display.innerHTML = "Chưa có số";
     checkChiReady();
@@ -626,6 +626,7 @@ function renderChiStack() {
     checkChiReady();
     return;
   }
+
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
       return `<span class=\"stack-num\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(n)}</span>`;
