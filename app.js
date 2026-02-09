@@ -1,4 +1,4 @@
-// Version: v2.4.1432
+// Version: v2.4.1444
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -629,25 +629,10 @@ function renderChiStack() {
 
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
-      // Làm tròn từng số trước khi hiển thị
-      const rounded = Math.round(n * 1000 * 1000) / 1000;
-      return `<span class=\"stack-num\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(rounded)}</span>`;
+      return `<span class=\"stack-num\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN((n * 1000).toFixed(6))}</span>`;
     });
-    let newTotal = Math.round((existingTotal + currentInputNum) * 1000 * 1000) / 1000;
-    // Cắt phần thập phân về tối đa 6 số, không thêm số 0 thừa
-    let newTotalStr = String(newTotal);
-    if (newTotalStr.includes(".")) {
-      let [nguyen, thapphan] = newTotalStr.split(".");
-      thapphan = thapphan.slice(0, 6);
-      // Xoá số 0 thừa phía sau
-      thapphan = thapphan.replace(/0+$/, "");
-      newTotalStr = thapphan ? nguyen + "," + thapphan : nguyen;
-    } else {
-      newTotalStr = newTotalStr;
-    }
-    // Làm tròn số nhập
-    const roundedInput = Math.round(currentInputNum * 1000 * 1000) / 1000;
-    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(roundedInput)} = ${newTotalStr}`;
+    let newTotal = (existingTotal + currentInputNum) * 1000;
+    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN((currentInputNum * 1000).toFixed(6))} = ${formatVN(newTotal.toFixed(6))}`;
   } else {
     const parts = chiStack.map((n, i) => {
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
