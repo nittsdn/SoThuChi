@@ -1,15 +1,19 @@
-// Version: v2.4.1444
+// Version: v2.4.1450
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
 // ================= UTIL =================
 function formatVN(num, decimals = 0) {
-  if (num === null || num === undefined || isNaN(num)) return "0";
-  let str = String(num);
+  if (num === null || num === undefined || (typeof num === 'number' && isNaN(num))) return "0";
+  // Nếu là số, ép về chuỗi với số lẻ mong muốn
+  let str = typeof num === 'number' ? num.toFixed(6) : String(num);
+  // Tách phần nguyên và thập phân
   let [nguyen, thapphan] = str.split(".");
+  // Thêm dấu chấm ngăn cách nghìn
   const nguyenFmt = nguyen.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  // Đổi dấu thập phân sang kiểu Việt Nam
   if (thapphan !== undefined) {
-    thapphan = thapphan.slice(0, 6);
+    // Loại bỏ số 0 thừa phía sau
     thapphan = thapphan.replace(/0+$/, "");
     return thapphan ? nguyenFmt + "," + thapphan : nguyenFmt;
   } else {
