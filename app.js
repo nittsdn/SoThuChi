@@ -1,4 +1,4 @@
-// Version: v2.4.1424
+// Version: v2.4.1432
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -629,7 +629,9 @@ function renderChiStack() {
 
   if (chiStack.length && currentInputNum && !editMode) {
     const parts = chiStack.map((n, i) => {
-      return `<span class=\"stack-num\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(n * 1000)}</span>`;
+      // Làm tròn từng số trước khi hiển thị
+      const rounded = Math.round(n * 1000 * 1000) / 1000;
+      return `<span class=\"stack-num\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(rounded)}</span>`;
     });
     let newTotal = Math.round((existingTotal + currentInputNum) * 1000 * 1000) / 1000;
     // Cắt phần thập phân về tối đa 6 số, không thêm số 0 thừa
@@ -643,7 +645,9 @@ function renderChiStack() {
     } else {
       newTotalStr = newTotalStr;
     }
-    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(currentInputNum * 1000)} = ${newTotalStr}`;
+    // Làm tròn số nhập
+    const roundedInput = Math.round(currentInputNum * 1000 * 1000) / 1000;
+    display.innerHTML = `Tổng: ${parts.join(" + ")} + ${formatVN(roundedInput)} = ${newTotalStr}`;
   } else {
     const parts = chiStack.map((n, i) => {
       const className = (editMode && i === editIndex) ? "stack-num editing" : "stack-num";
