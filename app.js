@@ -1,4 +1,4 @@
-// Version: v2.4.1628
+// Version: v2.4.1639
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1163,8 +1163,8 @@ async function loadTongKet() {
       <label class="tk-label">${nguon.nguon_tien}</label>
       <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="tk-amount-input calc-input" placeholder="0">
       <div class="tk-tamtinh-row">
-        <div class="tk-tamtinh-label">Tạm tính:</div>
-        <div class="tk-tamtinh-value">${formatVN(tamTinh)}</div>
+        <span class="tk-tamtinh-label">Tạm tính:</span>
+        <span class="tk-tamtinh-value">${formatVN(tamTinh)}</span>
       </div>
     `;
     inputsContainer.appendChild(div);

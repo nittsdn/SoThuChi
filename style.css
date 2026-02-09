@@ -41,29 +41,31 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: flex-end;
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
-  gap: 8px;
+  justify-content: space-between;
+  margin-top: 2px;
+  margin-bottom: 18px;
+  width: 220px;
+  max-width: 100%;
+  clear: both;
+  padding-left: 150px;
 }
 .tk-tamtinh-label {
-  min-width: 100px;
-  max-width: 120px;
-  width: 110px;
-  text-align: right;
+  flex: 0 0 auto;
   color: #888;
   font-size: 14px;
   font-weight: 400;
   padding-right: 8px;
 }
 .tk-tamtinh-value {
-  min-width: 120px;
+  flex: 1 1 auto;
+  min-width: 90px;
   max-width: 140px;
-  width: 130px;
+  width: 110px;
   text-align: right;
   font-weight: bold;
   color: #888;
   font-size: 16px;
+  display: inline-block;
 }
 /* =========================
    CSS VARIABLES
@@ -725,10 +727,13 @@ input, select, button {
 
 .tk-input-row {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
-  margin-bottom: 16px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+  width: 100%;
+  position: relative;
+}
 }
 
 .tk-input-row label {
