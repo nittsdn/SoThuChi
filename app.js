@@ -1,4 +1,4 @@
-// Version: v2.4.1332
+// Version: v2.4.1424
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -631,7 +631,7 @@ function renderChiStack() {
     const parts = chiStack.map((n, i) => {
       return `<span class=\"stack-num\" data-index=\"${i}\" onclick=\"window.enterChiEditMode(${i})\">${formatVN(n * 1000)}</span>`;
     });
-    let newTotal = (existingTotal + currentInputNum) * 1000;
+    let newTotal = Math.round((existingTotal + currentInputNum) * 1000 * 1000) / 1000;
     // Cắt phần thập phân về tối đa 6 số, không thêm số 0 thừa
     let newTotalStr = String(newTotal);
     if (newTotalStr.includes(".")) {
