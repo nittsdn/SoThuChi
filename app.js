@@ -1,4 +1,4 @@
-// Version: v2.4.1538
+// Version: v2.4.1609
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1161,16 +1161,34 @@ async function loadTongKet() {
     div.className = "tk-input-row";
     div.innerHTML = `
       <label>${nguon.nguon_tien}</label>
-      <input type="number" step="0.000001" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0">
-      <div class="tk-tamtinh" style="font-size:12px;color:#888;margin-top:2px;margin-left:2px;">Tạm tính: <span>${formatVN(tamTinh)}</span> VNĐ</div>
+      <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0">
+      <div class="tk-tamtinh-row" style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
+        <div class="tk-tamtinh-label" style="min-width:80px;max-width:120px;width:100px;text-align:center;color:#888;">Tạm tính:</div>
+        <div class="tk-tamtinh-value" style="min-width:110px;max-width:130px;width:120px;text-align:right;font-weight:bold;color:#888;">${formatVN(tamTinh)}</div>
+      </div>
     `;
     inputsContainer.appendChild(div);
 
     const input = div.querySelector("input");
     input.oninput = (e) => {
-      let val = input.value;
-      let num = parseFloat(val) || 0;
+      let oldValue = input.value;
+      let oldPos = input.selectionStart;
+      // Chỉ cho phép số, dấu chấm, dấu phẩy
+      let val = oldValue.replace(/[^\d.,]/g, "");
+      // Chỉ giữ 1 dấu phẩy (thập phân), loại các dấu phẩy thừa
+      let parts = val.split(",");
+      if (parts.length > 2) {
+        val = parts[0] + "," + parts.slice(1).join("");
+      }
+      // Format lại value
+      let num = parseVN(val);
+      let formatted = val ? formatVN(num, 2) : "";
+      input.value = formatted;
       tkInputs[nguon.nguon_tien] = num;
+      // Giữ vị trí con trỏ gần đúng (nếu user nhập ở cuối sẽ không bị nhảy)
+      let diff = formatted.length - oldValue.length;
+      let newPos = oldPos + diff;
+      setTimeout(() => { input.setSelectionRange(newPos, newPos); }, 0);
     };
   chiInput.oninput = () => {
     let oldValue = chiInput.value;
