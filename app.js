@@ -1,4 +1,4 @@
-// Version: v2.4.1550
+// Version: v2.4.1630
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -286,6 +286,8 @@ function updateHeader(chiData, thuData) {
   const soDuLT = (chiData && chiData.length > 0) 
     ? (chiData[chiData.length - 1]["Số dư lý thuyết"] || 0)
     : 0;
+  
+  tkSoDuLT = soDuLT;  // Lưu vào biến global cho phần Tổng kết
   
   document.querySelector('.header-summary .balance-tag').textContent = 
     `Số dư LT: ${formatVN(soDuLT)}`;
@@ -1117,11 +1119,7 @@ document.getElementById("tk-start").onclick = () => {
 };
 
 async function loadTongKet() {
-  const data = await fetchData("Chi_Tieu_2026");
-  if (data && data.length > 0) {
-    const lastChi = data[data.length - 1];
-    tkSoDuLT = lastChi["Số dư lý thuyết"] || 0;
-  }
+  // Số dư lý thuyết đã được lưu từ updateHeader(), không cần fetch lại
   
   const inputsContainer = document.getElementById("tk-inputs");
   inputsContainer.innerHTML = "";
