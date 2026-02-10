@@ -1,4 +1,4 @@
-// Version: v2.4.1609
+// Version: v2.4.1538
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -541,7 +541,7 @@ const chiClearBtn = document.getElementById("chi-clear");
 chiInput.oninput = () => {
   // Không cần lọc ký tự, chỉ lấy giá trị trực tiếp
   let val = chiInput.value;
-  let num = parseVN(val);
+  let num = parseFloat(val) || 0;
   if (editMode) {
     if (val && num !== 0) {
       chiStack[editIndex] = num;
