@@ -1,4 +1,4 @@
-// Version: v2.4.1630
+// Version: v3.0.1003
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1648,6 +1648,23 @@ function resetSettings(type) {
   console.log(`✅ ${type} settings reset complete`);
 }
 
+// ================= TAB BAR =================
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tabId).classList.add('active');
+  document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+  if (tabId === 'chi') setTimeout(() => chiInput.focus(), 50);
+  if (tabId === 'thu') setTimeout(() => thuInput.focus(), 50);
+}
+
+function initTabBar() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+  console.log('✅ Tab bar initialized');
+}
+
 // ================= INIT =================
 window.onload = async () => {
   console.log('🚀 App starting...');
@@ -1706,7 +1723,8 @@ window.onload = async () => {
   populateThuDropdowns();
   
   initModalEventListeners();
-  initHeaderToggle(); // ← THÊM DÒNG NÀY
+  initHeaderToggle();
+  initTabBar();
 
   console.log('✅ App initialized successfully');
 };

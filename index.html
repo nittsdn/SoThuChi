@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sổ Thu Chi</title>
-    <link rel="stylesheet" href="style.css?v=2401630" />
+    <link rel="stylesheet" href="style.css?v=3001003" />
 </head>
 <body>
 
@@ -29,107 +29,134 @@
         <div class="header-details" id="header-details">
             <!-- Dynamic content from JS -->
         </div>
-        <div class="version">v2.5.1630</div>
+        <div class="version">v3.0.1003</div>
     </div>
 
-    <!-- ================= CHI ================= -->
-    <div class="card card-chi">
-        <div class="card-header">
-            <div class="card-title red-text">CHI</div>
-            <button class="btn-settings-icon" id="chi-settings-btn">⚙️</button>
-        </div>
+    <!-- ================= TAB CONTENT ================= -->
+    <div class="tab-content">
 
-        <div class="date-row">
-            <button class="btn-square" id="chi-date-prev">&lt;</button>
-            <div class="date-display-wrapper">
-                <button class="btn-date-display" id="chi-date-display"></button>
-                <input type="date" class="date-input-overlay" id="chi-date-input">
+        <!-- TAB: CHI -->
+        <div id="tab-chi" class="tab-panel active">
+            <div class="card card-chi">
+                <div class="card-header">
+                    <div class="card-title red-text">CHI</div>
+                    <button class="btn-settings-icon" id="chi-settings-btn">⚙️</button>
+                </div>
+
+                <div class="date-row">
+                    <button class="btn-square" id="chi-date-prev">&lt;</button>
+                    <div class="date-display-wrapper">
+                        <button class="btn-date-display" id="chi-date-display"></button>
+                        <input type="date" class="date-input-overlay" id="chi-date-input">
+                    </div>
+                    <button class="btn-square" id="chi-date-next">&gt;</button>
+                </div>
+
+                <div class="calc-row">
+                    <input class="calc-input" id="chi-input" type="number" step="0.000001" placeholder="VNĐ">
+                    <button class="btn-square btn-blue" id="chi-add">+</button>
+                    <button class="btn-square btn-delete" id="chi-clear">↻</button>
+                </div>
+
+                <div class="chi-preview" id="chi-preview"></div>
+
+                <div class="stack-display" id="chi-stack">Chưa có số</div>
+
+                <div class="chip-grid" id="chi-chips"></div>
+
+                <select class="input-std" id="chi-desc-dropdown">
+                    <option value="">-- Mô tả khác --</option>
+                </select>
+
+                <select class="input-std" id="chi-source">
+                    <option value="">-- Nguồn tiền --</option>
+                </select>
+
+                <button class="btn-submit btn-red" id="chi-submit" disabled>
+                    Thêm chi
+                </button>
             </div>
-            <button class="btn-square" id="chi-date-next">&gt;</button>
         </div>
 
-        <div class="calc-row">
-            <input class="calc-input" id="chi-input" type="number" step="0.000001" placeholder="VNĐ">
-            <button class="btn-square btn-blue" id="chi-add">+</button>
-            <button class="btn-square btn-delete" id="chi-clear">↻</button>
-        </div>
+        <!-- TAB: THU -->
+        <div id="tab-thu" class="tab-panel">
+            <div class="card card-thu">
+                <div class="card-header">
+                    <div class="card-title green-text">THU</div>
+                    <button class="btn-settings-icon" id="thu-settings-btn">⚙️</button>
+                </div>
 
-        <div class="chi-preview" id="chi-preview"></div>
+                <div class="date-row">
+                    <button class="btn-square" id="thu-date-prev">&lt;</button>
+                    <div class="date-display-wrapper">
+                        <button class="btn-date-display" id="thu-date-display"></button>
+                        <input type="date" class="date-input-overlay" id="thu-date-input">
+                    </div>
+                    <button class="btn-square" id="thu-date-next">&gt;</button>
+                </div>
 
-        <div class="stack-display" id="chi-stack">Chưa có số</div>
+                <div class="calc-row">
+                    <input class="calc-input" id="thu-input" type="number" step="0.01" placeholder="VNĐ">
+                    <button class="btn-square btn-blue" id="thu-add">+</button>
+                    <button class="btn-square btn-delete" id="thu-clear">↻</button>
+                </div>
 
-        <div class="chip-grid" id="chi-chips"></div>
+                <div class="stack-display" id="thu-display">Chưa có số</div>
 
-        <select class="input-std" id="chi-desc-dropdown">
-            <option value="">-- Mô tả khác --</option>
-        </select>
+                <div class="chip-grid" id="thu-chips"></div>
 
-        <select class="input-std" id="chi-source">
-            <option value="">-- Nguồn tiền --</option>
-        </select>
+                <input class="input-std" id="thu-desc-input" placeholder="Mô tả thu">
 
-        <button class="btn-submit btn-red" id="chi-submit" disabled>
-            Thêm chi
-        </button>
-    </div>
+                <select class="input-std" id="thu-loai">
+                    <option value="">-- Loại thu --</option>
+                </select>
 
-    <!-- ================= THU ================= -->
-    <div class="card card-thu">
-        <div class="card-header">
-            <div class="card-title green-text">THU</div>
-            <button class="btn-settings-icon" id="thu-settings-btn">⚙️</button>
-        </div>
+                <select class="input-std" id="thu-source">
+                    <option value="">-- Nguồn tiền --</option>
+                </select>
 
-        <div class="date-row">
-            <button class="btn-square" id="thu-date-prev">&lt;</button>
-            <div class="date-display-wrapper">
-                <button class="btn-date-display" id="thu-date-display"></button>
-                <input type="date" class="date-input-overlay" id="thu-date-input">
+                <button class="btn-submit btn-green" id="thu-submit" disabled>
+                    Thêm thu
+                </button>
             </div>
-            <button class="btn-square" id="thu-date-next">&gt;</button>
         </div>
 
-        <div class="calc-row">
-          <input class="calc-input" id="thu-input" type="number" step="0.01" placeholder="VNĐ">
-          <button class="btn-square btn-blue" id="thu-add">+</button>
-          <button class="btn-square btn-delete" id="thu-clear">↻</button>
+        <!-- TAB: TỔNG KẾT -->
+        <div id="tab-tk" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title blue-text">TỔNG KẾT</div>
+                </div>
+
+                <button class="btn-submit btn-blue" id="tk-start">Làm tổng kết</button>
+
+                <div id="tk-form" style="display: none;">
+                    <div class="tk-period">Nhập số dư thực tế:</div>
+                    <div id="tk-inputs"></div>
+                    <button class="btn-submit btn-gray" id="tk-check">Kiểm tra</button>
+                    <div id="tk-result" style="display: none;"></div>
+                    <button class="btn-submit btn-blue" id="tk-confirm" style="display: none;">Xác nhận tổng kết</button>
+                </div>
+            </div>
         </div>
 
-        <div class="stack-display" id="thu-display">Chưa có số</div>
+    </div>
 
-        <div class="chip-grid" id="thu-chips"></div>
-
-        <input class="input-std" id="thu-desc-input" placeholder="Mô tả thu">
-
-        <select class="input-std" id="thu-loai">
-            <option value="">-- Loại thu --</option>
-        </select>
-
-        <select class="input-std" id="thu-source">
-            <option value="">-- Nguồn tiền --</option>
-        </select>
-
-        <button class="btn-submit btn-green" id="thu-submit" disabled>
-            Thêm thu
+    <!-- ================= TAB BAR ================= -->
+    <nav class="tab-bar">
+        <button class="tab-btn tab-btn-chi active" data-tab="chi">
+            <span class="tab-icon">💸</span>
+            <span class="tab-label">CHI</span>
         </button>
-    </div>
-
-    <!-- ================= TỔNG KẾT ================= -->
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title blue-text">TỔNG KẾT</div>
-        </div>
-
-        <button class="btn-submit btn-blue" id="tk-start">Làm tổng kết</button>
-
-        <div id="tk-form" style="display: none;">
-            <div class="tk-period">Nhập số dư thực tế:</div>
-            <div id="tk-inputs"></div>
-            <button class="btn-submit btn-gray" id="tk-check">Kiểm tra</button>
-            <div id="tk-result" style="display: none;"></div>
-            <button class="btn-submit btn-blue" id="tk-confirm" style="display: none;">Xác nhận tổng kết</button>
-        </div>
-    </div>
+        <button class="tab-btn tab-btn-thu" data-tab="thu">
+            <span class="tab-icon">💰</span>
+            <span class="tab-label">THU</span>
+        </button>
+        <button class="tab-btn tab-btn-tk" data-tab="tk">
+            <span class="tab-icon">📊</span>
+            <span class="tab-label">TỔNG KẾT</span>
+        </button>
+    </nav>
 
     <!-- ================= MODAL POPUP FOR SETTINGS ================= -->
     <!-- CHI Settings Modal -->
@@ -202,6 +229,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=2401630"></script>
+    <script src="app.js?v=3001003"></script>
 </body>
 </html>
