@@ -1,4 +1,4 @@
-// Version: v3.0.1003
+// Version: v3.0.1325
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1101,67 +1101,284 @@ document.getElementById("thu-submit").onclick = async () => {
 // ================= TỔNG KẾT (SUMMARY) =================
 let tkInputs = {};
 let tkSoDuLT = 0;
+let tkEditedChiIds = new Set();
+let tkEditedThuIds = new Set();
+let tkTamTinh = {};
+let tkLastDate = null;
 
-document.getElementById("tk-start").onclick = () => {
-  document.getElementById("tk-form").style.display = "block";
-  document.getElementById("tk-start").style.display = "none";
-  // Lấy dữ liệu tk_detail, Chi_Tieu_2026, Thu_2026 trước khi load tổng kết
-  Promise.all([
+function getTkLastDate() {
+  if (!window.tkDetailList || !Array.isArray(window.tkDetailList) || !window.tkDetailList.length) return null;
+  const dates = window.tkDetailList.map(r => r.ngay_tk).filter(Boolean).map(d => new Date(d));
+  if (!dates.length) return null;
+  return new Date(Math.max(...dates));
+}
+
+async function loadTkData() {
+  const [tkDetail, chi, thu] = await Promise.all([
     fetchData('tk_detail'),
     fetchData('Chi_Tieu_2026'),
     fetchData('Thu_2026')
-  ]).then(([tkDetail, chi, thu]) => {
-    window.tkDetailList = tkDetail;
-    window.chiList = chi;
-    window.thuList = thu;
-    loadTongKet();
-  });
+  ]);
+  window.tkDetailList = tkDetail;
+  window.tkChiList = chi.filter(item => item.IDChi && item.IDChi.trim());
+  window.tkThuList = thu.filter(item => item.IDThu && item.IDThu.trim());
+}
+
+document.getElementById("tk-start").onclick = async () => {
+  document.getElementById("tk-form").style.display = "block";
+  document.getElementById("tk-start").style.display = "none";
+  document.getElementById("tk-refresh").style.display = "block";
+  await loadTkData();
+  tkLastDate = getTkLastDate();
+  renderChiChuaTK();
+  renderThuChuaTK();
+  loadTongKet();
 };
 
-async function loadTongKet() {
-  // Số dư lý thuyết đã được lưu từ updateHeader(), không cần fetch lại
-  
+document.getElementById("tk-refresh").onclick = async () => {
+  await loadTkData();
+  tkLastDate = getTkLastDate();
+  renderChiChuaTK();
+  renderThuChuaTK();
+  loadTongKet();
+};
+
+function renderChiChuaTK() {
+  const section = document.getElementById("tk-chi-section");
+  const list = document.getElementById("tk-chi-list");
+  const countEl = document.getElementById("tk-chi-count");
+
+  const rows = (window.tkChiList || []).filter(row => {
+    if (!tkLastDate) return true;
+    return new Date(row["Ngày"]) > tkLastDate;
+  });
+
+  countEl.textContent = `(${rows.length} dòng)`;
+  section.style.display = rows.length ? "block" : "none";
+  list.innerHTML = "";
+
+  rows.forEach(row => {
+    const id = row["IDChi"];
+    const isEdited = tkEditedChiIds.has(id);
+    const nghinVnd = row["Nghìn VND"] !== undefined ? String(row["Nghìn VND"]) : "";
+    const soTienDisplay = formatVN(parseFloat(row["Số tiền vnđ"]) || 0);
+    const rowEl = document.createElement("div");
+    rowEl.className = "tk-list-row" + (isEdited ? " tk-row-edited" : "");
+    rowEl.dataset.id = id;
+
+    const moTaOptions = loaiChiList.filter(l => l.active)
+      .sort((a, b) => a.mo_ta_chi.localeCompare(b.mo_ta_chi, 'vi'))
+      .map(l => `<option value="${l.mo_ta_chi}" ${l.mo_ta_chi === row["mo_ta_chi"] ? "selected" : ""}>${l.mo_ta_chi}</option>`)
+      .join("");
+    const nguonOptions = nguonTienList.filter(n => n.active)
+      .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'))
+      .map(n => `<option value="${n.nguon_tien}" ${n.nguon_tien === row["Nguồn tiền"] ? "selected" : ""}>${n.nguon_tien}</option>`)
+      .join("");
+
+    rowEl.innerHTML = `
+      <div class="tk-list-view">
+        <div class="tk-list-cell tk-cell-ngay">${row["Ngày"] || ""}</div>
+        <div class="tk-list-cell tk-cell-mota">${row["mo_ta_chi"] || ""}</div>
+        <div class="tk-list-cell tk-cell-nguon">${row["Nguồn tiền"] || ""}</div>
+        <div class="tk-list-cell tk-cell-nghin">${nghinVnd}</div>
+        <div class="tk-list-cell tk-cell-sotien red-text">${soTienDisplay}</div>
+        <button class="tk-btn-edit" title="Sửa">✏️</button>
+      </div>
+      <div class="tk-list-edit" style="display:none;">
+        <div class="tk-edit-row"><label>Ngày</label><input type="date" class="input-std tk-edit-ngay" value="${row["Ngày"] || ""}"></div>
+        <div class="tk-edit-row"><label>Mô tả</label><select class="input-std tk-edit-mota">${moTaOptions}</select></div>
+        <div class="tk-edit-row"><label>Nguồn tiền</label><select class="input-std tk-edit-nguon">${nguonOptions}</select></div>
+        <div class="tk-edit-row">
+          <label>Nghìn VND</label>
+          <input type="text" class="input-std tk-edit-nghin" value="${nghinVnd}" placeholder="VD: =4+1,5">
+          <span class="tk-edit-preview red-text"></span>
+        </div>
+        <div class="tk-edit-actions">
+          <button class="btn-submit btn-green tk-btn-confirm-edit" style="flex:1;margin-top:0;">✅ Xác nhận</button>
+          <button class="btn-submit btn-gray tk-btn-cancel" style="flex:1;margin-top:0;">❌ Hủy</button>
+        </div>
+      </div>
+    `;
+
+    const nghinInput = rowEl.querySelector(".tk-edit-nghin");
+    const previewEl = rowEl.querySelector(".tk-edit-preview");
+    nghinInput.oninput = () => {
+      try {
+        const cleaned = nghinInput.value.replace(/^=/, "").replace(/,/g, ".");
+        const computed = Function('"use strict"; return (' + cleaned + ')')();
+        previewEl.textContent = isFinite(computed) ? `= ${formatVN(computed * 1000)}` : "";
+      } catch(e) { previewEl.textContent = ""; }
+    };
+    nghinInput.dispatchEvent(new Event("input"));
+
+    rowEl.querySelector(".tk-btn-edit").onclick = () => {
+      rowEl.querySelector(".tk-list-view").style.display = "none";
+      rowEl.querySelector(".tk-list-edit").style.display = "block";
+    };
+    rowEl.querySelector(".tk-btn-cancel").onclick = () => {
+      rowEl.querySelector(".tk-list-view").style.display = "flex";
+      rowEl.querySelector(".tk-list-edit").style.display = "none";
+    };
+    rowEl.querySelector(".tk-btn-confirm-edit").onclick = async () => {
+      const payload = {
+        id_chi: id,
+        ngay: rowEl.querySelector(".tk-edit-ngay").value,
+        mo_ta_chi: rowEl.querySelector(".tk-edit-mota").value,
+        nguon_tien: rowEl.querySelector(".tk-edit-nguon").value,
+        so_tien_nghin: rowEl.querySelector(".tk-edit-nghin").value
+      };
+      const result = await postData("update_chi", payload);
+      if (result && result.status === "success") {
+        tkEditedChiIds.add(id);
+        showToast("Đã cập nhật chi thành công");
+        const chi = await fetchData('Chi_Tieu_2026');
+        window.tkChiList = chi.filter(item => item.IDChi && item.IDChi.trim());
+        renderChiChuaTK();
+        loadTongKet();
+      }
+    };
+    list.appendChild(rowEl);
+  });
+}
+
+function renderThuChuaTK() {
+  const section = document.getElementById("tk-thu-section");
+  const list = document.getElementById("tk-thu-list");
+  const countEl = document.getElementById("tk-thu-count");
+
+  const rows = (window.tkThuList || []).filter(row => {
+    if (!tkLastDate) return true;
+    return new Date(row["Ngày"]) > tkLastDate;
+  });
+
+  countEl.textContent = `(${rows.length} dòng)`;
+  section.style.display = rows.length ? "block" : "none";
+  list.innerHTML = "";
+
+  rows.forEach(row => {
+    const id = row["IDThu"];
+    const isEdited = tkEditedThuIds.has(id);
+    const soTienDisplay = formatVN(parseFloat(row["Thu"]) || 0);
+    const rowEl = document.createElement("div");
+    rowEl.className = "tk-list-row" + (isEdited ? " tk-row-edited" : "");
+    rowEl.dataset.id = id;
+
+    const nguonOptions = nguonTienList.filter(n => n.active)
+      .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'))
+      .map(n => `<option value="${n.nguon_tien}" ${n.nguon_tien === row["Nguồn tiền"] ? "selected" : ""}>${n.nguon_tien}</option>`)
+      .join("");
+    const loaiOptions = (settings.quickLoaiThu || [])
+      .sort((a, b) => a.localeCompare(b, 'vi'))
+      .map(l => `<option value="${l}" ${l === row["Loại thu"] ? "selected" : ""}>${l}</option>`)
+      .join("");
+
+    rowEl.innerHTML = `
+      <div class="tk-list-view">
+        <div class="tk-list-cell tk-cell-ngay">${row["Ngày"] || ""}</div>
+        <div class="tk-list-cell tk-cell-mota">${row["Mô tả"] || ""}</div>
+        <div class="tk-list-cell tk-cell-nguon">${row["Nguồn tiền"] || ""}</div>
+        <div class="tk-list-cell tk-cell-loai">${row["Loại thu"] || ""}</div>
+        <div class="tk-list-cell tk-cell-sotien green-text">${soTienDisplay}</div>
+        <button class="tk-btn-edit" title="Sửa">✏️</button>
+      </div>
+      <div class="tk-list-edit" style="display:none;">
+        <div class="tk-edit-row"><label>Ngày</label><input type="date" class="input-std tk-edit-ngay" value="${row["Ngày"] || ""}"></div>
+        <div class="tk-edit-row"><label>Mô tả</label><input type="text" class="input-std tk-edit-mota" value="${row["Mô tả"] || ""}"></div>
+        <div class="tk-edit-row"><label>Nguồn tiền</label><select class="input-std tk-edit-nguon">${nguonOptions}</select></div>
+        <div class="tk-edit-row"><label>Loại thu</label><select class="input-std tk-edit-loai">${loaiOptions}</select></div>
+        <div class="tk-edit-row"><label>Số tiền</label><input type="number" class="input-std tk-edit-sotien" value="${parseFloat(row['Thu']) || 0}"></div>
+        <div class="tk-edit-actions">
+          <button class="btn-submit btn-green tk-btn-confirm-edit" style="flex:1;margin-top:0;">✅ Xác nhận</button>
+          <button class="btn-submit btn-gray tk-btn-cancel" style="flex:1;margin-top:0;">❌ Hủy</button>
+        </div>
+      </div>
+    `;
+
+    rowEl.querySelector(".tk-btn-edit").onclick = () => {
+      rowEl.querySelector(".tk-list-view").style.display = "none";
+      rowEl.querySelector(".tk-list-edit").style.display = "block";
+    };
+    rowEl.querySelector(".tk-btn-cancel").onclick = () => {
+      rowEl.querySelector(".tk-list-view").style.display = "flex";
+      rowEl.querySelector(".tk-list-edit").style.display = "none";
+    };
+    rowEl.querySelector(".tk-btn-confirm-edit").onclick = async () => {
+      const payload = {
+        id_thu: id,
+        ngay: rowEl.querySelector(".tk-edit-ngay").value,
+        mo_ta: rowEl.querySelector(".tk-edit-mota").value,
+        nguon_tien: rowEl.querySelector(".tk-edit-nguon").value,
+        loai_thu: rowEl.querySelector(".tk-edit-loai").value,
+        so_tien: parseFloat(rowEl.querySelector(".tk-edit-sotien").value) || 0
+      };
+      const result = await postData("update_thu", payload);
+      if (result && result.status === "success") {
+        tkEditedThuIds.add(id);
+        showToast("Đã cập nhật thu thành công");
+        const thu = await fetchData('Thu_2026');
+        window.tkThuList = thu.filter(item => item.IDThu && item.IDThu.trim());
+        renderThuChuaTK();
+        loadTongKet();
+      }
+    };
+    list.appendChild(rowEl);
+  });
+}
+
+function loadTongKet() {
   const inputsContainer = document.getElementById("tk-inputs");
   inputsContainer.innerHTML = "";
-  
+
+  const ghiNho = JSON.parse(localStorage.getItem("tkSoDuGhiNho") || "{}");
+  const hasGhiNho = Object.keys(ghiNho).length > 0;
+
+  const remBtn = document.getElementById("tk-remember");
+  if (remBtn) remBtn.textContent = hasGhiNho ? "Dùng giá trị tạm" : "Ghi nhớ số dư";
+
   const sortedNguonTien = nguonTienList
     .filter(n => n.active)
     .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi', { sensitivity: 'base' }));
-  
+
   sortedNguonTien.forEach(nguon => {
-    // Tìm snapshot tổng kết gần nhất cho nguồn này
     let lastSnapshot = null;
     if (window.tkDetailList && Array.isArray(window.tkDetailList)) {
       lastSnapshot = window.tkDetailList
         .filter(row => row.nguon_tien === nguon.nguon_tien)
         .sort((a, b) => new Date(b.ngay_tk) - new Date(a.ngay_tk))[0];
     }
-    let lastDate = lastSnapshot ? lastSnapshot.ngay_tk : null;
-    let lastSoDu = lastSnapshot ? (parseFloat(lastSnapshot.so_tien) || 0) : 0;
+    const lastDate = lastSnapshot ? lastSnapshot.ngay_tk : null;
+    const lastSoDu = lastSnapshot ? (parseFloat(lastSnapshot.so_tien) || 0) : 0;
 
-    // Tính tổng thu mới
     let thuMoi = 0;
-    if (window.thuList && Array.isArray(window.thuList)) {
-      thuMoi = window.thuList
+    if (window.tkThuList && Array.isArray(window.tkThuList)) {
+      thuMoi = window.tkThuList
         .filter(row => row["Nguồn tiền"] === nguon.nguon_tien && (!lastDate || new Date(row["Ngày"]) > new Date(lastDate)))
         .reduce((sum, row) => sum + (parseFloat(row["Thu"]) || 0), 0);
     }
-    // Tính tổng chi mới
     let chiMoi = 0;
-    if (window.chiList && Array.isArray(window.chiList)) {
-      chiMoi = window.chiList
+    if (window.tkChiList && Array.isArray(window.tkChiList)) {
+      chiMoi = window.tkChiList
         .filter(row => row["Nguồn tiền"] === nguon.nguon_tien && (!lastDate || new Date(row["Ngày"]) > new Date(lastDate)))
         .reduce((sum, row) => sum + (parseFloat(row["Số tiền vnđ"]) || 0), 0);
     }
-    let tamTinh = lastSoDu + thuMoi - chiMoi;
+    const tamTinh = lastSoDu + thuMoi - chiMoi;
+    tkTamTinh[nguon.nguon_tien] = tamTinh;
+
+    const useGhiNho = hasGhiNho && ghiNho[nguon.nguon_tien] !== undefined;
+    const inputVal = useGhiNho ? ghiNho[nguon.nguon_tien] : tamTinh;
+    tkInputs[nguon.nguon_tien] = inputVal;
+
+    const badge = useGhiNho
+      ? '<span class="tk-badge tk-badge-ghinho">📌 Đã ghi nhớ</span>'
+      : '<span class="tk-badge tk-badge-tamtinh">🔄 Tạm tính</span>';
 
     const div = document.createElement("div");
     div.className = "tk-input-row-group";
     div.innerHTML = `
       <div class="tk-input-row">
-        <div class="tk-label">${nguon.nguon_tien}</div>
+        <div class="tk-label">${nguon.nguon_tien} ${badge}</div>
         <div class="tk-input-wrap">
-          <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0">
+          <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0" value="${formatVN(inputVal, 2)}">
         </div>
       </div>
       <div class="tk-tamtinh-row">
@@ -1172,66 +1389,38 @@ async function loadTongKet() {
     inputsContainer.appendChild(div);
 
     const input = div.querySelector("input");
-    input.oninput = (e) => {
-      let oldValue = input.value;
-      let oldPos = input.selectionStart;
-      // Chỉ cho phép số, dấu chấm, dấu phẩy
-      let val = oldValue.replace(/[^\d.,]/g, "");
-      // Chỉ giữ 1 dấu phẩy (thập phân), loại các dấu phẩy thừa
-      let parts = val.split(",");
-      if (parts.length > 2) {
-        val = parts[0] + "," + parts.slice(1).join("");
-      }
-      // Format lại value
-      let num = parseVN(val);
-      let formatted = val ? formatVN(num, 2) : "";
+    input.onfocus = () => input.select();
+    input.oninput = () => {
+      let val = input.value.replace(/[^\d.,]/g, "");
+      const parts = val.split(",");
+      if (parts.length > 2) val = parts[0] + "," + parts.slice(1).join("");
+      const num = parseVN(val);
+      const formatted = val ? formatVN(num, 2) : "";
+      const oldPos = input.selectionStart;
+      const diff = formatted.length - input.value.length;
       input.value = formatted;
       tkInputs[nguon.nguon_tien] = num;
-      // Giữ vị trí con trỏ gần đúng (nếu user nhập ở cuối sẽ không bị nhảy)
-      let diff = formatted.length - oldValue.length;
-      let newPos = oldPos + diff;
-      setTimeout(() => { input.setSelectionRange(newPos, newPos); }, 0);
+      setTimeout(() => { input.setSelectionRange(oldPos + diff, oldPos + diff); }, 0);
     };
-  chiInput.oninput = () => {
-    let oldValue = chiInput.value;
-    let oldPos = chiInput.selectionStart;
-    // Chỉ cho phép số, dấu chấm, dấu phẩy
-    let val = oldValue.replace(/[^\d.,]/g, "");
-    // Chỉ giữ 1 dấu phẩy (thập phân), loại các dấu phẩy thừa
-    let parts = val.split(",");
-    if (parts.length > 2) {
-      val = parts[0] + "," + parts.slice(1).join("");
-    }
-    // Format lại value
-    let num = parseVN(val);
-    let formatted = val ? formatVN(num, 2) : "";
-    chiInput.value = formatted;
-    if (editMode) {
-      if (val && val !== "0") {
-        chiStack[editIndex] = num;
-      }
-      chiAddBtn.textContent = "✓";
-      chiAddBtn.classList.add("btn-confirm");
-      chiClearBtn.textContent = "🗑️";
-    } else {
-      chiAddBtn.textContent = "+";
-      chiAddBtn.classList.remove("btn-confirm");
-      chiClearBtn.textContent = "↻";
-    }
-    // Giữ vị trí con trỏ gần đúng
-    let diff = formatted.length - oldValue.length;
-    let newPos = oldPos + diff;
-    setTimeout(() => { chiInput.setSelectionRange(newPos, newPos); }, 0);
-    renderChiStack();
-  };
-  // ...existing code...
   });
 }
+
+document.getElementById("tk-remember").onclick = () => {
+  const stored = localStorage.getItem("tkSoDuGhiNho");
+  const hasGhiNho = stored && Object.keys(JSON.parse(stored)).length > 0;
+  if (hasGhiNho) {
+    localStorage.removeItem("tkSoDuGhiNho");
+    showToast("Đã chuyển sang dùng giá trị tạm tính");
+  } else {
+    localStorage.setItem("tkSoDuGhiNho", JSON.stringify(tkInputs));
+    showToast("Đã ghi nhớ số dư");
+  }
+  loadTongKet();
+};
 
 document.getElementById("tk-check").onclick = () => {
   const tkSoDuTT = Object.values(tkInputs).reduce((a, b) => a + b, 0);
   const chenhLech = tkSoDuTT - tkSoDuLT;
-  
   document.getElementById("tk-result").innerHTML = `
     <div>Số dư LT: ${formatVN(tkSoDuLT, 2)}</div>
     <div>Số dư TT: ${formatVN(tkSoDuTT, 2)}</div>
@@ -1243,33 +1432,29 @@ document.getElementById("tk-check").onclick = () => {
 
 document.getElementById("tk-confirm").onclick = async () => {
   if (!confirm("Xác nhận tổng kết?")) return;
-  
+  const tkSoDuTT = Object.values(tkInputs).reduce((a, b) => a + b, 0);
   const chiTiet = Object.entries(tkInputs).map(([nguon, soTien]) => ({
     nguon_tien: nguon,
     so_tien: soTien
   }));
-  
   const payload = {
     ngay_tk: formatDateAPI(new Date()),
     so_du_lt: tkSoDuLT,
+    so_du_tt: tkSoDuTT,
     chi_tiet: chiTiet,
     note: ""
   };
-  
   const result = await postData("insert_tk", payload);
   if (result) {
-    const tkSoDuTT = Object.values(tkInputs).reduce((a, b) => a + b, 0);
     const chenhLech = tkSoDuTT - tkSoDuLT;
     showToast(`Đã tổng kết thành công\nSố dư LT: ${formatVN(tkSoDuLT, 2)}\nSố dư TT: ${formatVN(tkSoDuTT, 2)}\nChênh lệch: ${formatVN(chenhLech, 2)}`);
-    
     const [chiDataRaw, thuDataRaw] = await Promise.all([
-  fetchData("Chi_Tieu_2026"),
-  fetchData("Thu_2026")
-]);
-const chiData = chiDataRaw.filter(item => item.IDChi && item.IDChi.trim());
-const thuData = thuDataRaw.filter(item => item.IDThu && item.IDThu.trim());
-updateHeader(chiData, thuData);
-    
+      fetchData("Chi_Tieu_2026"),
+      fetchData("Thu_2026")
+    ]);
+    const chiData = chiDataRaw.filter(item => item.IDChi && item.IDChi.trim());
+    const thuData = thuDataRaw.filter(item => item.IDThu && item.IDThu.trim());
+    updateHeader(chiData, thuData);
     resetTongKet();
   }
 };
@@ -1277,9 +1462,17 @@ updateHeader(chiData, thuData);
 function resetTongKet() {
   tkInputs = {};
   tkSoDuLT = 0;
+  tkEditedChiIds = new Set();
+  tkEditedThuIds = new Set();
+  tkTamTinh = {};
+  tkLastDate = null;
+  localStorage.removeItem("tkSoDuGhiNho");
   document.getElementById("tk-form").style.display = "none";
   document.getElementById("tk-result").style.display = "none";
   document.getElementById("tk-confirm").style.display = "none";
+  document.getElementById("tk-refresh").style.display = "none";
+  document.getElementById("tk-chi-section").style.display = "none";
+  document.getElementById("tk-thu-section").style.display = "none";
   document.getElementById("tk-start").style.display = "block";
 }
 

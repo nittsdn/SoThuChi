@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sổ Thu Chi</title>
-    <link rel="stylesheet" href="style.css?v=3001003" />
+    <link rel="stylesheet" href="style.css?v=3001325" />
 </head>
 <body>
 
@@ -29,7 +29,7 @@
         <div class="header-details" id="header-details">
             <!-- Dynamic content from JS -->
         </div>
-        <div class="version">v3.0.1003</div>
+        <div class="version">v3.0.1325</div>
     </div>
 
     <!-- ================= TAB CONTENT ================= -->
@@ -123,16 +123,42 @@
 
         <!-- TAB: TỔNG KẾT -->
         <div id="tab-tk" class="tab-panel">
+
+            <!-- CHI chưa tổng kết -->
+            <div id="tk-chi-section" style="display:none;">
+                <div class="card">
+                    <div class="tk-section-header">
+                        <span class="tk-section-title red-text">CHI chưa tổng kết</span>
+                        <span id="tk-chi-count" class="tk-section-count"></span>
+                    </div>
+                    <div id="tk-chi-list"></div>
+                </div>
+            </div>
+
+            <!-- THU chưa tổng kết -->
+            <div id="tk-thu-section" style="display:none;">
+                <div class="card">
+                    <div class="tk-section-header">
+                        <span class="tk-section-title green-text">THU chưa tổng kết</span>
+                        <span id="tk-thu-count" class="tk-section-count"></span>
+                    </div>
+                    <div id="tk-thu-list"></div>
+                </div>
+            </div>
+
+            <!-- Form tổng kết -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-title blue-text">TỔNG KẾT</div>
                 </div>
 
                 <button class="btn-submit btn-blue" id="tk-start">Làm tổng kết</button>
+                <button class="btn-submit btn-gray" id="tk-refresh" style="display:none;">🔄 Cập nhật</button>
 
                 <div id="tk-form" style="display: none;">
                     <div class="tk-period">Nhập số dư thực tế:</div>
                     <div id="tk-inputs"></div>
+                    <button class="btn-submit btn-gray" id="tk-remember">Ghi nhớ số dư</button>
                     <button class="btn-submit btn-gray" id="tk-check">Kiểm tra</button>
                     <div id="tk-result" style="display: none;"></div>
                     <button class="btn-submit btn-blue" id="tk-confirm" style="display: none;">Xác nhận tổng kết</button>
@@ -229,6 +255,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=3001003"></script>
+    <script src="app.js?v=3001325"></script>
 </body>
 </html>

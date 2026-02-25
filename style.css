@@ -1053,3 +1053,178 @@ input, select, textarea {
   opacity: 0.7;
   transform: scale(0.94);
 }
+
+/* =========================
+   TỔNG KẾT - SECTION HEADERS
+========================= */
+.tk-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tk-section-title {
+  font-size: 15px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.tk-section-count {
+  font-size: 13px;
+  color: #888;
+}
+
+/* =========================
+   TỔNG KẾT - LIST ROWS
+========================= */
+.tk-list-row {
+  border-bottom: 1px solid #eee;
+  padding: 6px 0;
+  transition: background 0.3s ease, border-left 0.3s ease;
+}
+
+.tk-list-row:last-child {
+  border-bottom: none;
+}
+
+.tk-row-edited {
+  background: #fff9e6;
+  border-left: 3px solid #f0a500;
+  padding-left: 8px;
+}
+
+.tk-list-view {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tk-list-cell {
+  font-size: 13px;
+}
+
+.tk-cell-ngay {
+  min-width: 82px;
+  color: #888;
+  flex-shrink: 0;
+}
+
+.tk-cell-mota {
+  flex: 1;
+  min-width: 70px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-cell-nguon {
+  min-width: 65px;
+  color: #555;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.tk-cell-loai {
+  min-width: 65px;
+  color: #555;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.tk-cell-nghin {
+  min-width: 55px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #888;
+  flex-shrink: 0;
+}
+
+.tk-cell-sotien {
+  min-width: 75px;
+  text-align: right;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.tk-btn-edit {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tk-btn-edit:hover,
+.tk-btn-edit:active {
+  background: #f2f2f7;
+}
+
+/* =========================
+   TỔNG KẾT - EDIT FORM
+========================= */
+.tk-list-edit {
+  padding: 8px 0 4px 0;
+}
+
+.tk-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tk-edit-row label {
+  min-width: 80px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.tk-edit-row .input-std {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.tk-edit-preview {
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.tk-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* =========================
+   TỔNG KẾT - BADGES
+========================= */
+.tk-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: normal;
+  display: inline-block;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.tk-badge-ghinho {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.tk-badge-tamtinh {
+  background: #f2f2f7;
+  color: #888;
+}
