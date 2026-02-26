@@ -13,8 +13,9 @@ function doGet(e) {
   }
 
   // 2. Lấy toàn bộ dữ liệu
-  var data = sheet.getDataRange().getValues();
-  
+  var range = sheet.getDataRange();
+  var data = range.getValues();
+
   // Nếu sheet trống
   if (data.length === 0) {
     return responseJSON({ "status": "success", "data": [] });
@@ -24,17 +25,30 @@ function doGet(e) {
   var headers = data.shift(); // Lấy dòng đầu làm mảng key
   var result = [];
 
+  // Lấy công thức riêng cho cột "Nghìn VND" (cột D = index 3) của sheet Chi_Tieu_2026
+  var nghinVndFormulas = null;
+  if (sheetName === 'Chi_Tieu_2026') {
+    var lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      nghinVndFormulas = sheet.getRange(2, 4, lastRow - 1, 1).getFormulas(); // Cột D
+    }
+  }
+
   // 4. Map dữ liệu thành mảng Object JSON
-  // Ví dụ: [{ "IDChi": "c1", "mo_ta_chi": "Đi chợ", ... }, ...]
-  data.forEach(function(row) {
+  data.forEach(function(row, rowIdx) {
     var item = {};
     for (var i = 0; i < headers.length; i++) {
-      // Ép kiểu dữ liệu Date về String chuẩn ISO để App dễ parse nếu cần
       if (row[i] instanceof Date) {
+        // Ép kiểu Date về String chuẩn ISO
         item[headers[i]] = Utilities.formatDate(row[i], Session.getScriptTimeZone(), "yyyy-MM-dd");
       } else {
         item[headers[i]] = row[i];
       }
+    }
+    // Ghi đè cột "Nghìn VND" bằng công thức thô nếu có (vd: "=100+80")
+    if (nghinVndFormulas && nghinVndFormulas[rowIdx]) {
+      var f = nghinVndFormulas[rowIdx][0];
+      if (f && f !== "") item[headers[3]] = f;
     }
     result.push(item);
   });

@@ -1,4 +1,4 @@
-// Version: v3.1.0928
+// Version: v3.1.1001
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -289,29 +289,41 @@ let loaiChiList = [];
 let thuList = [];
 let nguonTienList = [];
 
+// 16 màu pastel đủ phân biệt (bg + border đậm hơn)
 const NGUON_PALETTE = [
-  "#fff0f0", "#e8f4ff", "#f0fff4", "#fff8e8",
-  "#f3e8ff", "#e8fff8", "#fff0e8", "#e8e8ff"
+  "#ffeaea", "#fff3e8", "#fffbe0", "#f3ffe8",
+  "#e8fff0", "#e8fff9", "#e8f8ff", "#e8eeff",
+  "#eeebff", "#f9e8ff", "#ffe8f8", "#ffe8ed",
+  "#fff8e0", "#efffea", "#e8ffff", "#f5e8ff"
 ];
 const NGUON_BORDER_PALETTE = [
-  "#ffb3b3", "#80b8ff", "#80e8a0", "#ffc94d",
-  "#c580ff", "#4dd9b8", "#ffaa80", "#9999ff"
+  "#ff8080", "#ffaa55", "#f0c800", "#88d430",
+  "#40c074", "#30bfa0", "#30b0e8", "#5580f0",
+  "#8866f0", "#cc55ee", "#f055c0", "#f07090",
+  "#e0a030", "#55c840", "#30cccc", "#a040e0"
 ];
-function getNguonBgColor(nguonTien) {
+let _nguonColorCache = null;
+function _buildNguonColorCache() {
+  if (_nguonColorCache) return;
+  // Sort toàn cục A-Z để mỗi nguồn tiền có index duy nhất, không phụ thuộc nhóm người
   const sorted = nguonTienList
     .filter(n => n.active)
     .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'));
-  const idx = sorted.findIndex(n => n.nguon_tien === nguonTien);
-  if (idx === -1) return "#f9f9fb";
-  return NGUON_PALETTE[idx % NGUON_PALETTE.length];
+  _nguonColorCache = {};
+  sorted.forEach((n, idx) => {
+    _nguonColorCache[n.nguon_tien] = {
+      bg: NGUON_PALETTE[idx % NGUON_PALETTE.length],
+      border: NGUON_BORDER_PALETTE[idx % NGUON_BORDER_PALETTE.length]
+    };
+  });
+}
+function getNguonBgColor(nguonTien) {
+  _buildNguonColorCache();
+  return (_nguonColorCache[nguonTien] || {}).bg || "#f9f9fb";
 }
 function getNguonBorderColor(nguonTien) {
-  const sorted = nguonTienList
-    .filter(n => n.active)
-    .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'));
-  const idx = sorted.findIndex(n => n.nguon_tien === nguonTien);
-  if (idx === -1) return "#ccc";
-  return NGUON_BORDER_PALETTE[idx % NGUON_BORDER_PALETTE.length];
+  _buildNguonColorCache();
+  return (_nguonColorCache[nguonTien] || {}).border || "#ccc";
 }
 
 let settings = null;
@@ -1236,9 +1248,8 @@ function renderChiChuaTK() {
     rowEl.dataset.id = id;
     rowEl.style.backgroundColor = getNguonBgColor(row["Nguồn tiền"]);
     if (isEdited) {
-      rowEl.style.backgroundImage = "repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(240,165,0,0.18) 8px, rgba(240,165,0,0.18) 16px)";
-      rowEl.style.borderLeft = "3px solid #f0a500";
-      rowEl.style.paddingLeft = "8px";
+      rowEl.style.boxShadow = "inset 0 0 0 2.5px #e6a200";
+      rowEl.style.borderRadius = "8px";
     }
 
     const moTaOptions = loaiChiList.filter(l => l.active)
@@ -1355,9 +1366,8 @@ function renderThuChuaTK() {
     rowEl.dataset.id = id;
     rowEl.style.backgroundColor = getNguonBgColor(row["Nguồn tiền"]);
     if (isEdited) {
-      rowEl.style.backgroundImage = "repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(240,165,0,0.18) 8px, rgba(240,165,0,0.18) 16px)";
-      rowEl.style.borderLeft = "3px solid #f0a500";
-      rowEl.style.paddingLeft = "8px";
+      rowEl.style.boxShadow = "inset 0 0 0 2.5px #e6a200";
+      rowEl.style.borderRadius = "8px";
     }
 
     const nguonOptions = nguonTienList.filter(n => n.active)
@@ -1444,12 +1454,16 @@ function loadTongKet() {
   const remBtn = document.getElementById("tk-remember");
   if (remBtn) remBtn.textContent = hasGhiNho ? "Dùng giá trị tạm" : "Ghi nhớ số dư";
 
-  // Sắp xếp theo người rồi theo tên tài khoản
+  // Sắp xếp theo người (Mèo → Boé → Khác) rồi theo tên tài khoản
+  const NGUOI_ORDER = ["Mèo", "Boé"];
   const sortedNguonTien = nguonTienList
     .filter(n => n.active)
     .sort((a, b) => {
-      const cmpNguoi = (a.nguoi || "").localeCompare(b.nguoi || "", 'vi', { sensitivity: 'base' });
-      if (cmpNguoi !== 0) return cmpNguoi;
+      const ai = NGUOI_ORDER.indexOf(a.nguoi || "");
+      const bi = NGUOI_ORDER.indexOf(b.nguoi || "");
+      const ra = ai === -1 ? 999 : ai;
+      const rb = bi === -1 ? 999 : bi;
+      if (ra !== rb) return ra - rb;
       return a.nguon_tien.localeCompare(b.nguon_tien, 'vi', { sensitivity: 'base' });
     });
 
@@ -2016,6 +2030,7 @@ window.onload = async () => {
   
   loaiChiList = loaiChiData || [];
   nguonTienList = nguonTienData || [];
+  _nguonColorCache = null; // Reset cache màu sau khi load xong dữ liệu
   
   console.log('✅ Data loaded:', {
     chiTieuRaw: chiDataRaw.length,
