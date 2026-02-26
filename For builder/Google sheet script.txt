@@ -70,11 +70,17 @@ function doPost(e) {
       case 'update_chi':
         updateChiById(payload);
         break;
+      case 'delete_chi':
+        deleteChi(payload);
+        break;
       case 'insert_thu':
         insertThu(payload);
         break;
       case 'update_thu':
         updateThuById(payload);
+        break;
+      case 'delete_thu':
+        deleteThu(payload);
         break;
       case 'insert_loai_chi':
         insertLoaiChi(payload);
@@ -234,6 +240,36 @@ function updateThuById(payload) {
   if (payload.nguon_tien)  sh.getRange(row, 4).setValue(payload.nguon_tien);
   if (payload.loai_thu)    sh.getRange(row, 5).setValue(payload.loai_thu);
   // Không update IDThu, Tổng thu
+}
+
+/**************************************************
+ * DELETE CHI – xóa dòng theo IDChi
+ **************************************************/
+function deleteChi(payload) {
+  const sh = SpreadsheetApp.getActive().getSheetByName('Chi_Tieu_2026');
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) throw new Error('No data');
+
+  const ids = sh.getRange(2, 1, lastRow - 1, 1).getValues().flat();
+  const idx = ids.indexOf(payload.idChi);
+  if (idx === -1) throw new Error('IDChi not found: ' + payload.idChi);
+
+  sh.deleteRow(idx + 2);
+}
+
+/**************************************************
+ * DELETE THU – xóa dòng theo IDThu
+ **************************************************/
+function deleteThu(payload) {
+  const sh = SpreadsheetApp.getActive().getSheetByName('Thu_2026');
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) throw new Error('No data');
+
+  const ids = sh.getRange(2, 7, lastRow - 1, 1).getValues().flat();
+  const idx = ids.indexOf(payload.idThu);
+  if (idx === -1) throw new Error('IDThu not found: ' + payload.idThu);
+
+  sh.deleteRow(idx + 2);
 }
 
 /**************************************************

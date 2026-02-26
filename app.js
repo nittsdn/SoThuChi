@@ -1,4 +1,4 @@
-// Version: v3.0.1325
+// Version: v3.1.0843
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1196,6 +1196,7 @@ function renderChiChuaTK() {
         <div class="tk-edit-actions">
           <button class="btn-submit btn-green tk-btn-confirm-edit" style="flex:1;margin-top:0;">✅ Xác nhận</button>
           <button class="btn-submit btn-gray tk-btn-cancel" style="flex:1;margin-top:0;">❌ Hủy</button>
+          <button class="btn-submit btn-red tk-btn-delete" style="flex:1;margin-top:0;">🗑️ Xoá</button>
         </div>
       </div>
     `;
@@ -1221,7 +1222,7 @@ function renderChiChuaTK() {
     };
     rowEl.querySelector(".tk-btn-confirm-edit").onclick = async () => {
       const payload = {
-        id_chi: id,
+        idChi: id,
         ngay: rowEl.querySelector(".tk-edit-ngay").value,
         mo_ta_chi: rowEl.querySelector(".tk-edit-mota").value,
         nguon_tien: rowEl.querySelector(".tk-edit-nguon").value,
@@ -1231,6 +1232,17 @@ function renderChiChuaTK() {
       if (result && result.status === "success") {
         tkEditedChiIds.add(id);
         showToast("Đã cập nhật chi thành công");
+        const chi = await fetchData('Chi_Tieu_2026');
+        window.tkChiList = chi.filter(item => item.IDChi && item.IDChi.trim());
+        renderChiChuaTK();
+        loadTongKet();
+      }
+    };
+    rowEl.querySelector(".tk-btn-delete").onclick = async () => {
+      if (!confirm(`Xác nhận xoá khoản chi "${row["mo_ta_chi"]}"?`)) return;
+      const result = await postData("delete_chi", { idChi: id });
+      if (result && result.status === "success") {
+        showToast("Đã xoá khoản chi thành công");
         const chi = await fetchData('Chi_Tieu_2026');
         window.tkChiList = chi.filter(item => item.IDChi && item.IDChi.trim());
         renderChiChuaTK();
@@ -1290,6 +1302,7 @@ function renderThuChuaTK() {
         <div class="tk-edit-actions">
           <button class="btn-submit btn-green tk-btn-confirm-edit" style="flex:1;margin-top:0;">✅ Xác nhận</button>
           <button class="btn-submit btn-gray tk-btn-cancel" style="flex:1;margin-top:0;">❌ Hủy</button>
+          <button class="btn-submit btn-red tk-btn-delete" style="flex:1;margin-top:0;">🗑️ Xoá</button>
         </div>
       </div>
     `;
@@ -1304,7 +1317,7 @@ function renderThuChuaTK() {
     };
     rowEl.querySelector(".tk-btn-confirm-edit").onclick = async () => {
       const payload = {
-        id_thu: id,
+        idThu: id,
         ngay: rowEl.querySelector(".tk-edit-ngay").value,
         mo_ta: rowEl.querySelector(".tk-edit-mota").value,
         nguon_tien: rowEl.querySelector(".tk-edit-nguon").value,
@@ -1315,6 +1328,17 @@ function renderThuChuaTK() {
       if (result && result.status === "success") {
         tkEditedThuIds.add(id);
         showToast("Đã cập nhật thu thành công");
+        const thu = await fetchData('Thu_2026');
+        window.tkThuList = thu.filter(item => item.IDThu && item.IDThu.trim());
+        renderThuChuaTK();
+        loadTongKet();
+      }
+    };
+    rowEl.querySelector(".tk-btn-delete").onclick = async () => {
+      if (!confirm(`Xác nhận xoá khoản thu "${row["Mô tả"]}"?`)) return;
+      const result = await postData("delete_thu", { idThu: id });
+      if (result && result.status === "success") {
+        showToast("Đã xoá khoản thu thành công");
         const thu = await fetchData('Thu_2026');
         window.tkThuList = thu.filter(item => item.IDThu && item.IDThu.trim());
         renderThuChuaTK();
