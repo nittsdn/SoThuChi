@@ -35,7 +35,7 @@
   color: #888;
 }
 .tk-input-row-group {
-  border-bottom: 1px solid #eee;
+  border-bottom: none;
   padding: 8px 0 4px 0;
 }
 /* =========================
@@ -1090,9 +1090,7 @@ input, select, textarea {
 }
 
 .tk-row-edited {
-  background: #fff9e6;
-  border-left: 3px solid #f0a500;
-  padding-left: 8px;
+  /* border-left, paddingLeft, backgroundImage áp dụng qua inline style theo nguồn tiền */
 }
 
 .tk-list-view {
@@ -1227,4 +1225,67 @@ input, select, textarea {
 .tk-badge-tamtinh {
   background: #f2f2f7;
   color: #888;
+}
+
+/* =====================================
+   NHÓM NGƯỜI (Tổng kết)
+===================================== */
+.tk-nguoi-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #8e8e93;
+  background: #f2f2f7;
+  padding: 4px 10px;
+  margin: 10px -2px 6px -2px;
+  border-radius: 6px;
+}
+.tk-nguoi-header:first-child {
+  margin-top: 2px;
+}
+
+/* =====================================
+   BTN-PURPLE
+===================================== */
+.btn-purple {
+  background: #7c4dff;
+  color: #fff;
+}
+.btn-purple:hover:not(:disabled) {
+  background: #6a3de0;
+}
+
+/* =====================================
+   TOOLTIP NGHÌN VND (tab Tổng kết)
+===================================== */
+#tk-nghin-tooltip {
+  position: absolute;
+  background: #1c1c1e;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 9999;
+  display: none;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.28);
+  transition: opacity 0.15s;
+}
+#tk-nghin-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1c1c1e;
+}
+
+.tk-sotien-tip {
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
 }

@@ -1,4 +1,4 @@
-// Version: v3.1.0843
+// Version: v3.1.0928
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -64,6 +64,16 @@ function formatDateAPI(d) {
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
   return `${year}-${month}-${day}`;
+}
+
+function formatDateTK(dateStr) {
+  const d = parseDateString(dateStr);
+  if (!d) return dateStr || "";
+  const days = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = String(d.getFullYear()).slice(-2);
+  return `${days[d.getDay()]}.${day}.${month}.${year}`;
 }
 
 function parseDateString(dateStr) {
@@ -278,6 +288,32 @@ let thuSource = "";
 let loaiChiList = [];
 let thuList = [];
 let nguonTienList = [];
+
+const NGUON_PALETTE = [
+  "#fff0f0", "#e8f4ff", "#f0fff4", "#fff8e8",
+  "#f3e8ff", "#e8fff8", "#fff0e8", "#e8e8ff"
+];
+const NGUON_BORDER_PALETTE = [
+  "#ffb3b3", "#80b8ff", "#80e8a0", "#ffc94d",
+  "#c580ff", "#4dd9b8", "#ffaa80", "#9999ff"
+];
+function getNguonBgColor(nguonTien) {
+  const sorted = nguonTienList
+    .filter(n => n.active)
+    .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'));
+  const idx = sorted.findIndex(n => n.nguon_tien === nguonTien);
+  if (idx === -1) return "#f9f9fb";
+  return NGUON_PALETTE[idx % NGUON_PALETTE.length];
+}
+function getNguonBorderColor(nguonTien) {
+  const sorted = nguonTienList
+    .filter(n => n.active)
+    .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'));
+  const idx = sorted.findIndex(n => n.nguon_tien === nguonTien);
+  if (idx === -1) return "#ccc";
+  return NGUON_BORDER_PALETTE[idx % NGUON_BORDER_PALETTE.length];
+}
+
 let settings = null;
 
 // ================= HEADER =================
@@ -1098,6 +1134,39 @@ document.getElementById("thu-submit").onclick = async () => {
   }
 };
 
+// ================= TOOLTIP NGHÌN VND =================
+let _tkTooltipTimer = null;
+function showNghinTooltip(targetEl, nghinVnd) {
+  let tip = document.getElementById("tk-nghin-tooltip");
+  if (!tip) {
+    tip = document.createElement("div");
+    tip.id = "tk-nghin-tooltip";
+    document.body.appendChild(tip);
+  }
+  let content = nghinVnd || "—";
+  try {
+    const formula = (nghinVnd || "").replace(/^=/, "");
+    const parts = formula.split("+").map(s => s.trim().replace(",", ".")).filter(Boolean);
+    const nums = parts.map(p => parseFloat(p)).filter(n => !isNaN(n));
+    if (nums.length > 1) {
+      const total = nums.reduce((a, b) => a + b, 0);
+      content = nums.map(n => formatVN(n * 1000)).join(" + ") + " = " + formatVN(total * 1000) + "đ";
+    } else if (nums.length === 1) {
+      content = formatVN(nums[0] * 1000) + "đ";
+    }
+  } catch(e) {}
+  tip.textContent = content;
+  tip.style.display = "block";
+  const rect = targetEl.getBoundingClientRect();
+  tip.style.left = (rect.left + rect.width / 2 + window.scrollX) + "px";
+  tip.style.top = (rect.top + window.scrollY - 10) + "px";
+  tip.style.transform = "translateX(-50%) translateY(-100%)";
+  clearTimeout(_tkTooltipTimer);
+  _tkTooltipTimer = setTimeout(() => { tip.style.display = "none"; }, 3000);
+  const hideOnClick = () => { tip.style.display = "none"; document.removeEventListener("click", hideOnClick, true); };
+  setTimeout(() => document.addEventListener("click", hideOnClick, true), 0);
+}
+
 // ================= TỔNG KẾT (SUMMARY) =================
 let tkInputs = {};
 let tkSoDuLT = 0;
@@ -1165,6 +1234,12 @@ function renderChiChuaTK() {
     const rowEl = document.createElement("div");
     rowEl.className = "tk-list-row" + (isEdited ? " tk-row-edited" : "");
     rowEl.dataset.id = id;
+    rowEl.style.backgroundColor = getNguonBgColor(row["Nguồn tiền"]);
+    if (isEdited) {
+      rowEl.style.backgroundImage = "repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(240,165,0,0.18) 8px, rgba(240,165,0,0.18) 16px)";
+      rowEl.style.borderLeft = "3px solid #f0a500";
+      rowEl.style.paddingLeft = "8px";
+    }
 
     const moTaOptions = loaiChiList.filter(l => l.active)
       .sort((a, b) => a.mo_ta_chi.localeCompare(b.mo_ta_chi, 'vi'))
@@ -1177,11 +1252,10 @@ function renderChiChuaTK() {
 
     rowEl.innerHTML = `
       <div class="tk-list-view">
-        <div class="tk-list-cell tk-cell-ngay">${row["Ngày"] || ""}</div>
+        <div class="tk-list-cell tk-cell-ngay">${formatDateTK(row["Ngày"])}</div>
         <div class="tk-list-cell tk-cell-mota">${row["mo_ta_chi"] || ""}</div>
         <div class="tk-list-cell tk-cell-nguon">${row["Nguồn tiền"] || ""}</div>
-        <div class="tk-list-cell tk-cell-nghin">${nghinVnd}</div>
-        <div class="tk-list-cell tk-cell-sotien red-text">${soTienDisplay}</div>
+        <div class="tk-list-cell tk-cell-sotien red-text tk-sotien-tip">${soTienDisplay}</div>
         <button class="tk-btn-edit" title="Sửa">✏️</button>
       </div>
       <div class="tk-list-edit" style="display:none;">
@@ -1211,6 +1285,11 @@ function renderChiChuaTK() {
       } catch(e) { previewEl.textContent = ""; }
     };
     nghinInput.dispatchEvent(new Event("input"));
+
+    rowEl.querySelector(".tk-sotien-tip").onclick = (e) => {
+      e.stopPropagation();
+      showNghinTooltip(e.currentTarget, nghinVnd);
+    };
 
     rowEl.querySelector(".tk-btn-edit").onclick = () => {
       rowEl.querySelector(".tk-list-view").style.display = "none";
@@ -1274,6 +1353,12 @@ function renderThuChuaTK() {
     const rowEl = document.createElement("div");
     rowEl.className = "tk-list-row" + (isEdited ? " tk-row-edited" : "");
     rowEl.dataset.id = id;
+    rowEl.style.backgroundColor = getNguonBgColor(row["Nguồn tiền"]);
+    if (isEdited) {
+      rowEl.style.backgroundImage = "repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(240,165,0,0.18) 8px, rgba(240,165,0,0.18) 16px)";
+      rowEl.style.borderLeft = "3px solid #f0a500";
+      rowEl.style.paddingLeft = "8px";
+    }
 
     const nguonOptions = nguonTienList.filter(n => n.active)
       .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'))
@@ -1286,7 +1371,7 @@ function renderThuChuaTK() {
 
     rowEl.innerHTML = `
       <div class="tk-list-view">
-        <div class="tk-list-cell tk-cell-ngay">${row["Ngày"] || ""}</div>
+        <div class="tk-list-cell tk-cell-ngay">${formatDateTK(row["Ngày"])}</div>
         <div class="tk-list-cell tk-cell-mota">${row["Mô tả"] || ""}</div>
         <div class="tk-list-cell tk-cell-nguon">${row["Nguồn tiền"] || ""}</div>
         <div class="tk-list-cell tk-cell-loai">${row["Loại thu"] || ""}</div>
@@ -1359,11 +1444,27 @@ function loadTongKet() {
   const remBtn = document.getElementById("tk-remember");
   if (remBtn) remBtn.textContent = hasGhiNho ? "Dùng giá trị tạm" : "Ghi nhớ số dư";
 
+  // Sắp xếp theo người rồi theo tên tài khoản
   const sortedNguonTien = nguonTienList
     .filter(n => n.active)
-    .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi', { sensitivity: 'base' }));
+    .sort((a, b) => {
+      const cmpNguoi = (a.nguoi || "").localeCompare(b.nguoi || "", 'vi', { sensitivity: 'base' });
+      if (cmpNguoi !== 0) return cmpNguoi;
+      return a.nguon_tien.localeCompare(b.nguon_tien, 'vi', { sensitivity: 'base' });
+    });
+
+  let currentNguoi = null;
 
   sortedNguonTien.forEach(nguon => {
+    // Header nhóm theo người
+    if (nguon.nguoi !== currentNguoi) {
+      currentNguoi = nguon.nguoi;
+      const header = document.createElement("div");
+      header.className = "tk-nguoi-header";
+      header.textContent = currentNguoi || "Khác";
+      inputsContainer.appendChild(header);
+    }
+
     let lastSnapshot = null;
     if (window.tkDetailList && Array.isArray(window.tkDetailList)) {
       lastSnapshot = window.tkDetailList
@@ -1396,11 +1497,19 @@ function loadTongKet() {
       ? '<span class="tk-badge tk-badge-ghinho">📌 Đã ghi nhớ</span>'
       : '<span class="tk-badge tk-badge-tamtinh">🔄 Tạm tính</span>';
 
+    const bgColor = getNguonBgColor(nguon.nguon_tien);
+    const borderColor = getNguonBorderColor(nguon.nguon_tien);
+
     const div = document.createElement("div");
     div.className = "tk-input-row-group";
+    div.style.backgroundColor = bgColor;
+    div.style.borderLeft = `4px solid ${borderColor}`;
+    div.style.paddingLeft = "10px";
+    div.style.borderRadius = "8px";
+    div.style.marginBottom = "6px";
     div.innerHTML = `
       <div class="tk-input-row">
-        <div class="tk-label">${nguon.nguon_tien} ${badge}</div>
+        <div class="tk-label">${nguon.icon ? nguon.icon + ' ' : ''}${nguon.nguon_tien} ${badge}</div>
         <div class="tk-input-wrap">
           <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0" value="${formatVN(inputVal, 2)}">
         </div>
