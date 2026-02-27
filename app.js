@@ -1,4 +1,4 @@
-// Version: v3.2.0950
+// Version: v3.2.0956
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1247,6 +1247,10 @@ function renderChiChuaTK() {
     rowEl.className = "tk-list-row" + (isEdited ? " tk-row-edited" : "");
     rowEl.dataset.id = id;
     rowEl.style.backgroundColor = getNguonBgColor(row["Nguồn tiền"]);
+    rowEl.style.borderLeft = `4px solid ${getNguonBorderColor(row["Nguồn tiền"])}`;
+    rowEl.style.paddingLeft = "10px";
+    rowEl.style.borderRadius = "8px";
+    rowEl.style.marginBottom = "4px";
     if (isEdited) {
       rowEl.style.boxShadow = "inset 0 0 0 2.5px #e6a200";
       rowEl.style.borderRadius = "8px";
@@ -1365,6 +1369,10 @@ function renderThuChuaTK() {
     rowEl.className = "tk-list-row" + (isEdited ? " tk-row-edited" : "");
     rowEl.dataset.id = id;
     rowEl.style.backgroundColor = getNguonBgColor(row["Nguồn tiền"]);
+    rowEl.style.borderLeft = `4px solid ${getNguonBorderColor(row["Nguồn tiền"])}`;
+    rowEl.style.paddingLeft = "10px";
+    rowEl.style.borderRadius = "8px";
+    rowEl.style.marginBottom = "4px";
     if (isEdited) {
       rowEl.style.boxShadow = "inset 0 0 0 2.5px #e6a200";
       rowEl.style.borderRadius = "8px";
