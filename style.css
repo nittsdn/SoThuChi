@@ -398,7 +398,7 @@ input, select, button {
 .ig-blue   { background: #e3f2fd; }
 .ig-orange { background: #f3e5f5; }
 .ig-green  { background: #e8f5e9; }
-.ig-red    { background: #fce4ec; }
+.ig-red    { background: #fffde7; }
 .ig-indigo { background: #dbeeff; }
 .ig-yellow { background: #fff8e1; }
 .ig-teal   { background: #e0f2f1; }
@@ -457,14 +457,14 @@ input, select, button {
 ========================= */
 /* Nút prev/next ngày */
 #tab-chi .ig-red .btn-square {
-  background: linear-gradient(135deg, #ef9a9a 0%, #c62828 100%);
-  color: #fff;
+  background: linear-gradient(135deg, #ffd54f 0%, #f9a825 100%);
+  color: #4e342e;
 }
 /* Nút hiển thị ngày */
 #tab-chi .ig-red .btn-date-display {
-  background: #fce4ec;
-  border-color: #e53935;
-  color: #b71c1c;
+  background: #fffde7;
+  border-color: #f9a825;
+  color: #e65100;
   font-weight: 600;
 }
 /* Input số tiền */
@@ -486,18 +486,22 @@ input, select, button {
 }
 /* 8 nút chip mô tả chi */
 #chi-chips .chip {
-  background: linear-gradient(135deg, #ef9a9a 0%, #c62828 100%);
-  color: #fff;
+  background: linear-gradient(135deg, #ffd54f 0%, #f9a825 100%);
+  color: #4e342e;
   font-weight: 600;
 }
 #chi-chips .chip.selected {
-  background: #007bff;
+  background: #9c27b0;
   border: 2px solid #fff;
   color: #fff;
 }
 /* Viền select nguồn tiền */
 #chi-source {
   border: 1px solid #e53935;
+}
+/* Viền trắng select Loại thu (tab THU phần 3) */
+#thu-loai {
+  border: 2px solid #fff;
 }
 
 /* =========================
