@@ -1,4 +1,4 @@
-﻿// Version: v3.2.1859
+﻿// Version: v3.2.1903
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -291,19 +291,19 @@ let nguonTienList = [];
 
 // Map màu trực tiếp theo tên nguồn tiền
 const NGUON_COLOR_MAP = {
-  // Boé – tông nóng (từ innhanmac.net pastel)
-  "Sacom Boé":      { bg: "#FBB7C7", border: "#d06070" },
-  "SCB + Agri Boé": { bg: "#FDEF81", border: "#c0a020" },
-  "Tech Boé":       { bg: "#FFE4D1", border: "#c08850" },
-  "Tiền mặt Boé":   { bg: "#FED8D7", border: "#c07070" },
-  "Ví Vnpay Boé":   { bg: "#F7D0B1", border: "#c07840" },
-  "Tiền mới":       { bg: "#F2F4DD", border: "#a0a070" },
-  // Mèo – tông lạnh, khác biệt tối đa (từ innhanmac.net pastel)
-  "ACB Mèo":        { bg: "#E0DAFA", border: "#8878d0" },
-  "HD Mèo":         { bg: "#B6E2FD", border: "#4090c0" },
-  "Tech Mèo":       { bg: "#C0E9ED", border: "#3098a8" },
-  "Tiền mặt Mèo":   { bg: "#ADD6AE", border: "#308858" },
-  "Ví Momo Mèo":    { bg: "#BEB3D2", border: "#786898" },
+  // Boé – tông nóng PA2 (từ innhanmac.net pastel)
+  "Sacom Boé":      { bg: "#FFC8D3", border: "#d06070" },
+  "SCB + Agri Boé": { bg: "#FDC878", border: "#c08820" },
+  "Tech Boé":       { bg: "#FFE1F9", border: "#c060a0" },
+  "Tiền mặt Boé":   { bg: "#FEDCA8", border: "#c08840" },
+  "Ví Vnpay Boé":   { bg: "#F0D8BC", border: "#b07840" },
+  "Tiền mới":       { bg: "#FAF8DF", border: "#a0a060" },
+  // Mèo – tông lạnh PA2, khác biệt tối đa (từ innhanmac.net pastel)
+  "ACB Mèo":        { bg: "#D5D8F3", border: "#7070c0" },
+  "HD Mèo":         { bg: "#B4E9FB", border: "#3090c0" },
+  "Tech Mèo":       { bg: "#DCF2FF", border: "#4090b8" },
+  "Tiền mặt Mèo":   { bg: "#E1F7C7", border: "#508858" },
+  "Ví Momo Mèo":    { bg: "#D1C0ED", border: "#8060b8" },
 };
 
 // Fallback palette cho nguồn tiền chưa có trong map
