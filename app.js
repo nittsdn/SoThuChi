@@ -1,4 +1,4 @@
-﻿// Version: v3.2.1245
+﻿// Version: v3.2.1304
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1477,9 +1477,9 @@ function loadTongKet() {
 
   // Bảng màu khung theo người
   const NGUOI_GROUP_COLORS = {
-    "Mèo":  { border: "#f48fb1", bg: "#fff0f6", label: "#c2185b" },
-    "Boé":  { border: "#90caf9", bg: "#e8f4fd", label: "#1565c0" },
-    default: { border: "#b0bec5", bg: "#f5f7f5", label: "#546e7a" }
+    "Mèo":  { border: "#f48fb1", bg: "transparent", label: "#c2185b" },
+    "Boé":  { border: "#90caf9", bg: "transparent", label: "#1565c0" },
+    default: { border: "#b0bec5", bg: "transparent", label: "#546e7a" }
   };
 
   let currentNguoi = null;
