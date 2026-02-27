@@ -397,7 +397,7 @@ input, select, button {
 .ig-purple { background: #f3e5f5; }
 .ig-blue   { background: #e3f2fd; }
 .ig-orange { background: #fff3e0; }
-.ig-green  { background: #e8f5e9; border: 1px solid #9c27b0; }
+.ig-green  { background: #e8f5e9; }
 
 /* =========================
    TAB THU – SCOPED STYLES
@@ -439,8 +439,12 @@ input, select, button {
 }
 #thu-chips .chip.selected {
   background: #007bff;
-  border: 2px solid #ff6d00;
+  border: 2px solid #fff;
   color: #fff;
+}
+/* Viền input nguồn tiền */
+#thu-source {
+  border: 1px solid #9c27b0;
 }
 
 /* =========================

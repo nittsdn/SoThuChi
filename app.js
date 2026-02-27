@@ -1,4 +1,4 @@
-﻿// Version: v3.2.1513
+﻿// Version: v3.2.1525
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -328,6 +328,8 @@ function getNguonBorderColor(nguonTien) {
 
 let settings = null;
 
+let _headerDetailsCache = null;
+
 // ================= HEADER =================
 function updateHeader(chiData, thuData) {
   // ===== UPDATE SUMMARY (BALANCE) =====
@@ -340,9 +342,7 @@ function updateHeader(chiData, thuData) {
   document.querySelector('.header-summary .balance-tag').textContent = 
     `Số dư LT: ${formatVN(soDuLT)}`;
   
-  // ===== UPDATE DETAILS (CHI/THU) =====
-  const headerDetails = document.getElementById("header-details");
-  
+  // ===== BUILD DETAILS HTML =====
   let html = '';
   
   // CHI SECTION
@@ -390,7 +390,15 @@ function updateHeader(chiData, thuData) {
     `;
   }
   
-  headerDetails.innerHTML = html;
+  // Chỉ inject vào DOM nếu header đang mở, ngược lại cache lại
+  const headerDetails = document.getElementById("header-details");
+  const isCollapsed = headerDetails.classList.contains('collapsed');
+  if (isCollapsed) {
+    _headerDetailsCache = html;
+  } else {
+    headerDetails.innerHTML = html;
+    _headerDetailsCache = null;
+  }
 }
 
 // ================= HEADER TOGGLE =================
@@ -403,8 +411,8 @@ function initHeaderToggle() {
     return;
   }
   
-  // Load trạng thái từ localStorage (mặc định: mở)
-  const isCollapsed = localStorage.getItem('headerCollapsed') === 'true';
+  // Mặc định: thu gọn, chỉ mở nếu user đã bấm mở trước đó (lưu 'false')
+  const isCollapsed = localStorage.getItem('headerCollapsed') !== 'false';
   
   if (isCollapsed) {
     headerDetails.classList.add('collapsed');
@@ -415,6 +423,12 @@ function initHeaderToggle() {
   toggleBtn.onclick = () => {
     const nowCollapsed = headerDetails.classList.toggle('collapsed');
     toggleBtn.classList.toggle('collapsed');
+    
+    // Nếu vừa mở và có cache, inject vào DOM
+    if (!nowCollapsed && _headerDetailsCache) {
+      headerDetails.innerHTML = _headerDetailsCache;
+      _headerDetailsCache = null;
+    }
     
     // Lưu trạng thái
     localStorage.setItem('headerCollapsed', nowCollapsed);
