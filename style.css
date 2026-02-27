@@ -485,7 +485,7 @@ input, select, button {
 }
 /* 8 nút chip mô tả chi */
 #chi-chips .chip {
-  background: linear-gradient(135deg, #ef9a9a 0%, #e57373 100%);
+  background: linear-gradient(135deg, #ef9a9a 0%, #c62828 100%);
   color: #fff;
   font-weight: 600;
 }
