@@ -396,7 +396,7 @@ input, select, button {
 }
 .ig-purple { background: #f3e5f5; }
 .ig-blue   { background: #e3f2fd; }
-.ig-orange { background: #fff3e0; }
+.ig-orange { background: #f3e5f5; }
 .ig-green  { background: #e8f5e9; }
 .ig-red    { background: #fce4ec; }
 .ig-indigo { background: #dbeeff; }
@@ -437,14 +437,15 @@ input, select, button {
 }
 /* 8 nút chip mô tả thu */
 #thu-chips .chip {
-  background: linear-gradient(135deg, #ffa040 0%, #f4511e 100%);
+  background: linear-gradient(135deg, #ce93d8 0%, #9c27b0 100%);
   color: #fff;
   font-weight: 600;
 }
 #thu-chips .chip.selected {
-  background: #007bff;
-  border: 2px solid #fff;
-  color: #fff;
+  background: #ffd600;
+  border: 1px solid #6a1b9a;
+  color: #4a148c;
+  font-weight: 700;
 }
 /* Viền input nguồn tiền */
 #thu-source {
