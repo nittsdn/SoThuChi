@@ -387,6 +387,19 @@ input, select, button {
 }
 
 /* =========================
+   INPUT GROUP BLOCKS
+========================= */
+.input-group-block {
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+.ig-purple { background: #f3e5f5; }
+.ig-blue   { background: #e3f2fd; }
+.ig-orange { background: #fff3e0; }
+.ig-green  { background: #e8f5e9; }
+
+/* =========================
    DATE ROW
 ========================= */
 .date-row {
