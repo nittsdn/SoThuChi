@@ -1,4 +1,4 @@
-﻿// Version: v3.2.1618
+﻿// Version: v3.2.1757
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1974,8 +1974,12 @@ function initModalEventListeners() {
       if (result && result.status === 'success') {
         showToast(`Đã thêm mô tả "${name}" thành công`);
         
+        // Xóa cache loai_chi – cần fetch lại lần sau
+        clearCache(CACHE_KEYS.LOAI_CHI);
+        
         const loaiChiData = await fetchData('loai_chi');
         loaiChiList = loaiChiData || [];
+        setCached(CACHE_KEYS.LOAI_CHI, loaiChiList);
         
         chiModalNewName.value = '';
         chiModalNewPhanloai.value = '';
@@ -2068,8 +2072,8 @@ window.onload = async () => {
   thuList = thuData || [];
   
   const [loaiChiData, nguonTienData] = await Promise.all([
-    fetchData("loai_chi"),
-    fetchData("nguon_tien")
+    getCachedOrFetch(CACHE_KEYS.LOAI_CHI, 'loai_chi'),
+    getCachedOrFetch(CACHE_KEYS.NGUON_TIEN, 'nguon_tien')
   ]);
   
   loaiChiList = loaiChiData || [];
