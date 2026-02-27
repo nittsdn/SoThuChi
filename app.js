@@ -1,4 +1,4 @@
-// Version: v3.2.0956
+// Version: v3.2.1014
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1515,9 +1515,9 @@ function loadTongKet() {
     const inputVal = useGhiNho ? ghiNho[nguon.nguon_tien] : tamTinh;
     tkInputs[nguon.nguon_tien] = inputVal;
 
-    const badge = useGhiNho
-      ? '<span class="tk-badge tk-badge-ghinho">📌 Đã ghi nhớ</span>'
-      : '<span class="tk-badge tk-badge-tamtinh">🔄 Tạm tính</span>';
+    const badgeIcon = useGhiNho
+      ? '<span class="tk-badge-icon" title="Đã ghi nhớ">📌</span>'
+      : '<span class="tk-badge-icon" title="Tạm tính">🔄</span>';
 
     const bgColor = getNguonBgColor(nguon.nguon_tien);
     const borderColor = getNguonBorderColor(nguon.nguon_tien);
@@ -1531,14 +1531,20 @@ function loadTongKet() {
     div.style.marginBottom = "6px";
     div.innerHTML = `
       <div class="tk-input-row">
-        <div class="tk-label">${nguon.icon ? nguon.icon + ' ' : ''}${nguon.nguon_tien} ${badge}</div>
-        <div class="tk-input-wrap">
-          <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0" value="${formatVN(inputVal, 2)}">
+        <div class="tk-label">
+          <span class="tk-label-icon">${nguon.icon || ''}</span>
+          <span class="tk-label-name">${nguon.nguon_tien}</span>
         </div>
-      </div>
-      <div class="tk-tamtinh-row">
-        <div class="tk-tamtinh-label">Tạm tính:</div>
-        <div class="tk-tamtinh-value">${formatVN(tamTinh)}</div>
+        <div class="tk-input-wrap">
+          <div class="tk-input-badge-row">
+            <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0" value="${formatVN(inputVal, 2)}">
+            ${badgeIcon}
+          </div>
+          <div class="tk-tamtinh-row">
+            <div class="tk-tamtinh-label">Tạm tính:</div>
+            <div class="tk-tamtinh-value">${formatVN(tamTinh)}</div>
+          </div>
+        </div>
       </div>
     `;
     inputsContainer.appendChild(div);
