@@ -1,4 +1,4 @@
-// Version: v3.2.1014
+﻿// Version: v3.2.1245
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1475,16 +1475,32 @@ function loadTongKet() {
       return a.nguon_tien.localeCompare(b.nguon_tien, 'vi', { sensitivity: 'base' });
     });
 
+  // Bảng màu khung theo người
+  const NGUOI_GROUP_COLORS = {
+    "Mèo":  { border: "#f48fb1", bg: "#fff0f6", label: "#c2185b" },
+    "Boé":  { border: "#90caf9", bg: "#e8f4fd", label: "#1565c0" },
+    default: { border: "#b0bec5", bg: "#f5f7f5", label: "#546e7a" }
+  };
+
   let currentNguoi = null;
+  let currentGroup = null;
 
   sortedNguonTien.forEach(nguon => {
-    // Header nhóm theo người
+    // Tạo khung màu mới cho từng người
     if (nguon.nguoi !== currentNguoi) {
       currentNguoi = nguon.nguoi;
-      const header = document.createElement("div");
-      header.className = "tk-nguoi-header";
-      header.textContent = currentNguoi || "Khác";
-      inputsContainer.appendChild(header);
+      const colors = NGUOI_GROUP_COLORS[currentNguoi] || NGUOI_GROUP_COLORS.default;
+      currentGroup = document.createElement("div");
+      currentGroup.className = "tk-nguoi-group";
+      currentGroup.style.borderColor = colors.border;
+      currentGroup.style.backgroundColor = colors.bg;
+      const groupLabel = document.createElement("div");
+      groupLabel.className = "tk-nguoi-group-label";
+      groupLabel.textContent = currentNguoi || "Khác";
+      groupLabel.style.color = colors.label;
+      groupLabel.style.borderBottomColor = colors.border;
+      currentGroup.appendChild(groupLabel);
+      inputsContainer.appendChild(currentGroup);
     }
 
     let lastSnapshot = null;
@@ -1517,7 +1533,7 @@ function loadTongKet() {
 
     const badgeIcon = useGhiNho
       ? '<span class="tk-badge-icon" title="Đã ghi nhớ">📌</span>'
-      : '<span class="tk-badge-icon" title="Tạm tính">🔄</span>';
+      : '<span class="tk-badge-icon" title="T\u1ea1m t\u00ednh">🚧</span>';
 
     const bgColor = getNguonBgColor(nguon.nguon_tien);
     const borderColor = getNguonBorderColor(nguon.nguon_tien);
@@ -1547,7 +1563,7 @@ function loadTongKet() {
         </div>
       </div>
     `;
-    inputsContainer.appendChild(div);
+    currentGroup.appendChild(div);
 
     const input = div.querySelector("input");
     input.onfocus = () => input.select();

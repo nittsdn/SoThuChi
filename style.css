@@ -726,6 +726,15 @@ input, select, button {
   background: linear-gradient(135deg, #6c757d 0%, #343a40 100%);
 }
 
+.btn-orange {
+  background: linear-gradient(135deg, #fd9644 0%, #e8590c 100%);
+  color: #fff;
+}
+
+.btn-orange:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f76707 0%, #d9480f 100%);
+}
+
 /* =========================
    TỔNG KẾT
 ========================= */
@@ -1263,32 +1272,34 @@ input, select, textarea {
 }
 
 /* =====================================
-   NHÓM NGƯỜI (Tổng kết)
+   NHÓM NGƯỜI (Tổng kết) – bordered frame
 ===================================== */
-.tk-nguoi-header {
+.tk-nguoi-group {
+  border: 2px solid #ccc;
+  border-radius: 12px;
+  padding: 0 10px 10px 10px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.tk-nguoi-group-label {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #8e8e93;
-  background: #f2f2f7;
-  padding: 4px 10px;
-  margin: 10px -2px 6px -2px;
-  border-radius: 6px;
-}
-.tk-nguoi-header:first-child {
-  margin-top: 2px;
+  padding: 6px 2px 6px 2px;
+  margin: 0 0 6px 0;
+  border-bottom: 1px solid;
 }
 
 /* =====================================
    BTN-PURPLE
 ===================================== */
 .btn-purple {
-  background: #7c4dff;
+  background: linear-gradient(135deg, #ce93d8 0%, #9c5dd7 100%);
   color: #fff;
 }
 .btn-purple:hover:not(:disabled) {
-  background: #6a3de0;
+  background: linear-gradient(135deg, #ba68c8 0%, #7b3db5 100%);
 }
 
 /* =====================================
