@@ -1,4 +1,4 @@
-﻿// Version: v3.2.1831
+﻿// Version: v3.2.1847
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -291,19 +291,19 @@ let nguonTienList = [];
 
 // Map màu trực tiếp theo tên nguồn tiền
 const NGUON_COLOR_MAP = {
-  // Boé – tông ấm
-  "Sacom Boé":      { bg: "#FFE5D9", border: "#e8a07a" },
-  "SCB + Agri Boé": { bg: "#FADADD", border: "#e09098" },
-  "Tech Boé":       { bg: "#FFF9C4", border: "#d4c030" },
-  "Tiền mặt Boé":   { bg: "#FCF5C7", border: "#c8b828" },
-  "Ví Vnpay Boé":   { bg: "#FFD3B6", border: "#e07040" },
-  "Tiền mới":       { bg: "#EDEDED", border: "#a0a0a0" },
-  // Mèo – tông mát
-  "ACB Mèo":        { bg: "#E0F7FA", border: "#50b8c8" },
-  "HD Mèo":         { bg: "#B3E5FC", border: "#2090c0" },
-  "Tech Mèo":       { bg: "#D0F0FD", border: "#40b0d0" },
-  "Tiền mặt Mèo":   { bg: "#E0F0E9", border: "#50a870" },
-  "Ví Momo Mèo":    { bg: "#D4F4DD", border: "#40b860" },
+  // Boé – tông nóng
+  "Sacom Boé":      { bg: "#F2A7AD", border: "#d06070" },
+  "SCB + Agri Boé": { bg: "#F2D98D", border: "#c0a030" },
+  "Tech Boé":       { bg: "#F2B6E2", border: "#d060a0" },
+  "Tiền mặt Boé":   { bg: "#F2DCC2", border: "#c08850" },
+  "Ví Vnpay Boé":   { bg: "#F2A2C0", border: "#d05090" },
+  "Tiền mới":       { bg: "#F2E9E9", border: "#b89090" },
+  // Mèo – tông lạnh (khác biệt tối đa)
+  "ACB Mèo":        { bg: "#BEB6F2", border: "#7060c0" },
+  "HD Mèo":         { bg: "#B6D6F2", border: "#5080b8" },
+  "Tech Mèo":       { bg: "#59D9CC", border: "#20a090" },
+  "Tiền mặt Mèo":   { bg: "#84D9BA", border: "#30a060" },
+  "Ví Momo Mèo":    { bg: "#E8C4F2", border: "#9060b0" },
 };
 
 // Fallback palette cho nguồn tiền chưa có trong map
