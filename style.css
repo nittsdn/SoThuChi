@@ -398,10 +398,10 @@ input, select, button {
 .ig-blue   { background: #e3f2fd; }
 .ig-orange { background: #f3e5f5; }
 .ig-green  { background: #e8f5e9; }
-.ig-red    { background: #fffde7; }
+.ig-red    { background: #fff9c4; }
 .ig-indigo { background: #dbeeff; }
-.ig-yellow { background: #fff8e1; }
-.ig-teal   { background: #e0f2f1; }
+.ig-yellow { background: #fff9c4; }
+.ig-teal   { background: #b2dfdb; }
 
 /* =========================
    TAB THU – SCOPED STYLES
