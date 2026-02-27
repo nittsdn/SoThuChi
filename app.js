@@ -1,4 +1,4 @@
-﻿// Version: v3.2.1532
+﻿// Version: v3.2.1540
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -684,7 +684,7 @@ function renderChiStack() {
   // Lấy trực tiếp số từ input number, không lọc, chỉ format
   const currentInputNum = chiInput.value ? parseFloat(chiInput.value) : 0;
   if (!chiStack.length && !currentInputNum) {
-    display.innerHTML = "Chưa có số";
+    display.innerHTML = "Tổng: 0";
     checkChiReady();
     return;
   }
@@ -776,7 +776,7 @@ function resetChiSection() {
   editMode = false;
   editIndex = -1;
   chiInput.value = "";
-  document.getElementById("chi-stack").innerHTML = "Chưa có số";
+  document.getElementById("chi-stack").innerHTML = "Tổng: 0";
   document.getElementById("chi-desc-dropdown").value = "";
   document.getElementById("chi-source").value = "";
   document.querySelectorAll("#chi-chips .chip").forEach(c => c.classList.remove("selected"));

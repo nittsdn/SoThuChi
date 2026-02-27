@@ -398,6 +398,10 @@ input, select, button {
 .ig-blue   { background: #e3f2fd; }
 .ig-orange { background: #fff3e0; }
 .ig-green  { background: #e8f5e9; }
+.ig-red    { background: #fce4ec; }
+.ig-indigo { background: #e8eaf6; }
+.ig-yellow { background: #fff8e1; }
+.ig-teal   { background: #e0f2f1; }
 
 /* =========================
    TAB THU – SCOPED STYLES
@@ -445,6 +449,54 @@ input, select, button {
 /* Viền input nguồn tiền */
 #thu-source {
   border: 1px solid #9c27b0;
+}
+
+/* =========================
+   TAB CHI – SCOPED STYLES
+========================= */
+/* Nút prev/next ngày */
+#tab-chi .ig-red .btn-square {
+  background: linear-gradient(135deg, #ef9a9a 0%, #c62828 100%);
+  color: #fff;
+}
+/* Nút hiển thị ngày */
+#tab-chi .ig-red .btn-date-display {
+  background: #fce4ec;
+  border-color: #e53935;
+  color: #b71c1c;
+  font-weight: 600;
+}
+/* Input số tiền */
+#tab-chi .ig-indigo .calc-input {
+  border: 1px solid #ef9a9a;
+}
+#tab-chi .ig-indigo .calc-input:hover,
+#tab-chi .ig-indigo .calc-input:focus {
+  border-color: #007bff;
+  outline: none;
+}
+/* Nút reset ↻ */
+#tab-chi .ig-indigo .btn-delete {
+  background: linear-gradient(135deg, #546e7a 0%, #263238 100%);
+  color: #fff;
+}
+#tab-chi .ig-indigo .btn-delete:hover {
+  background: linear-gradient(135deg, #455a64 0%, #1c2a30 100%);
+}
+/* 8 nút chip mô tả chi */
+#chi-chips .chip {
+  background: linear-gradient(135deg, #ef5350 0%, #b71c1c 100%);
+  color: #fff;
+  font-weight: 600;
+}
+#chi-chips .chip.selected {
+  background: #d32f2f;
+  border: 2px solid #fff;
+  color: #fff;
+}
+/* Viền select nguồn tiền */
+#chi-source {
+  border: 1px solid #e53935;
 }
 
 /* =========================

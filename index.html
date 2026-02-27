@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sổ Thu Chi</title>
-    <link rel="stylesheet" href="style.css?v=3201532" />
+    <link rel="stylesheet" href="style.css?v=3201540" />
 </head>
 <body>
 
@@ -29,7 +29,7 @@
         <div class="header-details collapsed" id="header-details">
             <!-- Dynamic content from JS -->
         </div>
-        <div class="version">v3.2.1532</div>
+        <div class="version">v3.2.1540</div>
     </div>
 
     <!-- ================= TAB CONTENT ================= -->
@@ -43,34 +43,39 @@
                     <button class="btn-settings-icon" id="chi-settings-btn">⚙️</button>
                 </div>
 
-                <div class="date-row">
-                    <button class="btn-square" id="chi-date-prev">&lt;</button>
-                    <div class="date-display-wrapper">
-                        <button class="btn-date-display" id="chi-date-display"></button>
-                        <input type="date" class="date-input-overlay" id="chi-date-input">
+                <div class="input-group-block ig-red">
+                    <div class="date-row">
+                        <button class="btn-square" id="chi-date-prev">&lt;</button>
+                        <div class="date-display-wrapper">
+                            <button class="btn-date-display" id="chi-date-display"></button>
+                            <input type="date" class="date-input-overlay" id="chi-date-input">
+                        </div>
+                        <button class="btn-square" id="chi-date-next">&gt;</button>
                     </div>
-                    <button class="btn-square" id="chi-date-next">&gt;</button>
                 </div>
 
-                <div class="calc-row">
-                    <input class="calc-input" id="chi-input" type="number" step="0.000001" placeholder="VNĐ">
-                    <button class="btn-square btn-blue" id="chi-add">+</button>
-                    <button class="btn-square btn-delete" id="chi-clear">↻</button>
+                <div class="input-group-block ig-indigo">
+                    <div class="calc-row">
+                        <input class="calc-input" id="chi-input" type="number" step="0.000001" placeholder="VNĐ">
+                        <button class="btn-square btn-blue" id="chi-add">+</button>
+                        <button class="btn-square btn-delete" id="chi-clear">↻</button>
+                    </div>
+                    <div class="chi-preview" id="chi-preview"></div>
+                    <div class="stack-display" id="chi-stack">Tổng: 0</div>
                 </div>
 
-                <div class="chi-preview" id="chi-preview"></div>
+                <div class="input-group-block ig-yellow">
+                    <div class="chip-grid" id="chi-chips"></div>
+                    <select class="input-std" id="chi-desc-dropdown">
+                        <option value="">-- Mô tả khác --</option>
+                    </select>
+                </div>
 
-                <div class="stack-display" id="chi-stack">Chưa có số</div>
-
-                <div class="chip-grid" id="chi-chips"></div>
-
-                <select class="input-std" id="chi-desc-dropdown">
-                    <option value="">-- Mô tả khác --</option>
-                </select>
-
-                <select class="input-std" id="chi-source">
-                    <option value="">-- Nguồn tiền --</option>
-                </select>
+                <div class="input-group-block ig-teal">
+                    <select class="input-std" id="chi-source">
+                        <option value="">-- Nguồn tiền --</option>
+                    </select>
+                </div>
 
                 <button class="btn-submit btn-red" id="chi-submit" disabled>
                     Thêm chi
@@ -260,6 +265,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=3201532"></script>
+    <script src="app.js?v=3201540"></script>
 </body>
 </html>
