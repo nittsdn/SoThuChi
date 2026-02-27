@@ -400,6 +400,45 @@ input, select, button {
 .ig-green  { background: #e8f5e9; }
 
 /* =========================
+   TAB THU – SCOPED STYLES
+========================= */
+/* Nút prev/next ngày */
+#tab-thu .ig-purple .btn-square {
+  background: linear-gradient(135deg, #ab47bc 0%, #6a1b9a 100%);
+  color: #fff;
+}
+/* Nút hiển thị ngày */
+#tab-thu .ig-purple .btn-date-display {
+  background: #ede7f6;
+  border-color: #9c27b0;
+  color: #6a1b9a;
+  font-weight: 600;
+}
+/* Input số tiền */
+#tab-thu .ig-blue .calc-input {
+  border: 2px solid #34c759;
+}
+/* Nút reset ↻ */
+#tab-thu .ig-blue .btn-delete {
+  background: linear-gradient(135deg, #546e7a 0%, #263238 100%);
+  color: #fff;
+}
+#tab-thu .ig-blue .btn-delete:hover {
+  background: linear-gradient(135deg, #455a64 0%, #1c2a30 100%);
+}
+/* 8 nút chip mô tả thu */
+#thu-chips .chip {
+  background: linear-gradient(135deg, #ff6d00 0%, #e64a19 100%);
+  color: #fff;
+  font-weight: 600;
+}
+#thu-chips .chip.selected {
+  background: linear-gradient(135deg, #bf360c 0%, #8d1c0a 100%);
+  border: 2px solid #ff3d00;
+  color: #fff;
+}
+
+/* =========================
    DATE ROW
 ========================= */
 .date-row {

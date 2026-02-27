@@ -1,4 +1,4 @@
-﻿// Version: v3.2.1441
+﻿// Version: v3.2.1458
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -978,7 +978,7 @@ function renderThuStack() {
   const currentInputNum = thuInput.value ? parseFloat(thuInput.value) : 0;
   
   if (!thuStack.length && !currentInputNum) {
-    display.innerHTML = "Chưa có số";
+    display.innerHTML = "Tổng: 0";
     thuAmount = 0;
     checkThuReady();
     return;
@@ -1095,7 +1095,7 @@ function resetThuSection() {
   thuEditMode = false;
   thuEditIndex = -1;
   thuInput.value = "";
-  document.getElementById("thu-display").textContent = "Chưa có số";
+  document.getElementById("thu-display").textContent = "Tổng: 0";
   document.getElementById("thu-desc-input").value = "";
   const loaiThuDropdown = document.getElementById("thu-loai");
   loaiThuDropdown.value = "";
