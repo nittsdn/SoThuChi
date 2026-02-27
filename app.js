@@ -1,4 +1,4 @@
-﻿// Version: v3.2.1757
+﻿// Version: v3.2.1824
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -289,7 +289,22 @@ let loaiChiList = [];
 let thuList = [];
 let nguonTienList = [];
 
-// 16 màu pastel đủ phân biệt (bg + border đậm hơn)
+// Map màu trực tiếp theo tên nguồn tiền
+const NGUON_COLOR_MAP = {
+  "ACB Mèo":        { bg: "#FFD1B3", border: "#e8855a" },
+  "HD Mèo":         { bg: "#FFDAB9", border: "#e09060" },
+  "Tech Mèo":       { bg: "#E0F4D1", border: "#7cbd5a" },
+  "Tiền mặt Mèo":   { bg: "#B0E0E6", border: "#50a8b8" },
+  "Ví Momo Mèo":    { bg: "#E6E6FA", border: "#8888cc" },
+  "Sacom Boé":      { bg: "#EEE8AA", border: "#b8a830" },
+  "SCB + Agri Boé": { bg: "#98FB98", border: "#40c040" },
+  "Tech Boé":       { bg: "#AFEEEE", border: "#40b0c0" },
+  "Tiền mặt Boé":   { bg: "#E0F7FF", border: "#50b8d8" },
+  "Ví Vnpay Boé":   { bg: "#DA70D6", border: "#a030a0" },
+  "Tiền mới":       { bg: "#C0C0C0", border: "#888888" }
+};
+
+// Fallback palette cho nguồn tiền chưa có trong map
 const NGUON_PALETTE = [
   "#ffeaea", "#fff3e8", "#fffbe0", "#f3ffe8",
   "#e8fff0", "#e8fff9", "#e8f8ff", "#e8eeff",
@@ -305,16 +320,21 @@ const NGUON_BORDER_PALETTE = [
 let _nguonColorCache = null;
 function _buildNguonColorCache() {
   if (_nguonColorCache) return;
-  // Sort toàn cục A-Z để mỗi nguồn tiền có index duy nhất, không phụ thuộc nhóm người
   const sorted = nguonTienList
     .filter(n => n.active)
     .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'));
   _nguonColorCache = {};
-  sorted.forEach((n, idx) => {
-    _nguonColorCache[n.nguon_tien] = {
-      bg: NGUON_PALETTE[idx % NGUON_PALETTE.length],
-      border: NGUON_BORDER_PALETTE[idx % NGUON_BORDER_PALETTE.length]
-    };
+  let fallbackIdx = 0;
+  sorted.forEach((n) => {
+    if (NGUON_COLOR_MAP[n.nguon_tien]) {
+      _nguonColorCache[n.nguon_tien] = NGUON_COLOR_MAP[n.nguon_tien];
+    } else {
+      _nguonColorCache[n.nguon_tien] = {
+        bg: NGUON_PALETTE[fallbackIdx % NGUON_PALETTE.length],
+        border: NGUON_BORDER_PALETTE[fallbackIdx % NGUON_BORDER_PALETTE.length]
+      };
+      fallbackIdx++;
+    }
   });
 }
 function getNguonBgColor(nguonTien) {
