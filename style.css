@@ -429,11 +429,11 @@ input, select, button {
 }
 /* Nút reset ↻ */
 #tab-thu .ig-blue .btn-delete {
-  background: linear-gradient(135deg, #546e7a 0%, #263238 100%);
+  background: linear-gradient(135deg, #f48a8a 0%, #e53935 100%);
   color: #fff;
 }
 #tab-thu .ig-blue .btn-delete:hover {
-  background: linear-gradient(135deg, #455a64 0%, #1c2a30 100%);
+  background: linear-gradient(135deg, #ef6f6f 0%, #c62828 100%);
 }
 /* 8 nút chip mô tả thu */
 #thu-chips .chip {
@@ -478,11 +478,11 @@ input, select, button {
 }
 /* Nút reset ↻ */
 #tab-chi .ig-indigo .btn-delete {
-  background: linear-gradient(135deg, #546e7a 0%, #263238 100%);
+  background: linear-gradient(135deg, #f48a8a 0%, #e53935 100%);
   color: #fff;
 }
 #tab-chi .ig-indigo .btn-delete:hover {
-  background: linear-gradient(135deg, #455a64 0%, #1c2a30 100%);
+  background: linear-gradient(135deg, #ef6f6f 0%, #c62828 100%);
 }
 /* 8 nút chip mô tả chi */
 #chi-chips .chip {
