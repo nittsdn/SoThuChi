@@ -397,14 +397,14 @@ input, select, button {
 .ig-purple { background: #f3e5f5; }
 .ig-blue   { background: #e3f2fd; }
 .ig-orange { background: #fff3e0; }
-.ig-green  { background: #e8f5e9; }
+.ig-green  { background: #e8f5e9; border: 1px solid #9c27b0; }
 
 /* =========================
    TAB THU – SCOPED STYLES
 ========================= */
 /* Nút prev/next ngày */
 #tab-thu .ig-purple .btn-square {
-  background: linear-gradient(135deg, #ab47bc 0%, #6a1b9a 100%);
+  background: linear-gradient(135deg, #ce93d8 0%, #9c27b0 100%);
   color: #fff;
 }
 /* Nút hiển thị ngày */
@@ -416,7 +416,12 @@ input, select, button {
 }
 /* Input số tiền */
 #tab-thu .ig-blue .calc-input {
-  border: 2px solid #34c759;
+  border: 1px solid #34c759;
+}
+#tab-thu .ig-blue .calc-input:hover,
+#tab-thu .ig-blue .calc-input:focus {
+  border-color: #007bff;
+  outline: none;
 }
 /* Nút reset ↻ */
 #tab-thu .ig-blue .btn-delete {
@@ -428,13 +433,13 @@ input, select, button {
 }
 /* 8 nút chip mô tả thu */
 #thu-chips .chip {
-  background: linear-gradient(135deg, #ff6d00 0%, #e64a19 100%);
+  background: linear-gradient(135deg, #ffa040 0%, #f4511e 100%);
   color: #fff;
   font-weight: 600;
 }
 #thu-chips .chip.selected {
-  background: linear-gradient(135deg, #bf360c 0%, #8d1c0a 100%);
-  border: 2px solid #ff3d00;
+  background: #007bff;
+  border: 2px solid #ff6d00;
   color: #fff;
 }
 
