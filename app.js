@@ -1,4 +1,4 @@
-﻿// Version: v3.2.1937
+﻿// Version: v3.3.0900
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -819,9 +819,8 @@ document.getElementById("chi-submit").onclick = async () => {
   console.log('📤 CHI Submit payload:', payload);
   const result = await postData("insert_chi", payload);
   if (result && result.status === 'success') {
-    // Thông báo giống phần THU, chỉ format số gốc, không nhân 1000
     let chiTotal = chiStack.reduce((a, b) => a + b, 0);
-    showToast(`Đã thêm chi: <b>${formatVN(chiTotal)}</b> VNĐ`, 3000);
+    showToast(`Đã thêm chi: <b>${formatVN(chiTotal * 1000)}</b> VNĐ`, 3000);
     const [chiDataRaw, thuDataRaw] = await Promise.all([
       fetchData("Chi_Tieu_2026"),
       fetchData("Thu_2026")
@@ -1162,14 +1161,7 @@ document.getElementById("thu-submit").onclick = async () => {
   
   const result = await postData("insert_thu", payload);
   if (result && result.status === 'success') {
-    // Hiển thị thông báo cạnh chữ THU
-    setTimeout(() => {
-      const thuNotify = document.getElementById("header-thu-notify");
-      if (thuNotify) {
-        thuNotify.textContent = "Thêm mới thành công!";
-        setTimeout(() => { thuNotify.textContent = ""; }, 3000);
-      }
-    }, 100); // Đợi updateHeader render xong
+    showToast(`Đã thêm thu: <b>${formatVN(thuAmount)}</b> VNĐ`, 3000);
     const [chiDataRaw, thuDataRaw] = await Promise.all([
       fetchData("Chi_Tieu_2026"),
       fetchData("Thu_2026")
@@ -1361,7 +1353,7 @@ function renderChiChuaTK() {
       const result = await postData("update_chi", payload);
       if (result && result.status === "success") {
         tkEditedChiIds.add(id);
-        showToast("Đã cập nhật chi thành công");
+        showToast("Đã cập nhật chi thành công", 3000);
         const chi = await fetchData('Chi_Tieu_2026');
         window.tkChiList = chi.filter(item => item.IDChi && item.IDChi.trim());
         renderChiChuaTK();
@@ -1372,7 +1364,7 @@ function renderChiChuaTK() {
       if (!confirm(`Xác nhận xoá khoản chi "${row["mo_ta_chi"]}"?`)) return;
       const result = await postData("delete_chi", { idChi: id });
       if (result && result.status === "success") {
-        showToast("Đã xoá khoản chi thành công");
+        showToast("Đã xoá khoản chi thành công", 3000);
         const chi = await fetchData('Chi_Tieu_2026');
         window.tkChiList = chi.filter(item => item.IDChi && item.IDChi.trim());
         renderChiChuaTK();
@@ -1466,7 +1458,7 @@ function renderThuChuaTK() {
       const result = await postData("update_thu", payload);
       if (result && result.status === "success") {
         tkEditedThuIds.add(id);
-        showToast("Đã cập nhật thu thành công");
+        showToast("Đã cập nhật thu thành công", 3000);
         const thu = await fetchData('Thu_2026');
         window.tkThuList = thu.filter(item => item.IDThu && item.IDThu.trim());
         renderThuChuaTK();
@@ -1477,7 +1469,7 @@ function renderThuChuaTK() {
       if (!confirm(`Xác nhận xoá khoản thu "${row["Mô tả"]}"?`)) return;
       const result = await postData("delete_thu", { idThu: id });
       if (result && result.status === "success") {
-        showToast("Đã xoá khoản thu thành công");
+        showToast("Đã xoá khoản thu thành công", 3000);
         const thu = await fetchData('Thu_2026');
         window.tkThuList = thu.filter(item => item.IDThu && item.IDThu.trim());
         renderThuChuaTK();
@@ -1994,7 +1986,7 @@ function initModalEventListeners() {
       const result = await postData('insert_loai_chi', payload);
       
       if (result && result.status === 'success') {
-        showToast(`Đã thêm mô tả "${name}" thành công`);
+        showToast(`Đã thêm mô tả "${name}" thành công`, 3000);
         
         // Xóa cache loai_chi – cần fetch lại lần sau
         clearCache(CACHE_KEYS.LOAI_CHI);
