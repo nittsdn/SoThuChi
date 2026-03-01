@@ -1,4 +1,4 @@
-﻿// Version: v3.3.0926
+﻿// Version: v3.3.0933
 // ================= CONSTANTS =================
 const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
 
@@ -1281,6 +1281,8 @@ function renderChiChuaTK() {
     rowEl.style.marginBottom = "4px";
     if (isEdited) {
       rowEl.style.borderBottom = "2px dashed #2196f3";
+      rowEl.style.borderTop = "2px dashed #2196f3";
+      rowEl.style.borderRight = "2px dashed #2196f3";
       rowEl.style.borderRadius = "8px";
     }
 
@@ -1403,6 +1405,8 @@ function renderThuChuaTK() {
     rowEl.style.marginBottom = "4px";
     if (isEdited) {
       rowEl.style.borderBottom = "2px dashed #2196f3";
+      rowEl.style.borderTop = "2px dashed #2196f3";
+      rowEl.style.borderRight = "2px dashed #2196f3";
       rowEl.style.borderRadius = "8px";
     }
 
