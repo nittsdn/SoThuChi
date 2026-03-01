@@ -2,6 +2,10 @@
 // Lưu data ít thay đổi để tránh gọi API mỗi lần load app
 // Không có TTL – chỉ xóa khi có thay đổi dữ liệu liên quan
 
+// Tăng số này mỗi khi có thay đổi dữ liệu danh mục (loai_chi, nguon_tien)
+// để tự động bust cache trên mọi thiết bị
+const CACHE_VERSION = "3.3.0920";
+
 const CACHE_KEYS = {
   LOAI_CHI:   'stc_cache_loai_chi',
   NGUON_TIEN: 'stc_cache_nguon_tien'
@@ -18,6 +22,11 @@ function getCached(key) {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.data)) return null;
+    if (parsed.version !== CACHE_VERSION) {
+      console.log(`🔄 Cache VERSION MISMATCH: ${key} (saved: ${parsed.version}, current: ${CACHE_VERSION}) – bỏ cache cũ`);
+      localStorage.removeItem(key);
+      return null;
+    }
     console.log(`📦 Cache HIT: ${key} (${parsed.data.length} items)`);
     return parsed.data;
   } catch (e) {
@@ -33,8 +42,8 @@ function getCached(key) {
  */
 function setCached(key, data) {
   try {
-    localStorage.setItem(key, JSON.stringify({ data, savedAt: Date.now() }));
-    console.log(`💾 Cache SET: ${key} (${data.length} items)`);
+    localStorage.setItem(key, JSON.stringify({ data, version: CACHE_VERSION, savedAt: Date.now() }));
+    console.log(`💾 Cache SET: ${key} (${data.length} items, version: ${CACHE_VERSION})`);
   } catch (e) {
     console.warn(`⚠️ Cache ghi lỗi [${key}]:`, e);
   }
