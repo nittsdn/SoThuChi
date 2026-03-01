@@ -4,7 +4,7 @@
 
 // Tăng số này mỗi khi có thay đổi dữ liệu danh mục (loai_chi, nguon_tien)
 // để tự động bust cache trên mọi thiết bị
-const CACHE_VERSION = "3.3.0920";
+const CACHE_VERSION = "3.3.0926";
 
 const CACHE_KEYS = {
   LOAI_CHI:   'stc_cache_loai_chi',
