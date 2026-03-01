@@ -1,6 +1,7 @@
-﻿// Version: v3.3.0933
+﻿// Version: v3.4.0000
 // ================= CONSTANTS =================
-const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
+const SUPA_URL = "https://vspfbfeazipxjgymxpzr.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzcGZiZmVhemlweGpneW14cHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMjk4MzUsImV4cCI6MjA4NzkwNTgzNX0.tPQtyJDRxqWxGF-bYYSYWu3moNbFrSRSPigvQJFPdDA";
 
 // ================= UTIL =================
 function formatVN(num, decimals = 0) {
@@ -130,61 +131,227 @@ function showLoading(show = true) {
   document.getElementById("loading").style.display = show ? "flex" : "none";
 }
 
-// ================= API CALLS =================
+// ================= API CALLS (Supabase) =================
+
+// Map tên sheet cũ → endpoint Supabase (PostgreSQL fold lowercase)
+const SHEET_MAP = {
+  "Chi_Tieu_2026": "v_chi_tieu_2026",
+  "Thu_2026":      "v_thu_2026",
+  "loai_chi":      "v_loai_chi",
+  "nguon_tien":    "v_nguon_tien",
+  "tk_detail":     "tk_detail"
+};
+
+const SUPA_HEADERS = {
+  "apikey":        SUPA_KEY,
+  "Authorization": "Bearer " + SUPA_KEY,
+  "Content-Type":  "application/json",
+  "Prefer":        "return=representation"
+};
+
+// Parse công thức "=4+0.5" hoặc số thuần → NUMERIC (đơn vị nghìn)
+function parseFormulaNum(val) {
+  if (typeof val === "number") return val;
+  const s = String(val).replace(/^=/, "").trim();
+  const parts = s.split("+").map(p => parseFloat(p.replace(",", ".").trim()));
+  return parts.reduce((a, b) => (isNaN(b) ? a : a + b), 0);
+}
+
 async function fetchData(sheet) {
+  const endpoint = SHEET_MAP[sheet] || sheet;
   try {
     showLoading(true);
-    console.log(`fetchData: Fetching sheet "${sheet}"`);
-    const response = await fetch(`${API_URL}?sheet=${sheet}`);
-    const result = await response.json();
+    console.log(`fetchData: GET /rest/v1/${endpoint}`);
+    const res = await fetch(`${SUPA_URL}/rest/v1/${endpoint}?select=*`, {
+      headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY }
+    });
     showLoading(false);
-    
-    console.log(`fetchData: Response status for "${sheet}":`, result.status);
-    console.log(`fetchData: Data length for "${sheet}":`, result.data ? result.data.length : 0);
-    
-    if (result.data && result.data.length > 0) {
-      console.log(`fetchData: First item from "${sheet}":`, result.data[0]);
-    }
-    
-    if (result.status === "success") {
-      return result.data || [];
-    } else {
-      console.error(`fetchData: API error for "${sheet}":`, result.message);
-      showToast("Lỗi từ API: " + (result.message || "Unknown error"));
+    if (!res.ok) {
+      const err = await res.text();
+      console.error(`fetchData error [${endpoint}]:`, err);
+      showToast("Lỗi API: " + res.status);
       return [];
     }
+    const data = await res.json();
+    console.log(`fetchData [${endpoint}]: ${data.length} rows`);
+    return data;
   } catch (error) {
     showLoading(false);
-    console.error(`fetchData: Network error for "${sheet}":`, error);
-    showToast("Lỗi kết nối API: " + error.message);
+    console.error(`fetchData network error [${endpoint}]:`, error);
+    showToast("Lỗi kết nối: " + error.message);
     return [];
   }
 }
 
+async function supaPost(table, body) {
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+    method: "POST",
+    headers: SUPA_HEADERS,
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error(`supaPost [${table}] error:`, err);
+    return null;
+  }
+  return await res.json();
+}
+
+async function supaPatch(table, filter, body) {
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, {
+    method: "PATCH",
+    headers: SUPA_HEADERS,
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error(`supaPatch [${table}] error:`, err);
+    return null;
+  }
+  return await res.json();
+}
+
+async function supaDelete(table, filter) {
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, {
+    method: "DELETE",
+    headers: { ...SUPA_HEADERS, Prefer: "return=minimal" }
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error(`supaDelete [${table}] error:`, err);
+    return null;
+  }
+  return { status: "success" };
+}
+
 async function postData(action, payload) {
+  showLoading(true);
+  console.log(`📤 postData: action="${action}", payload=`, payload);
+  let result = null;
   try {
-    showLoading(true);
-    console.log(`📤 postData: action="${action}", payload=`, payload);
-    const response = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action, payload })
-    });
-    const data = await response.json();
-    showLoading(false);
-    console.log(`📥 postData response:`, data);
-    
-    if (data.status === 'error') {
-      showToast("Lỗi: " + data.message);
-      return null;
+    // ---- insert_chi ----
+    if (action === "insert_chi") {
+      const formulaRaw = String(payload.so_tien_nghin);
+      const numVal = parseFormulaNum(formulaRaw);
+      const row = {
+        id_chi:        "chi_" + Date.now(),
+        mo_ta_chi:     payload.mo_ta_chi,
+        nguon_tien:    payload.nguon_tien,
+        so_tien_nghin: numVal,
+        formula:       formulaRaw,
+        ngay:          payload.ngay
+      };
+      const r = await supaPost("chi_tieu", row);
+      result = r ? { status: "success", data: r } : null;
+
+    // ---- insert_thu ----
+    } else if (action === "insert_thu") {
+      // thuStack lưu VNĐ trực tiếp (khác chiStack lưu nghìn)
+      const soTien = parseFormulaNum(String(payload.so_tien));
+      const row = {
+        id_thu:     "thu_" + Date.now(),
+        so_tien:    Math.round(soTien),
+        ngay:       payload.ngay,
+        mo_ta:      payload.mo_ta,
+        nguon_tien: payload.nguon_tien,
+        loai_thu:   payload.loai_thu
+      };
+      const r = await supaPost("thu", row);
+      result = r ? { status: "success", data: r } : null;
+
+    // ---- update_chi ----
+    } else if (action === "update_chi") {
+      const formulaRaw = String(payload.so_tien_nghin);
+      const numVal = parseFormulaNum(formulaRaw);
+      const r = await supaPatch("chi_tieu", `id_chi=eq.${payload.idChi}`, {
+        ngay:          payload.ngay,
+        mo_ta_chi:     payload.mo_ta_chi,
+        nguon_tien:    payload.nguon_tien,
+        so_tien_nghin: numVal,
+        formula:       formulaRaw
+      });
+      result = r ? { status: "success", data: r } : null;
+
+    // ---- delete_chi ----
+    } else if (action === "delete_chi") {
+      result = await supaDelete("chi_tieu", `id_chi=eq.${payload.idChi}`);
+
+    // ---- update_thu ----
+    } else if (action === "update_thu") {
+      const r = await supaPatch("thu", `id_thu=eq.${payload.idThu}`, {
+        ngay:       payload.ngay,
+        mo_ta:      payload.mo_ta,
+        nguon_tien: payload.nguon_tien,
+        loai_thu:   payload.loai_thu,
+        so_tien:    Math.round(Number(payload.so_tien))
+      });
+      result = r ? { status: "success", data: r } : null;
+
+    // ---- delete_thu ----
+    } else if (action === "delete_thu") {
+      result = await supaDelete("thu", `id_thu=eq.${payload.idThu}`);
+
+    // ---- insert_tk ----
+    } else if (action === "insert_tk") {
+      const sessionId = "tk_" + Date.now();
+      const session = await supaPost("tk_session", {
+        session_id: sessionId,
+        ngay_tk:    payload.ngay_tk,
+        so_du_lt:   Math.round(payload.so_du_lt),
+        so_du_tt:   Math.round(payload.so_du_tt),
+        status:     "confirmed",
+        note:       payload.note || ""
+      });
+      if (!session) { result = null; }
+      else {
+        const details = payload.chi_tiet.map(d => ({
+          session_id: sessionId,
+          ngay_tk:    payload.ngay_tk,
+          nguon_tien: d.nguon_tien,
+          so_tien:    Math.round(d.so_tien)
+        }));
+        const dr = await supaPost("tk_detail", details);
+        result = dr ? { status: "success" } : null;
+      }
+
+    // ---- insert_loai_chi ----
+    } else if (action === "insert_loai_chi") {
+      // Tìm id_phanloai theo tên
+      const plRes = await fetch(
+        `${SUPA_URL}/rest/v1/phan_loai_chi?ten_phanloai=eq.${encodeURIComponent(payload.phan_loai)}&select=id`,
+        { headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY } }
+      );
+      const plData = await plRes.json();
+      if (!plData.length) {
+        showLoading(false);
+        showToast("Không tìm thấy phân loại: " + payload.phan_loai);
+        return null;
+      }
+      const r = await supaPost("loai_chi", {
+        id_chi:      "c_" + Date.now(),
+        mo_ta_chi:   payload.mo_ta_chi,
+        id_phanloai: plData[0].id,
+        icon:        payload.icon || "",
+        active:      true,
+        sort_order:  0,
+        note:        payload.note || ""
+      });
+      result = r ? { status: "success", data: r } : null;
+
+    } else {
+      console.warn(`postData: unknown action "${action}"`);
+      result = null;
     }
-    
-    return data;
   } catch (error) {
     showLoading(false);
-    showToast("Lỗi kết nối API: " + error.message);
+    showToast("Lỗi: " + error.message);
     console.error("postData error:", error);
     return null;
   }
+  showLoading(false);
+  if (!result) showToast("Lỗi khi lưu dữ liệu");
+  console.log(`📥 postData [${action}] result:`, result);
+  return result;
 }
 
 // ================= SETTINGS (LocalStorage) =================
