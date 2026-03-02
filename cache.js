@@ -8,7 +8,8 @@ const CACHE_VERSION = "3.4.0000";
 
 const CACHE_KEYS = {
   LOAI_CHI:   'stc_cache_loai_chi',
-  NGUON_TIEN: 'stc_cache_nguon_tien'
+  NGUON_TIEN: 'stc_cache_nguon_tien',
+  LOAI_THU:   'stc_cache_loai_thu'
 };
 
 /**

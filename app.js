@@ -139,6 +139,7 @@ const SHEET_MAP = {
   "Thu_2026":      "v_thu_2026",
   "loai_chi":      "v_loai_chi",
   "nguon_tien":    "v_nguon_tien",
+  "loai_thu":      "loai_thu",
   "tk_detail":     "tk_detail"
 };
 
@@ -355,53 +356,38 @@ async function postData(action, payload) {
 }
 
 // ================= SETTINGS (LocalStorage) =================
+// Chips (quickChipsChi/Thu) được quản lý qua sort_order trong DB, không lưu localStorage
 const DEFAULT_SETTINGS = {
-  quickChipsChi: null,
-  quickChipsThu: null,
   quickLoaiThu: ["Thu income", "Tiền về", "Khác"]
 };
 
 function getDefaultChips(type) {
   if (type === 'chi') {
-    const sourceList = loaiChiList;
-    const fieldName = 'mo_ta_chi';
-    
-    if (!sourceList || sourceList.length === 0) {
+    if (!loaiChiList || loaiChiList.length === 0) {
       console.warn(`getDefaultChips: No chi data available`);
       return ["", "", "", "", "", "", "", ""];
     }
-    
-    const activeItems = sourceList
-      .filter(item => item.active)
-      .sort((a, b) => a[fieldName].localeCompare(b[fieldName], 'vi', { sensitivity: 'base' }))
-      .slice(0, 8)
-      .map(item => item[fieldName]);
-    
-    while (activeItems.length < 8) {
-      activeItems.push("");
-    }
-    
-    console.log(`✅ getDefaultChips(chi): Generated ${activeItems.filter(c => c).length} default chips`);
-    return activeItems;
+    // Dùng sort_order 1–8 từ DB; sort_order=0 nghĩa là ẩn
+    const chips = Array(8).fill("");
+    loaiChiList
+      .filter(item => item.active && item.sort_order >= 1 && item.sort_order <= 8)
+      .forEach(item => { chips[item.sort_order - 1] = item.mo_ta_chi; });
+    console.log(`✅ getDefaultChips(chi): ${chips.filter(c => c).length} chips từ sort_order`);
+    return chips;
   }
   
   if (type === 'thu') {
-    if (!thuList || thuList.length === 0) {
-      console.warn(`getDefaultChips: No thu data available`);
+    if (!loaiThuList || loaiThuList.length === 0) {
+      console.warn(`getDefaultChips: No loai_thu data available`);
       return ["", "", "", "", "", "", "", ""];
     }
-    
-    const allMoTa = thuList.map(t => t["Mô tả"]).filter(Boolean);
-    const distinct = [...new Set(allMoTa)];
-    const sorted = distinct.sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
-    const top8 = sorted.slice(0, 8);
-    
-    while (top8.length < 8) {
-      top8.push("");
-    }
-    
-    console.log(`✅ getDefaultChips(thu): Generated ${top8.filter(c => c).length} default chips`);
-    return top8;
+    // Dùng sort_order 1–8 từ bảng loai_thu; sort_order=0 nghĩa là ẩn
+    const chips = Array(8).fill("");
+    loaiThuList
+      .filter(item => item.active && item.sort_order >= 1 && item.sort_order <= 8)
+      .forEach(item => { chips[item.sort_order - 1] = item.mo_ta; });
+    console.log(`✅ getDefaultChips(thu): ${chips.filter(c => c).length} chips từ sort_order`);
+    return chips;
   }
   
   return ["", "", "", "", "", "", "", ""];
@@ -409,32 +395,19 @@ function getDefaultChips(type) {
 
 function loadSettings() {
   const stored = localStorage.getItem("soThuChiSettings");
-  
   if (stored) {
+    const parsed = JSON.parse(stored);
     console.log('✅ Loading settings from localStorage');
-    return JSON.parse(stored);
+    // Chỉ giữ lại quickLoaiThu – chips đọc từ DB
+    return { quickLoaiThu: parsed.quickLoaiThu || DEFAULT_SETTINGS.quickLoaiThu };
   }
-  
-  console.log('⚠️ No localStorage found, generating defaults');
-  const defaults = { ...DEFAULT_SETTINGS };
-  
-  if (loaiChiList && loaiChiList.length > 0) {
-    defaults.quickChipsChi = getDefaultChips('chi');
-  } else {
-    defaults.quickChipsChi = ["", "", "", "", "", "", "", ""];
-  }
-  
-  if (thuList && thuList.length > 0) {
-    defaults.quickChipsThu = getDefaultChips('thu');
-  } else {
-    defaults.quickChipsThu = ["", "", "", "", "", "", "", ""];
-  }
-  
-  return defaults;
+  console.log('⚠️ No localStorage found, using defaults');
+  return { ...DEFAULT_SETTINGS };
 }
 
 function saveSettings(settings) {
-  localStorage.setItem("soThuChiSettings", JSON.stringify(settings));
+  // Chỉ lưu quickLoaiThu – chips quản lý qua sort_order trong DB
+  localStorage.setItem("soThuChiSettings", JSON.stringify({ quickLoaiThu: settings.quickLoaiThu }));
 }
 
 // ================= STATE =================
@@ -453,6 +426,7 @@ let thuLoai = "";
 let thuSource = "";
 
 let loaiChiList = [];
+let loaiThuList = [];
 let thuList = [];
 let nguonTienList = [];
 
@@ -734,7 +708,7 @@ document.getElementById("thu-date-next").onclick = () => {
 function renderChiChips() {
   const chipGrid = document.getElementById("chi-chips");
   chipGrid.innerHTML = "";
-  settings.quickChipsChi.forEach(chip => {
+  getDefaultChips('chi').forEach(chip => {
     if (chip) {
       const btn = document.createElement("button");
       btn.className = "chip";
@@ -1034,7 +1008,7 @@ function onThuDescChange(desc) {
 function renderThuChips() {
   const chipGrid = document.getElementById("thu-chips");
   chipGrid.innerHTML = "";
-  settings.quickChipsThu.forEach(chip => {
+  getDefaultChips('thu').forEach(chip => {
     if (chip) {
       const btn = document.createElement("button");
       btn.className = "chip";
@@ -1863,8 +1837,6 @@ function renderModalCheckboxList(type) {
     return;
   }
   
-  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  
   let sourceList, fieldName;
   
   if (type === 'chi') {
@@ -1873,18 +1845,17 @@ function renderModalCheckboxList(type) {
       .sort((a, b) => a.mo_ta_chi.localeCompare(b.mo_ta_chi, 'vi', { sensitivity: 'base' }));
     fieldName = 'mo_ta_chi';
   } else {
-    const allMoTa = thuList.map(t => t["Mô tả"]).filter(Boolean);
-    const distinct = [...new Set(allMoTa)];
-    sourceList = distinct.sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }))
-                        .map(desc => ({ desc }));
-    fieldName = 'desc';
+    sourceList = loaiThuList
+      .filter(item => item.active)
+      .sort((a, b) => a.mo_ta.localeCompare(b.mo_ta, 'vi', { sensitivity: 'base' }));
+    fieldName = 'mo_ta';
   }
   
   console.log('📊 Data check:', {
     type,
     sourceListLength: sourceList.length,
-    currentChipsLength: currentChips.length,
-    currentChips: currentChips
+    checkedCount: (type === 'chi' ? loaiChiList : loaiThuList)
+      .filter(i => i.sort_order >= 1 && i.sort_order <= 8).length
   });
   
   if (!sourceList || sourceList.length === 0) {
@@ -1896,8 +1867,8 @@ function renderModalCheckboxList(type) {
   container.innerHTML = '';
   
   sourceList.forEach((item, index) => {
-    const desc = type === 'chi' ? item.mo_ta_chi : item.desc;
-    const isChecked = currentChips.filter(c => c).includes(desc);
+    const desc = type === 'chi' ? item.mo_ta_chi : item.mo_ta;
+    const isChecked = item.sort_order >= 1 && item.sort_order <= 8;
     
     const itemDiv = document.createElement('div');
     itemDiv.className = 'checkbox-item';
@@ -1924,54 +1895,51 @@ function renderModalCheckboxList(type) {
   updateModalSelectedCount(type);
 }
 
-function handleModalChipToggle(type, desc, checked) {
-  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  
+async function handleModalChipToggle(type, desc, checked) {
+  const list      = type === 'chi' ? loaiChiList : loaiThuList;
+  const table     = type === 'chi' ? 'loai_chi'  : 'loai_thu';
+  const idField   = type === 'chi' ? 'id_chi'    : 'id_thu';
+  const descField = type === 'chi' ? 'mo_ta_chi' : 'mo_ta';
+
+  const item = list.find(i => i[descField] === desc);
+  if (!item) { showToast('Không tìm thấy: ' + desc); return; }
+
+  let newSortOrder;
   if (checked) {
-    const nonEmptyCount = currentChips.filter(c => c).length;
-    
-    if (nonEmptyCount >= 8) {
-      showToast("Chỉ được chọn tối đa 8 mô tả");
-      const checkbox = document.querySelector(`input[data-desc="${desc}"]`);
-      if (checkbox) checkbox.checked = false;
+    const usedSlots = list
+      .filter(i => i.sort_order >= 1 && i.sort_order <= 8)
+      .map(i => i.sort_order);
+    if (usedSlots.length >= 8) {
+      showToast('Chỉ được chọn tối đa 8 mô tả');
+      const cb = document.querySelector(`input[data-desc="${desc}"]`);
+      if (cb) cb.checked = false;
       return;
     }
-    
-    const firstEmptyIndex = currentChips.findIndex(c => !c);
-    if (firstEmptyIndex !== -1) {
-      currentChips[firstEmptyIndex] = desc;
+    // Lấy slot nhỏ nhất còn trống trong 1–8
+    for (let s = 1; s <= 8; s++) {
+      if (!usedSlots.includes(s)) { newSortOrder = s; break; }
     }
   } else {
-    const index = currentChips.indexOf(desc);
-    if (index !== -1) {
-      currentChips[index] = "";
-    }
+    newSortOrder = 0;
   }
-  
-  if (type === 'chi') {
-    settings.quickChipsChi = currentChips;
-  } else {
-    settings.quickChipsThu = currentChips;
-  }
-  
-  saveSettings(settings);
-  
-  if (type === 'chi') {
-    renderChiChips();
-  } else {
-    renderThuChips();
-  }
-  
+
+  const r = await supaPatch(table, `${idField}=eq.${item[idField]}`, { sort_order: newSortOrder });
+  if (r === null) return; // supaPatch đã log lỗi
+
+  // Cập nhật local list ngay (không cần re-fetch)
+  item.sort_order = newSortOrder;
+  if (type === 'chi') setCached(CACHE_KEYS.LOAI_CHI, loaiChiList);
+  else                setCached(CACHE_KEYS.LOAI_THU, loaiThuList);
+
+  type === 'chi' ? renderChiChips() : renderThuChips();
   updateModalSelectedCount(type);
 }
 
 function updateModalSelectedCount(type) {
-  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  const count = currentChips.filter(c => c).length;
+  const list = type === 'chi' ? loaiChiList : loaiThuList;
+  const count = list.filter(item => item.sort_order >= 1 && item.sort_order <= 8).length;
   const countElement = document.getElementById(`${type}-dropdown-count`);
-  if (countElement) {
-    countElement.textContent = count;
-  }
+  if (countElement) countElement.textContent = count;
 }
 
 function showModal(type) {
@@ -2202,23 +2170,17 @@ function initModalEventListeners() {
 }
 
 function resetSettings(type) {
-  console.log(`🔄 Resetting ${type} settings to default...`);
-  
+  // Chips quản lý qua sort_order trong DB – reset = re-render từ dữ liệu hiện tại
+  console.log(`🔄 Re-rendering ${type} chips from DB...`);
   if (type === 'chi') {
-    settings.quickChipsChi = getDefaultChips('chi');
-    saveSettings(settings);
     renderChiChips();
     renderModalCheckboxList('chi');
-    showToast('✅ Đã reset CHI về mặc định');
+    showToast('✅ Đã tải lại chip CHI từ CSDL');
   } else if (type === 'thu') {
-    settings.quickChipsThu = getDefaultChips('thu');
-    saveSettings(settings);
     renderThuChips();
     renderModalCheckboxList('thu');
-    showToast('✅ Đã reset THU về mặc định');
+    showToast('✅ Đã tải lại chip THU từ CSDL');
   }
-  
-  console.log(`✅ ${type} settings reset complete`);
 }
 
 // ================= TAB BAR =================
@@ -2256,13 +2218,15 @@ window.onload = async () => {
 
   thuList = thuData || [];
   
-  const [loaiChiData, nguonTienData] = await Promise.all([
-    getCachedOrFetch(CACHE_KEYS.LOAI_CHI, 'loai_chi'),
-    getCachedOrFetch(CACHE_KEYS.NGUON_TIEN, 'nguon_tien')
+  const [loaiChiData, nguonTienData, loaiThuData] = await Promise.all([
+    getCachedOrFetch(CACHE_KEYS.LOAI_CHI,   'loai_chi'),
+    getCachedOrFetch(CACHE_KEYS.NGUON_TIEN, 'nguon_tien'),
+    getCachedOrFetch(CACHE_KEYS.LOAI_THU,   'loai_thu')
   ]);
   
-  loaiChiList = loaiChiData || [];
+  loaiChiList  = loaiChiData  || [];
   nguonTienList = nguonTienData || [];
+  loaiThuList  = loaiThuData  || [];
   _nguonColorCache = null; // Reset cache màu sau khi load xong dữ liệu
   
   console.log('✅ Data loaded:', {
