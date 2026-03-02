@@ -33,6 +33,7 @@
 </div>
 <div>
   <button class="danger" onclick="clearLog()">Xóa log</button>
+  <button class="danger" onclick="resetThuTables()">⚠ Xóa thu + loai_thu (reset)</button>
 </div>
 
 <div id="log"></div>
@@ -88,6 +89,40 @@ async function supaGet(table) {
   return await res.json();
 }
 
+async function supaDeleteAll(table) {
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}?id_thu=neq.zzz`, {
+    method: "DELETE",
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, Prefer: "return=minimal" }
+  });
+  // Dùng filter luôn đúng để xóa tất cả
+  const res2 = await fetch(`${SUPA_URL}/rest/v1/${table}?select=count`, {
+    method: "DELETE",
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, Prefer: "return=minimal",
+               "Content-Range": "*" }
+  });
+  return res.ok;
+}
+
+async function supaDeleteTable(table, filterCol) {
+  // Xóa tất cả bằng filter "not is null" trên PK
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}?${filterCol}=not.is.null`, {
+    method: "DELETE",
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, Prefer: "return=minimal" }
+  });
+  return res.ok;
+}
+
+async function resetThuTables() {
+  if (!confirm("Xóa toàn bộ bảng thu và loai_thu trong Supabase?\nThao tác này không thể hoàn tác!")) return;
+  log("🗑 Đang xóa bảng thu...", "warn");
+  const ok1 = await supaDeleteTable("thu", "id_thu");
+  log(ok1 ? "  ✓ Đã xóa thu" : "  ✗ Lỗi xóa thu", ok1 ? "ok" : "err");
+  log("🗑 Đang xóa bảng loai_thu...", "warn");
+  const ok2 = await supaDeleteTable("loai_thu", "id_loaithu");
+  log(ok2 ? "  ✓ Đã xóa loai_thu" : "  ✗ Lỗi xóa loai_thu", ok2 ? "ok" : "err");
+  log("✅ Reset xong. Có thể chạy bước 4 lại.", "ok");
+}
+
 // conflictCol: tên cột để upsert (nếu null → insert-only, ignore duplicate PK)
 async function supaInsert(table, rows, conflictCol = null) {
   if (!rows.length) { log(`  ⚠ Không có dữ liệu để insert vào ${table}`, "warn"); return; }
@@ -140,7 +175,7 @@ async function loadPhanLoaiMap() {
     return false;
   }
   phanLoaiMap = {};
-  rows.forEach(r => { phanLoaiMap[r.ten_phanloai] = r.id; });
+  rows.forEach(r => { phanLoaiMap[r.ten_phanloai] = r.id_plc; });
   log(`  ✓ Loaded ${rows.length} phân loại: ${Object.keys(phanLoaiMap).join(", ")}`, "ok");
   return true;
 }
@@ -222,9 +257,9 @@ async function migrateLoaiChi() {
     }
 
     mapped.push({
-      id_chi:      idChi,
+      id_mtc:      idChi,
       mo_ta_chi:   r["mo_ta_chi"] || "",
-      id_phanloai: idPhanLoai,
+      id_plc:      idPhanLoai,
       icon:        r["icon"] || "",
       active:      r["active"] === false || String(r["active"]).toUpperCase() === "FALSE" ? false : true,
       sort_order:  parseInt(r["sort_order"]) || 0,
@@ -237,33 +272,56 @@ async function migrateLoaiChi() {
     errors.forEach(e => log(e, "warn"));
   }
   log(`  → ${mapped.length} loại chi sẽ insert, ${errors.length} lỗi`, "info");
-  await supaInsert("loai_chi", mapped, "id_chi");
+  await supaInsert("mo_ta_chi", mapped, "id_mtc");
   sep();
 }
 
 // ============================================================
 // BƯỚC 3: CHI TIÊU
+// 3a: Load mo_ta_chi map (mo_ta_chi text → id_mtc)
+// 3b: Migrate từng row chi với id_mtc FK
 // ============================================================
 async function migrateChiTieu() {
   log("━━ BƯỚC 3: Chi tiêu ━━", "step");
+
+  // 3a: Load mo_ta_chi map từ Supabase
+  log("  📦 Load mo_ta_chi map từ Supabase...", "info");
+  const mtcData = await supaGet("mo_ta_chi");
+  if (!mtcData || mtcData.error) {
+    log(`  ✗ Không load được mo_ta_chi: ${JSON.stringify(mtcData)}`, "err");
+    return;
+  }
+  const mtcMap = {}; // { mo_ta_chi text → id_mtc }
+  mtcData.forEach(r => { mtcMap[r.mo_ta_chi] = r.id_mtc; });
+  log(`  ✓ Loaded ${mtcData.length} mô tả chi`, "ok");
+
+  // 3b: Migrate chi tiêu
   const rows = await gasGet("Chi_Tieu_2026");
+  const errors = [];
   const mapped = rows
     .filter(r => r["IDChi"] && String(r["IDChi"]).trim())
     .map(r => {
       const formula = String(r["Nghìn VND"] || "0");
       const soTienNghin = parseFormula(formula);
+      const moTaChi = r["mo_ta_chi"] || "";
+      const idMtc = mtcMap[moTaChi];
+      if (!idMtc) {
+        errors.push(`  ⚠ ${r["IDChi"]} - không tìm được id_mtc cho: "${moTaChi}"`);
+        return null;
+      }
       return {
         id_chi:        String(r["IDChi"]).trim(),
-        mo_ta_chi:     r["mo_ta_chi"] || "",
+        id_mtc:        idMtc,
         nguon_tien:    r["Nguồn tiền"] || "",
         so_tien_nghin: soTienNghin,
         formula:       formula.startsWith("=") ? formula : null,
         ngay:          r["Ngày"] || r["ngay"] || "",
       };
     })
-    .filter(r => r.nguon_tien && r.ngay);
+    .filter(r => r && r.nguon_tien && r.ngay);
 
-  log(`  → ${mapped.length} khoản chi sẽ insert`, "info");
+  if (errors.length) errors.forEach(e => log(e, "warn"));
+  log(`  → ${mapped.length} khoản chi sẽ insert, ${errors.length} bỏ qua`, "info");
   await supaInsert("chi_tieu", mapped, "id_chi");
   sep();
 }
@@ -279,21 +337,45 @@ async function migrateThu() {
 
   // 4a: Tạo loai_thu từ distinct (Mô tả, Loại thu)
   log("  📦 Bước 4a: Tạo danh mục loại thu...", "info");
+
+  // Kiểm tra nếu DB có loai_thu cũ không khớp GAS → cảnh báo
+  // Load existing loai_thu trước để tránh PK conflict
+  const ltExisting = await supaGet("loai_thu");
+  if (ltExisting && ltExisting.error) {
+    log(`  ✗ Không load được loai_thu: ${JSON.stringify(ltExisting)}`, "err");
+    return;
+  }
+  const existingMap = {}; // { mo_ta_thu: id_loaithu }
+  let maxIdNum = 0;
+  (ltExisting || []).forEach(r => {
+    existingMap[r.mo_ta_thu] = r.id_loaithu;
+    const num = parseInt((r.id_loaithu || "").replace("lt_", "")) || 0;
+    if (num > maxIdNum) maxIdNum = num;
+  });
+  log(`  ✓ DB hiện có ${Object.keys(existingMap).length} loại thu, max ID = lt_${maxIdNum}`, "info");
+
+  // Chỉ insert những mo_ta_thu chưa có trong DB
   const pairs = {};
   rows.forEach(r => {
     const moTa    = (r["Mô tả"] || "").trim();
     const loaiThu = (r["Loại thu"] || "Khác").trim();
     if (moTa && !pairs[moTa]) pairs[moTa] = loaiThu;
   });
-  const loaiThuRows = Object.entries(pairs).map(([moTa, loaiThu], i) => ({
-    id_loaithu: `lt_${i + 1}`,
+  const newEntries = Object.entries(pairs).filter(([moTa]) => !existingMap[moTa]);
+  const loaiThuRows = newEntries.map(([moTa, loaiThu], i) => ({
+    id_loaithu: `lt_${maxIdNum + i + 1}`,
     mo_ta_thu:  moTa,
     loai_thu:   loaiThu,
     active:     true,
     sort_order: 0
   }));
-  log(`  → ${loaiThuRows.length} loại thu sẽ insert`, "info");
-  await supaInsert("loai_thu", loaiThuRows, "mo_ta_thu");
+
+  if (loaiThuRows.length === 0) {
+    log(`  ✓ Không có loại thu mới (tất cả đã tồn tại trong DB)`, "ok");
+  } else {
+    log(`  → ${loaiThuRows.length} loại thu mới sẽ insert (bỏ qua ${Object.keys(pairs).length - loaiThuRows.length} đã có)`, "info");
+    await supaInsert("loai_thu", loaiThuRows, "mo_ta_thu");
+  }
 
   // Load lại loai_thu map từ Supabase (sau khi insert)
   log("  📦 Load loai_thu map từ Supabase...", "info");
@@ -334,8 +416,6 @@ async function migrateThu() {
   }
   log(`  → ${mapped.length} khoản thu sẽ insert, ${errors.length} bỏ qua`, "info");
   await supaInsert("thu", mapped, "id_thu");
-  sep();
-}
   sep();
 }
 

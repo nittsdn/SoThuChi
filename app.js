@@ -234,9 +234,11 @@ async function postData(action, payload) {
     if (action === "insert_chi") {
       const formulaRaw = String(payload.so_tien_nghin);
       const numVal = parseFormulaNum(formulaRaw);
+      const mtcItem = loaiChiList.find(lc => lc.mo_ta_chi === payload.mo_ta_chi);
+      if (!mtcItem) { showLoading(false); showToast("Không tìm thấy mô tả chi: " + payload.mo_ta_chi); return null; }
       const row = {
         id_chi:        "chi_" + Date.now(),
-        mo_ta_chi:     payload.mo_ta_chi,
+        id_mtc:        mtcItem.id_mtc,
         nguon_tien:    payload.nguon_tien,
         so_tien_nghin: numVal,
         formula:       formulaRaw,
@@ -253,7 +255,7 @@ async function postData(action, payload) {
       if (!ltItem) { showLoading(false); showToast("Không tìm thấy loại thu: " + payload.mo_ta_thu); return null; }
       const row = {
         id_thu:     "thu_" + Date.now(),
-        id_loaithu: ltItem.id_loaithu,
+        id_lt:      ltItem.id_lt,
         so_tien:    Math.round(soTien),
         ngay:       payload.ngay,
         nguon_tien: payload.nguon_tien,
@@ -266,13 +268,15 @@ async function postData(action, payload) {
     } else if (action === "update_chi") {
       const formulaRaw = String(payload.so_tien_nghin);
       const numVal = parseFormulaNum(formulaRaw);
-      const r = await supaPatch("chi_tieu", `id_chi=eq.${payload.idChi}`, {
+      const mtcItem = loaiChiList.find(lc => lc.mo_ta_chi === payload.mo_ta_chi);
+      const patchChi = {
         ngay:          payload.ngay,
-        mo_ta_chi:     payload.mo_ta_chi,
         nguon_tien:    payload.nguon_tien,
         so_tien_nghin: numVal,
         formula:       formulaRaw
-      });
+      };
+      if (mtcItem) patchChi.id_mtc = mtcItem.id_mtc;
+      const r = await supaPatch("chi_tieu", `id_chi=eq.${payload.idChi}`, patchChi);
       result = r ? { status: "success", data: r } : null;
 
     // ---- delete_chi ----
@@ -288,7 +292,7 @@ async function postData(action, payload) {
         so_tien:    Math.round(Number(payload.so_tien)),
         ghi_chu:    payload.ghi_chu || null
       };
-      if (ltItem) patchData.id_loaithu = ltItem.id_loaithu;
+      if (ltItem) patchData.id_lt = ltItem.id_lt;
       const r = await supaPatch("thu", `id_thu=eq.${payload.idThu}`, patchData);
       result = r ? { status: "success", data: r } : null;
 
@@ -321,9 +325,9 @@ async function postData(action, payload) {
 
     // ---- insert_loai_chi ----
     } else if (action === "insert_loai_chi") {
-      // Tìm id_phanloai theo tên
+      // Tìm id_plc theo tên
       const plRes = await fetch(
-        `${SUPA_URL}/rest/v1/phan_loai_chi?ten_phanloai=eq.${encodeURIComponent(payload.phan_loai)}&select=id`,
+        `${SUPA_URL}/rest/v1/phan_loai_chi?ten_phanloai=eq.${encodeURIComponent(payload.phan_loai)}&select=id_plc`,
         { headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY } }
       );
       const plData = await plRes.json();
@@ -332,14 +336,14 @@ async function postData(action, payload) {
         showToast("Không tìm thấy phân loại: " + payload.phan_loai);
         return null;
       }
-      const r = await supaPost("loai_chi", {
-        id_chi:      "c_" + Date.now(),
-        mo_ta_chi:   payload.mo_ta_chi,
-        id_phanloai: plData[0].id,
-        icon:        payload.icon || "",
-        active:      true,
-        sort_order:  0,
-        note:        payload.note || ""
+      const r = await supaPost("mo_ta_chi", {
+        id_mtc:     "c_" + Date.now(),
+        mo_ta_chi:  payload.mo_ta_chi,
+        id_plc:     plData[0].id_plc,
+        icon:       payload.icon || "",
+        active:     true,
+        sort_order: 0,
+        note:       payload.note || ""
       });
       result = r ? { status: "success", data: r } : null;
 
@@ -1901,7 +1905,7 @@ function renderModalCheckboxList(type) {
 async function handleModalChipToggle(type, desc, checked) {
   const list      = type === 'chi' ? loaiChiList : loaiThuList;
   const table     = type === 'chi' ? 'loai_chi'  : 'loai_thu';
-  const idField   = type === 'chi' ? 'id_chi'    : 'id_loaithu';
+  const idField   = type === 'chi' ? 'id_mtc'    : 'id_lt';
   const descField = type === 'chi' ? 'mo_ta_chi' : 'mo_ta_thu';
 
   const item = list.find(i => i[descField] === desc);

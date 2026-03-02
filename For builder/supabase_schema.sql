@@ -13,7 +13,7 @@
 -- ============================================================
 
 CREATE TABLE nhom_chi (
-  id         SERIAL PRIMARY KEY,
+  id_nc      SERIAL PRIMARY KEY,
   ten_nhom   TEXT NOT NULL UNIQUE,
   sort_order INTEGER NOT NULL DEFAULT 0,
   note       TEXT
@@ -30,9 +30,9 @@ INSERT INTO nhom_chi (ten_nhom, sort_order) VALUES
 -- ------------------------------------------------------------
 
 CREATE TABLE phan_loai_chi (
-  id           SERIAL PRIMARY KEY,
+  id_plc       SERIAL PRIMARY KEY,
   ten_phanloai TEXT NOT NULL UNIQUE,
-  id_nhom      INTEGER NOT NULL REFERENCES nhom_chi(id),
+  id_nc        INTEGER NOT NULL REFERENCES nhom_chi(id_nc),
   sort_order   INTEGER NOT NULL DEFAULT 0,
   note         TEXT
 );
@@ -59,15 +59,14 @@ INSERT INTO phan_loai_chi (ten_phanloai, id_nhom, sort_order) VALUES
   ('Khác',            6, 2);
 
 -- ------------------------------------------------------------
--- loai_chi
+-- mo_ta_chi (trước là loai_chi)
 -- sort_order: 0 = ẩn chip bar, 1–8 = vị trí chip
 -- ------------------------------------------------------------
 
-CREATE TABLE loai_chi (
-  id          SERIAL PRIMARY KEY,
-  id_chi      TEXT NOT NULL UNIQUE,         -- c1, c2... giữ tương thích
+CREATE TABLE mo_ta_chi (
+  id_mtc      TEXT NOT NULL PRIMARY KEY,    -- c1, c2...
   mo_ta_chi   TEXT NOT NULL,
-  id_phanloai INTEGER NOT NULL REFERENCES phan_loai_chi(id),
+  id_plc      INTEGER NOT NULL REFERENCES phan_loai_chi(id_plc),
   icon        TEXT NOT NULL DEFAULT '',
   active      BOOLEAN NOT NULL DEFAULT TRUE,
   sort_order  INTEGER NOT NULL DEFAULT 0,
@@ -77,7 +76,7 @@ CREATE TABLE loai_chi (
 -- View trả về đúng tên field cũ (frontend dùng phan_loai + nhom)
 CREATE OR REPLACE VIEW v_loai_chi AS
 SELECT
-  lc.id_chi,
+  lc.id_mtc,
   lc.mo_ta_chi,
   pl.ten_phanloai  AS phan_loai,
   nh.ten_nhom      AS nhom,
@@ -85,9 +84,9 @@ SELECT
   lc.active,
   lc.sort_order,
   lc.note
-FROM loai_chi lc
-JOIN phan_loai_chi pl ON pl.id = lc.id_phanloai
-JOIN nhom_chi      nh ON nh.id = pl.id_nhom
+FROM mo_ta_chi lc
+JOIN phan_loai_chi pl ON pl.id_plc = lc.id_plc
+JOIN nhom_chi      nh ON nh.id_nc  = pl.id_nc
 ORDER BY lc.sort_order DESC, lc.mo_ta_chi ASC;
 
 -- ============================================================
@@ -96,7 +95,7 @@ ORDER BY lc.sort_order DESC, lc.mo_ta_chi ASC;
 -- ============================================================
 
 CREATE TABLE loai_thu (
-  id_loaithu  TEXT NOT NULL PRIMARY KEY,   -- lt_1, lt_2...
+  id_lt       TEXT NOT NULL PRIMARY KEY,   -- lt_1, lt_2...
   mo_ta_thu   TEXT NOT NULL UNIQUE,         -- Lãi HD, Lương...
   loai_thu    TEXT NOT NULL,               -- nhóm: Ngân hàng, Lương...
   icon        TEXT NOT NULL DEFAULT '',
@@ -138,9 +137,8 @@ ORDER BY sort_order ASC, nguon_tien ASC;
 -- ============================================================
 
 CREATE TABLE chi_tieu (
-  id            SERIAL PRIMARY KEY,
-  id_chi        TEXT NOT NULL UNIQUE,
-  mo_ta_chi     TEXT NOT NULL,
+  id_chi        TEXT NOT NULL PRIMARY KEY,
+  id_mtc        TEXT NOT NULL REFERENCES mo_ta_chi(id_mtc),
   nguon_tien    TEXT NOT NULL REFERENCES nguon_tien(nguon_tien),
   -- Lưu 2 dạng: số thực (để query) + công thức gốc (để hiển thị)
   so_tien_nghin NUMERIC(18,6) NOT NULL,     -- đơn vị NGHÌN VNĐ, vd: 4.5 = 4.500đ
@@ -159,14 +157,13 @@ CREATE INDEX idx_chi_tieu_nguon  ON chi_tieu(nguon_tien);
 -- ============================================================
 
 CREATE TABLE thu (
-  id         SERIAL PRIMARY KEY,
-  id_thu     TEXT NOT NULL UNIQUE,
-  so_tien    BIGINT NOT NULL,               -- VNĐ nguyên
-  ngay       DATE NOT NULL,
-  mo_ta      TEXT NOT NULL,
-  nguon_tien TEXT NOT NULL REFERENCES nguon_tien(ten),
-  loai_thu   TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id_thu      TEXT NOT NULL PRIMARY KEY,
+  id_lt       TEXT NOT NULL REFERENCES loai_thu(id_lt),
+  so_tien     BIGINT NOT NULL,              -- VNĐ nguyên
+  ngay        DATE NOT NULL,
+  nguon_tien  TEXT NOT NULL REFERENCES nguon_tien(nguon_tien),
+  ghi_chu     TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_thu_ngay ON thu(ngay DESC);
@@ -176,7 +173,7 @@ CREATE INDEX idx_thu_ngay ON thu(ngay DESC);
 CREATE OR REPLACE VIEW v_Chi_Tieu_2026 AS
 SELECT
   c.id_chi                                        AS "IDChi",
-  c.mo_ta_chi,
+  mtc.mo_ta_chi,
   c.nguon_tien                                    AS "Nguồn tiền",
   c.formula                                       AS "Nghìn VND",
   c.so_tien_vnd                                   AS "Số tiền vnđ",
@@ -187,6 +184,7 @@ SELECT
   c.so_tien_nghin,
   c.created_at
 FROM chi_tieu c
+JOIN mo_ta_chi mtc ON mtc.id_mtc = c.id_mtc
 ORDER BY c.ngay DESC, c.created_at DESC;
 
 -- View trả về đúng tên field cũ + Tổng thu lũy kế
@@ -194,14 +192,17 @@ CREATE OR REPLACE VIEW v_Thu_2026 AS
 SELECT
   t.so_tien                                       AS "Thu",
   t.ngay                                          AS "Ngày",
-  t.mo_ta                                         AS "Mô tả",
+  COALESCE(t.ghi_chu, lt.mo_ta_thu)               AS "Mô tả",
   t.nguon_tien                                    AS "Nguồn tiền",
-  t.loai_thu                                      AS "Loại thu",
+  lt.loai_thu                                     AS "Loại thu",
+  lt.mo_ta_thu                                    AS "Mo ta thu",
+  t.id_lt,
   SUM(t.so_tien) OVER (ORDER BY t.ngay ASC,
                                 t.created_at ASC) AS "Tổng thu",
   t.id_thu                                        AS "IDThu",
   t.created_at
 FROM thu t
+JOIN loai_thu lt ON lt.id_lt = t.id_lt
 ORDER BY t.ngay DESC, t.created_at DESC;
 
 -- ============================================================
@@ -252,7 +253,7 @@ last_tk AS (
   ORDER BY d.nguon_tien, s.ngay_tk DESC
 )
 SELECT
-  n.ten                                             AS nguon_tien,
+  n.nguon_tien,
   n.nguoi,
   n.nhom,
   n.icon,
@@ -264,9 +265,9 @@ SELECT
     + COALESCE(thu.tong_thu, 0)
     - COALESCE(chi.tong_chi, 0)                     AS so_du_ly_thuyet
 FROM nguon_tien n
-LEFT JOIN chi_by_nguon chi ON chi.nguon_tien = n.ten
-LEFT JOIN thu_by_nguon thu ON thu.nguon_tien = n.ten
-LEFT JOIN last_tk lt       ON lt.nguon_tien  = n.ten
+LEFT JOIN chi_by_nguon chi ON chi.nguon_tien = n.nguon_tien
+LEFT JOIN thu_by_nguon thu ON thu.nguon_tien = n.nguon_tien
+LEFT JOIN last_tk lt       ON lt.nguon_tien  = n.nguon_tien
 WHERE n.active = TRUE
 ORDER BY n.sort_order ASC;
 
@@ -276,7 +277,7 @@ ORDER BY n.sort_order ASC;
 
 ALTER TABLE nhom_chi       DISABLE ROW LEVEL SECURITY;
 ALTER TABLE phan_loai_chi  DISABLE ROW LEVEL SECURITY;
-ALTER TABLE loai_chi       DISABLE ROW LEVEL SECURITY;
+ALTER TABLE mo_ta_chi      DISABLE ROW LEVEL SECURITY;
 ALTER TABLE loai_thu       DISABLE ROW LEVEL SECURITY;
 ALTER TABLE nguon_tien     DISABLE ROW LEVEL SECURITY;
 ALTER TABLE chi_tieu       DISABLE ROW LEVEL SECURITY;
