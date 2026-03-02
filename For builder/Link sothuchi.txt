@@ -2,4 +2,10 @@
 
 
 
+=== SUPABASE (hiện tại) ===
+Project URL : https://vspfbfeazipxjgymxpzr.supabase.co
+Anon Key    : eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzcGZiZmVhemlweGpneW14cHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMjk4MzUsImV4cCI6MjA4NzkwNTgzNX0.tPQtyJDRxqWxGF-bYYSYWu3moNbFrSRSPigvQJFPdDA
+Dashboard   : https://supabase.com/dashboard/project/vspfbfeazipxjgymxpzr
+
+=== GOOGLE APPS SCRIPT (legacy – đã ngưng) ===
 https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec

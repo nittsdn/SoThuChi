@@ -249,13 +249,15 @@ async function postData(action, payload) {
     } else if (action === "insert_thu") {
       // thuStack lưu VNĐ trực tiếp (khác chiStack lưu nghìn)
       const soTien = parseFormulaNum(String(payload.so_tien));
+      const ltItem = loaiThuList.find(lt => lt.mo_ta_thu === payload.mo_ta_thu);
+      if (!ltItem) { showLoading(false); showToast("Không tìm thấy loại thu: " + payload.mo_ta_thu); return null; }
       const row = {
         id_thu:     "thu_" + Date.now(),
+        id_loaithu: ltItem.id_loaithu,
         so_tien:    Math.round(soTien),
         ngay:       payload.ngay,
-        mo_ta:      payload.mo_ta,
         nguon_tien: payload.nguon_tien,
-        loai_thu:   payload.loai_thu
+        ghi_chu:    payload.ghi_chu || null
       };
       const r = await supaPost("thu", row);
       result = r ? { status: "success", data: r } : null;
@@ -279,13 +281,15 @@ async function postData(action, payload) {
 
     // ---- update_thu ----
     } else if (action === "update_thu") {
-      const r = await supaPatch("thu", `id_thu=eq.${payload.idThu}`, {
+      const ltItem = loaiThuList.find(lt => lt.mo_ta_thu === payload.mo_ta_thu);
+      const patchData = {
         ngay:       payload.ngay,
-        mo_ta:      payload.mo_ta,
         nguon_tien: payload.nguon_tien,
-        loai_thu:   payload.loai_thu,
-        so_tien:    Math.round(Number(payload.so_tien))
-      });
+        so_tien:    Math.round(Number(payload.so_tien)),
+        ghi_chu:    payload.ghi_chu || null
+      };
+      if (ltItem) patchData.id_loaithu = ltItem.id_loaithu;
+      const r = await supaPatch("thu", `id_thu=eq.${payload.idThu}`, patchData);
       result = r ? { status: "success", data: r } : null;
 
     // ---- delete_thu ----
@@ -385,7 +389,7 @@ function getDefaultChips(type) {
     const chips = Array(8).fill("");
     loaiThuList
       .filter(item => item.active && item.sort_order >= 1 && item.sort_order <= 8)
-      .forEach(item => { chips[item.sort_order - 1] = item.mo_ta; });
+      .forEach(item => { chips[item.sort_order - 1] = item.mo_ta_thu; });
     console.log(`✅ getDefaultChips(thu): ${chips.filter(c => c).length} chips từ sort_order`);
     return chips;
   }
@@ -987,11 +991,11 @@ function onThuDescChange(desc) {
     return;
   }
   
-  const existing = thuList.find(t => t["Mô tả"] === desc);
+  const ltItem = loaiThuList.find(lt => lt.mo_ta_thu === desc);
   const loaiThuDropdown = document.getElementById("thu-loai");
   
-  if (existing && existing["Loại thu"]) {
-    thuLoai = existing["Loại thu"];
+  if (ltItem && ltItem.loai_thu) {
+    thuLoai = ltItem.loai_thu;
     loaiThuDropdown.value = thuLoai;
     loaiThuDropdown.disabled = true;
     loaiThuDropdown.style.background = "#f0f0f0";
@@ -1046,12 +1050,11 @@ function populateThuDropdowns() {
   const loaiSelect = document.getElementById("thu-loai");
   loaiSelect.innerHTML = '<option value="">-- Loại thu --</option>';
   
-  // ✅ Sort A-Z
-  const sortedLoai = [...settings.quickLoaiThu].sort((a, b) => 
-    a.localeCompare(b, 'vi', { sensitivity: 'base' })
-  );
+  // ✅ Distinct loai_thu từ loaiThuList, Sort A-Z
+  const distinctLoai = [...new Set(loaiThuList.filter(lt => lt.active).map(lt => lt.loai_thu))]
+    .sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
   
-  sortedLoai.forEach(loai => {
+  distinctLoai.forEach(loai => {
     if (loai) {
       const option = document.createElement("option");
       option.value = loai;
@@ -1291,11 +1294,11 @@ document.getElementById("thu-submit").onclick = async () => {
   const formula = thuStack.length ? createFormula(thuStack) : createFormula([thuAmount]);
   
   const payload = {
-    ngay: formatDateAPI(thuDate),
-    so_tien: formula,
-    mo_ta: thuDesc,
-    loai_thu: thuLoai,
-    nguon_tien: thuSource
+    ngay:       formatDateAPI(thuDate),
+    so_tien:    formula,
+    mo_ta_thu:  thuDesc,
+    nguon_tien: thuSource,
+    ghi_chu:    null
   };
   
   console.log('📤 THU Submit payload:', payload);
@@ -1555,7 +1558,7 @@ function renderThuChuaTK() {
       .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'))
       .map(n => `<option value="${n.nguon_tien}" ${n.nguon_tien === row["Nguồn tiền"] ? "selected" : ""}>${n.nguon_tien}</option>`)
       .join("");
-    const loaiOptions = (settings.quickLoaiThu || [])
+    const loaiOptions = [...new Set(loaiThuList.filter(lt => lt.active).map(lt => lt.loai_thu))]
       .sort((a, b) => a.localeCompare(b, 'vi'))
       .map(l => `<option value="${l}" ${l === row["Loại thu"] ? "selected" : ""}>${l}</option>`)
       .join("");
@@ -1593,12 +1596,12 @@ function renderThuChuaTK() {
     };
     rowEl.querySelector(".tk-btn-confirm-edit").onclick = async () => {
       const payload = {
-        idThu: id,
-        ngay: rowEl.querySelector(".tk-edit-ngay").value,
-        mo_ta: rowEl.querySelector(".tk-edit-mota").value,
+        idThu:      id,
+        ngay:       rowEl.querySelector(".tk-edit-ngay").value,
+        mo_ta_thu:  rowEl.querySelector(".tk-edit-loai").value,
+        ghi_chu:    rowEl.querySelector(".tk-edit-mota").value || null,
         nguon_tien: rowEl.querySelector(".tk-edit-nguon").value,
-        loai_thu: rowEl.querySelector(".tk-edit-loai").value,
-        so_tien: parseFloat(rowEl.querySelector(".tk-edit-sotien").value) || 0
+        so_tien:    parseFloat(rowEl.querySelector(".tk-edit-sotien").value) || 0
       };
       const result = await postData("update_thu", payload);
       if (result && result.status === "success") {
@@ -1847,8 +1850,8 @@ function renderModalCheckboxList(type) {
   } else {
     sourceList = loaiThuList
       .filter(item => item.active)
-      .sort((a, b) => a.mo_ta.localeCompare(b.mo_ta, 'vi', { sensitivity: 'base' }));
-    fieldName = 'mo_ta';
+      .sort((a, b) => a.mo_ta_thu.localeCompare(b.mo_ta_thu, 'vi', { sensitivity: 'base' }));
+    fieldName = 'mo_ta_thu';
   }
   
   console.log('📊 Data check:', {
@@ -1867,7 +1870,7 @@ function renderModalCheckboxList(type) {
   container.innerHTML = '';
   
   sourceList.forEach((item, index) => {
-    const desc = type === 'chi' ? item.mo_ta_chi : item.mo_ta;
+    const desc = type === 'chi' ? item.mo_ta_chi : item.mo_ta_thu;
     const isChecked = item.sort_order >= 1 && item.sort_order <= 8;
     
     const itemDiv = document.createElement('div');
@@ -1898,8 +1901,8 @@ function renderModalCheckboxList(type) {
 async function handleModalChipToggle(type, desc, checked) {
   const list      = type === 'chi' ? loaiChiList : loaiThuList;
   const table     = type === 'chi' ? 'loai_chi'  : 'loai_thu';
-  const idField   = type === 'chi' ? 'id_chi'    : 'id_thu';
-  const descField = type === 'chi' ? 'mo_ta_chi' : 'mo_ta';
+  const idField   = type === 'chi' ? 'id_chi'    : 'id_loaithu';
+  const descField = type === 'chi' ? 'mo_ta_chi' : 'mo_ta_thu';
 
   const item = list.find(i => i[descField] === desc);
   if (!item) { showToast('Không tìm thấy: ' + desc); return; }
