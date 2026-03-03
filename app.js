@@ -1,6 +1,7 @@
-﻿// Version: v3.3.0933
+﻿// Version: v3.4.0001
 // ================= CONSTANTS =================
-const API_URL = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
+const SUPA_URL = "https://vspfbfeazipxjgymxpzr.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzcGZiZmVhemlweGpneW14cHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMjk4MzUsImV4cCI6MjA4NzkwNTgzNX0.tPQtyJDRxqWxGF-bYYSYWu3moNbFrSRSPigvQJFPdDA";
 
 // ================= UTIL =================
 function formatVN(num, decimals = 0) {
@@ -130,111 +131,287 @@ function showLoading(show = true) {
   document.getElementById("loading").style.display = show ? "flex" : "none";
 }
 
-// ================= API CALLS =================
+// ================= API CALLS (Supabase) =================
+
+// Map tên sheet cũ → endpoint Supabase (PostgreSQL fold lowercase)
+const SHEET_MAP = {
+  "Chi_Tieu_2026": "v_chi_tieu_2026",
+  "Thu_2026":      "v_thu_2026",
+  "loai_chi":      "v_loai_chi",
+  "nguon_tien":    "v_nguon_tien",
+  "loai_thu":      "loai_thu",
+  "tk_detail":     "tk_detail"
+};
+
+const SUPA_HEADERS = {
+  "apikey":        SUPA_KEY,
+  "Authorization": "Bearer " + SUPA_KEY,
+  "Content-Type":  "application/json",
+  "Prefer":        "return=representation"
+};
+
+// Parse công thức "=4+0.5" hoặc số thuần → NUMERIC (đơn vị nghìn)
+function parseFormulaNum(val) {
+  if (typeof val === "number") return val;
+  const s = String(val).replace(/^=/, "").trim();
+  const parts = s.split("+").map(p => parseFloat(p.replace(",", ".").trim()));
+  return parts.reduce((a, b) => (isNaN(b) ? a : a + b), 0);
+}
+
 async function fetchData(sheet) {
+  const endpoint = SHEET_MAP[sheet] || sheet;
   try {
     showLoading(true);
-    console.log(`fetchData: Fetching sheet "${sheet}"`);
-    const response = await fetch(`${API_URL}?sheet=${sheet}`);
-    const result = await response.json();
+    console.log(`fetchData: GET /rest/v1/${endpoint}`);
+    const res = await fetch(`${SUPA_URL}/rest/v1/${endpoint}?select=*`, {
+      headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY }
+    });
     showLoading(false);
-    
-    console.log(`fetchData: Response status for "${sheet}":`, result.status);
-    console.log(`fetchData: Data length for "${sheet}":`, result.data ? result.data.length : 0);
-    
-    if (result.data && result.data.length > 0) {
-      console.log(`fetchData: First item from "${sheet}":`, result.data[0]);
-    }
-    
-    if (result.status === "success") {
-      return result.data || [];
-    } else {
-      console.error(`fetchData: API error for "${sheet}":`, result.message);
-      showToast("Lỗi từ API: " + (result.message || "Unknown error"));
+    if (!res.ok) {
+      const err = await res.text();
+      console.error(`fetchData error [${endpoint}]:`, err);
+      showToast("Lỗi API: " + res.status);
       return [];
     }
+    const data = await res.json();
+    console.log(`fetchData [${endpoint}]: ${data.length} rows`);
+    return data;
   } catch (error) {
     showLoading(false);
-    console.error(`fetchData: Network error for "${sheet}":`, error);
-    showToast("Lỗi kết nối API: " + error.message);
+    console.error(`fetchData network error [${endpoint}]:`, error);
+    showToast("Lỗi kết nối: " + error.message);
     return [];
   }
 }
 
+async function supaPost(table, body) {
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+    method: "POST",
+    headers: SUPA_HEADERS,
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error(`supaPost [${table}] error:`, err);
+    return null;
+  }
+  return await res.json();
+}
+
+async function supaPatch(table, filter, body) {
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, {
+    method: "PATCH",
+    headers: SUPA_HEADERS,
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error(`supaPatch [${table}] error:`, err);
+    return null;
+  }
+  return await res.json();
+}
+
+async function supaDelete(table, filter) {
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, {
+    method: "DELETE",
+    headers: { ...SUPA_HEADERS, Prefer: "return=minimal" }
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error(`supaDelete [${table}] error:`, err);
+    return null;
+  }
+  return { status: "success" };
+}
+
 async function postData(action, payload) {
+  showLoading(true);
+  console.log(`📤 postData: action="${action}", payload=`, payload);
+  let result = null;
   try {
-    showLoading(true);
-    console.log(`📤 postData: action="${action}", payload=`, payload);
-    const response = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action, payload })
-    });
-    const data = await response.json();
-    showLoading(false);
-    console.log(`📥 postData response:`, data);
-    
-    if (data.status === 'error') {
-      showToast("Lỗi: " + data.message);
-      return null;
+    // ---- insert_chi ----
+    if (action === "insert_chi") {
+      const formulaRaw = String(payload.so_tien_nghin);
+      const numVal = parseFormulaNum(formulaRaw);
+      const mtcItem = loaiChiList.find(lc => lc.mo_ta_chi === payload.mo_ta_chi);
+      if (!mtcItem) { showLoading(false); showToast("Không tìm thấy mô tả chi: " + payload.mo_ta_chi); return null; }
+      const row = {
+        id_chi:        "chi_" + Date.now(),
+        id_mtc:        mtcItem.id_mtc,
+        nguon_tien:    payload.nguon_tien,
+        so_tien_nghin: numVal,
+        formula:       formulaRaw,
+        ngay:          payload.ngay
+      };
+      const r = await supaPost("chi_tieu", row);
+      result = r ? { status: "success", data: r } : null;
+
+    // ---- insert_thu ----
+    } else if (action === "insert_thu") {
+      // thuStack lưu VNĐ trực tiếp (khác chiStack lưu nghìn)
+      const soTien = parseFormulaNum(String(payload.so_tien));
+      const ltItem = loaiThuList.find(lt => lt.mo_ta_thu === payload.mo_ta_thu);
+      if (!ltItem) {
+        showLoading(false);
+        showToast("Không tìm thấy loại thu: " + payload.mo_ta_thu + "\nVui lòng chọn từ chip hoặc kiểm tra danh mục thu");
+        return null;
+      }
+      const row = {
+        id_thu:     "thu_" + Date.now(),
+        id_lt:      ltItem.id_lt,
+        so_tien:    Math.round(soTien),
+        ngay:       payload.ngay,
+        nguon_tien: payload.nguon_tien,
+        ghi_chu:    payload.ghi_chu || null
+      };
+      const r = await supaPost("thu", row);
+      result = r ? { status: "success", data: r } : null;
+
+    // ---- update_chi ----
+    } else if (action === "update_chi") {
+      const formulaRaw = String(payload.so_tien_nghin);
+      const numVal = parseFormulaNum(formulaRaw);
+      const mtcItem = loaiChiList.find(lc => lc.mo_ta_chi === payload.mo_ta_chi);
+      const patchChi = {
+        ngay:          payload.ngay,
+        nguon_tien:    payload.nguon_tien,
+        so_tien_nghin: numVal,
+        formula:       formulaRaw
+      };
+      if (mtcItem) patchChi.id_mtc = mtcItem.id_mtc;
+      const r = await supaPatch("chi_tieu", `id_chi=eq.${payload.idChi}`, patchChi);
+      result = r ? { status: "success", data: r } : null;
+
+    // ---- delete_chi ----
+    } else if (action === "delete_chi") {
+      result = await supaDelete("chi_tieu", `id_chi=eq.${payload.idChi}`);
+
+    // ---- update_thu ----
+    } else if (action === "update_thu") {
+      const ltItem = loaiThuList.find(lt => lt.mo_ta_thu === payload.mo_ta_thu);
+      const patchData = {
+        ngay:       payload.ngay,
+        nguon_tien: payload.nguon_tien,
+        so_tien:    Math.round(Number(payload.so_tien)),
+        ghi_chu:    payload.ghi_chu || null
+      };
+      if (ltItem) patchData.id_lt = ltItem.id_lt;
+      const r = await supaPatch("thu", `id_thu=eq.${payload.idThu}`, patchData);
+      result = r ? { status: "success", data: r } : null;
+
+    // ---- delete_thu ----
+    } else if (action === "delete_thu") {
+      result = await supaDelete("thu", `id_thu=eq.${payload.idThu}`);
+
+    // ---- insert_tk ----
+    } else if (action === "insert_tk") {
+      const sessionId = "tk_" + Date.now();
+      const session = await supaPost("tk_session", {
+        session_id: sessionId,
+        ngay_tk:    payload.ngay_tk,
+        so_du_lt:   Math.round(payload.so_du_lt),
+        so_du_tt:   Math.round(payload.so_du_tt),
+        status:     "confirmed",
+        note:       payload.note || ""
+      });
+      if (!session) { result = null; }
+      else {
+        const details = payload.chi_tiet.map(d => ({
+          session_id: sessionId,
+          ngay_tk:    payload.ngay_tk,
+          nguon_tien: d.nguon_tien,
+          so_tien:    Math.round(d.so_tien)
+        }));
+        const dr = await supaPost("tk_detail", details);
+        result = dr ? { status: "success" } : null;
+      }
+
+    // ---- insert_loai_chi ----
+    } else if (action === "insert_loai_chi") {
+      // Tìm id_plc theo tên
+      const plRes = await fetch(
+        `${SUPA_URL}/rest/v1/phan_loai_chi?ten_phanloai=eq.${encodeURIComponent(payload.phan_loai)}&select=id_plc`,
+        { headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY } }
+      );
+      const plData = await plRes.json();
+      if (!plData.length) {
+        showLoading(false);
+        showToast("Không tìm thấy phân loại: " + payload.phan_loai);
+        return null;
+      }
+      const r = await supaPost("mo_ta_chi", {
+        id_mtc:     "c_" + Date.now(),
+        mo_ta_chi:  payload.mo_ta_chi,
+        id_plc:     plData[0].id_plc,
+        icon:       payload.icon || "",
+        active:     true,
+        sort_order: 0,
+        note:       payload.note || ""
+      });
+      result = r ? { status: "success", data: r } : null;
+
+    } else {
+      console.warn(`postData: unknown action "${action}"`);
+      result = null;
     }
-    
-    return data;
   } catch (error) {
     showLoading(false);
-    showToast("Lỗi kết nối API: " + error.message);
+    showToast("Lỗi: " + error.message);
     console.error("postData error:", error);
     return null;
   }
+  showLoading(false);
+  if (!result) showToast("Lỗi khi lưu dữ liệu");
+  console.log(`📥 postData [${action}] result:`, result);
+  return result;
 }
 
 // ================= SETTINGS (LocalStorage) =================
+// Chips (quickChipsChi/Thu) được quản lý qua sort_order trong DB, không lưu localStorage
 const DEFAULT_SETTINGS = {
-  quickChipsChi: null,
-  quickChipsThu: null,
   quickLoaiThu: ["Thu income", "Tiền về", "Khác"]
 };
 
 function getDefaultChips(type) {
   if (type === 'chi') {
-    const sourceList = loaiChiList;
-    const fieldName = 'mo_ta_chi';
-    
-    if (!sourceList || sourceList.length === 0) {
+    if (!loaiChiList || loaiChiList.length === 0) {
       console.warn(`getDefaultChips: No chi data available`);
       return ["", "", "", "", "", "", "", ""];
     }
-    
-    const activeItems = sourceList
-      .filter(item => item.active)
-      .sort((a, b) => a[fieldName].localeCompare(b[fieldName], 'vi', { sensitivity: 'base' }))
-      .slice(0, 8)
-      .map(item => item[fieldName]);
-    
-    while (activeItems.length < 8) {
-      activeItems.push("");
-    }
-    
-    console.log(`✅ getDefaultChips(chi): Generated ${activeItems.filter(c => c).length} default chips`);
-    return activeItems;
+    // Dùng sort_order 1–8 từ DB; sort_order=0 nghĩa là ẩn
+    const chips = Array(8).fill("");
+    loaiChiList
+      .filter(item => item.active && item.sort_order >= 1 && item.sort_order <= 8)
+      .forEach(item => { chips[item.sort_order - 1] = item.mo_ta_chi; });
+    console.log(`✅ getDefaultChips(chi): ${chips.filter(c => c).length} chips từ sort_order`);
+    return chips;
   }
   
   if (type === 'thu') {
-    if (!thuList || thuList.length === 0) {
-      console.warn(`getDefaultChips: No thu data available`);
-      return ["", "", "", "", "", "", "", ""];
+    if (!loaiThuList || loaiThuList.length === 0) {
+      console.warn(`getDefaultChips: No loai_thu data available`);
+      return ["" , "", "", "", "", "", "", ""];
     }
-    
-    const allMoTa = thuList.map(t => t["Mô tả"]).filter(Boolean);
-    const distinct = [...new Set(allMoTa)];
-    const sorted = distinct.sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
-    const top8 = sorted.slice(0, 8);
-    
-    while (top8.length < 8) {
-      top8.push("");
+    // Dùng sort_order 1–8 nếu đã cấu hình, ngược lại
+    // fallback: lấy tất cả active sắp xếp A-Z (tối đa 8)
+    const configured = loaiThuList.filter(item => item.active && item.sort_order >= 1 && item.sort_order <= 8);
+    if (configured.length > 0) {
+      const chips = Array(8).fill("");
+      configured.forEach(item => { chips[item.sort_order - 1] = item.mo_ta_thu; });
+      console.log(`✅ getDefaultChips(thu): ${configured.length} chips từ sort_order`);
+      return chips;
     }
-    
-    console.log(`✅ getDefaultChips(thu): Generated ${top8.filter(c => c).length} default chips`);
-    return top8;
+    // Fallback: hiển thị tất cả active, A-Z, tối đa 8
+    const fallback = loaiThuList
+      .filter(item => item.active)
+      .sort((a, b) => a.mo_ta_thu.localeCompare(b.mo_ta_thu, 'vi', { sensitivity: 'base' }))
+      .slice(0, 8)
+      .map(item => item.mo_ta_thu);
+    console.log(`⚠️ getDefaultChips(thu): fallback ${fallback.length} chips (chưa cấu hình sort_order)`);
+    // Pad to 8
+    while (fallback.length < 8) fallback.push("");
+    return fallback;
   }
   
   return ["", "", "", "", "", "", "", ""];
@@ -242,32 +419,19 @@ function getDefaultChips(type) {
 
 function loadSettings() {
   const stored = localStorage.getItem("soThuChiSettings");
-  
   if (stored) {
+    const parsed = JSON.parse(stored);
     console.log('✅ Loading settings from localStorage');
-    return JSON.parse(stored);
+    // Chỉ giữ lại quickLoaiThu – chips đọc từ DB
+    return { quickLoaiThu: parsed.quickLoaiThu || DEFAULT_SETTINGS.quickLoaiThu };
   }
-  
-  console.log('⚠️ No localStorage found, generating defaults');
-  const defaults = { ...DEFAULT_SETTINGS };
-  
-  if (loaiChiList && loaiChiList.length > 0) {
-    defaults.quickChipsChi = getDefaultChips('chi');
-  } else {
-    defaults.quickChipsChi = ["", "", "", "", "", "", "", ""];
-  }
-  
-  if (thuList && thuList.length > 0) {
-    defaults.quickChipsThu = getDefaultChips('thu');
-  } else {
-    defaults.quickChipsThu = ["", "", "", "", "", "", "", ""];
-  }
-  
-  return defaults;
+  console.log('⚠️ No localStorage found, using defaults');
+  return { ...DEFAULT_SETTINGS };
 }
 
 function saveSettings(settings) {
-  localStorage.setItem("soThuChiSettings", JSON.stringify(settings));
+  // Chỉ lưu quickLoaiThu – chips quản lý qua sort_order trong DB
+  localStorage.setItem("soThuChiSettings", JSON.stringify({ quickLoaiThu: settings.quickLoaiThu }));
 }
 
 // ================= STATE =================
@@ -286,6 +450,7 @@ let thuLoai = "";
 let thuSource = "";
 
 let loaiChiList = [];
+let loaiThuList = [];
 let thuList = [];
 let nguonTienList = [];
 
@@ -567,7 +732,7 @@ document.getElementById("thu-date-next").onclick = () => {
 function renderChiChips() {
   const chipGrid = document.getElementById("chi-chips");
   chipGrid.innerHTML = "";
-  settings.quickChipsChi.forEach(chip => {
+  getDefaultChips('chi').forEach(chip => {
     if (chip) {
       const btn = document.createElement("button");
       btn.className = "chip";
@@ -838,36 +1003,40 @@ let thuEditMode = false;
 let thuEditIndex = -1;
 
 function onThuDescChange(desc) {
+  const loaiThuDropdown = document.getElementById("thu-loai");
   if (!desc) {
-    const loaiThuDropdown = document.getElementById("thu-loai");
+    thuLoai = "";
+    loaiThuDropdown.value = "";
     loaiThuDropdown.disabled = false;
     loaiThuDropdown.style.background = "";
     loaiThuDropdown.style.cursor = "";
+    checkThuReady();
     return;
   }
-  
-  const existing = thuList.find(t => t["Mô tả"] === desc);
-  const loaiThuDropdown = document.getElementById("thu-loai");
-  
-  if (existing && existing["Loại thu"]) {
-    thuLoai = existing["Loại thu"];
+
+  const ltItem = loaiThuList.find(lt => lt.mo_ta_thu === desc);
+
+  if (ltItem && ltItem.loai_thu) {
+    thuLoai = ltItem.loai_thu;
     loaiThuDropdown.value = thuLoai;
     loaiThuDropdown.disabled = true;
     loaiThuDropdown.style.background = "#f0f0f0";
     loaiThuDropdown.style.cursor = "not-allowed";
   } else {
+    // desc không khớp mo_ta_thu nào → mở dropdown để user chọn thủ công
     loaiThuDropdown.disabled = false;
     loaiThuDropdown.style.background = "";
     loaiThuDropdown.style.cursor = "";
+    // Không xoá thuLoai đã chọn tay trước đó
   }
-  
+
   checkThuReady();
 }
 
 function renderThuChips() {
   const chipGrid = document.getElementById("thu-chips");
   chipGrid.innerHTML = "";
-  settings.quickChipsThu.forEach(chip => {
+  getDefaultChips('thu').forEach(chip => {
     if (chip) {
       const btn = document.createElement("button");
       btn.className = "chip";
@@ -905,12 +1074,11 @@ function populateThuDropdowns() {
   const loaiSelect = document.getElementById("thu-loai");
   loaiSelect.innerHTML = '<option value="">-- Loại thu --</option>';
   
-  // ✅ Sort A-Z
-  const sortedLoai = [...settings.quickLoaiThu].sort((a, b) => 
-    a.localeCompare(b, 'vi', { sensitivity: 'base' })
-  );
+  // ✅ Distinct loai_thu từ loaiThuList, Sort A-Z
+  const distinctLoai = [...new Set(loaiThuList.filter(lt => lt.active).map(lt => lt.loai_thu))]
+    .sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }));
   
-  sortedLoai.forEach(loai => {
+  distinctLoai.forEach(loai => {
     if (loai) {
       const option = document.createElement("option");
       option.value = loai;
@@ -1150,11 +1318,11 @@ document.getElementById("thu-submit").onclick = async () => {
   const formula = thuStack.length ? createFormula(thuStack) : createFormula([thuAmount]);
   
   const payload = {
-    ngay: formatDateAPI(thuDate),
-    so_tien: formula,
-    mo_ta: thuDesc,
-    loai_thu: thuLoai,
-    nguon_tien: thuSource
+    ngay:       formatDateAPI(thuDate),
+    so_tien:    formula,
+    mo_ta_thu:  thuDesc,
+    nguon_tien: thuSource,
+    ghi_chu:    null
   };
   
   console.log('📤 THU Submit payload:', payload);
@@ -1214,6 +1382,9 @@ let tkEditedChiIds = new Set();
 let tkEditedThuIds = new Set();
 let tkTamTinh = {};
 let tkLastDate = null;
+let tkTransferLogData = [];   // log các lần chuyển tiền trong phiên hiện tại
+let tkChiSort = { col: 'Ngày', dir: 1 };  // dir: 1=asc(cũ→mới), -1=desc
+let tkThuSort = { col: 'Ngày', dir: 1 };
 
 function getTkLastDate() {
   if (!window.tkDetailList || !Array.isArray(window.tkDetailList) || !window.tkDetailList.length) return null;
@@ -1235,6 +1406,7 @@ async function loadTkData() {
 
 document.getElementById("tk-start").onclick = async () => {
   document.getElementById("tk-form").style.display = "block";
+  document.getElementById("tk-transfer-wrap").style.display = "block";
   document.getElementById("tk-start").style.display = "none";
   document.getElementById("tk-refresh").style.display = "block";
   await loadTkData();
@@ -1245,12 +1417,47 @@ document.getElementById("tk-start").onclick = async () => {
 };
 
 document.getElementById("tk-refresh").onclick = async () => {
+  // Nếu không trong trạng thái ghi nhớ thì xóa log chuyển tiền
+  if (!localStorage.getItem("tkTransferPin")) {
+    tkTransferLogData = [];
+  }
   await loadTkData();
   tkLastDate = getTkLastDate();
   renderChiChuaTK();
   renderThuChuaTK();
   loadTongKet();
 };
+
+function updateSortBar(type) {
+  const state = type === 'chi' ? tkChiSort : tkThuSort;
+  const barId = type === 'chi' ? 'tk-chi-sort-bar' : 'tk-thu-sort-bar';
+  document.querySelectorAll(`#${barId} .tk-sort-pill`).forEach(btn => {
+    const isActive = btn.dataset.col === state.col;
+    btn.classList.toggle('active', isActive);
+    const arrow = btn.querySelector('.sort-arrow');
+    if (arrow) arrow.textContent = isActive ? (state.dir === 1 ? '↓' : '↑') : '';
+  });
+}
+
+function initTKSortBars() {
+  [
+    { barId: 'tk-chi-sort-bar', state: tkChiSort, render: renderChiChuaTK, key: 'chi' },
+    { barId: 'tk-thu-sort-bar', state: tkThuSort, render: renderThuChuaTK, key: 'thu' }
+  ].forEach(({ barId, state, render, key }) => {
+    document.querySelectorAll(`#${barId} .tk-sort-pill`).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const col = btn.dataset.col;
+        if (state.col === col) {
+          state.dir *= -1;
+        } else {
+          state.col = col;
+          state.dir = col === 'Ngày' ? -1 : 1;
+        }
+        render();
+      });
+    });
+  });
+}
 
 function renderChiChuaTK() {
   const section = document.getElementById("tk-chi-section");
@@ -1266,7 +1473,15 @@ function renderChiChuaTK() {
   section.style.display = rows.length ? "block" : "none";
   list.innerHTML = "";
 
-  rows.forEach(row => {
+  const sorted = [...rows].sort((a, b) => {
+    const va = a[tkChiSort.col] || '';
+    const vb = b[tkChiSort.col] || '';
+    if (tkChiSort.col === 'Ngày') return (new Date(va) - new Date(vb)) * tkChiSort.dir;
+    return va.toString().localeCompare(vb.toString(), 'vi') * tkChiSort.dir;
+  });
+  updateSortBar('chi');
+
+  sorted.forEach(row => {
     const id = row["IDChi"];
     const isEdited = tkEditedChiIds.has(id);
     const nghinVnd = row["Nghìn VND"] !== undefined ? String(row["Nghìn VND"]) : "";
@@ -1391,7 +1606,15 @@ function renderThuChuaTK() {
   section.style.display = rows.length ? "block" : "none";
   list.innerHTML = "";
 
-  rows.forEach(row => {
+  const sorted = [...rows].sort((a, b) => {
+    const va = a[tkThuSort.col] || '';
+    const vb = b[tkThuSort.col] || '';
+    if (tkThuSort.col === 'Ngày') return (new Date(va) - new Date(vb)) * tkThuSort.dir;
+    return va.toString().localeCompare(vb.toString(), 'vi') * tkThuSort.dir;
+  });
+  updateSortBar('thu');
+
+  sorted.forEach(row => {
     const id = row["IDThu"];
     const isEdited = tkEditedThuIds.has(id);
     const soTienDisplay = formatVN(parseFloat(row["Thu"]) || 0);
@@ -1414,9 +1637,9 @@ function renderThuChuaTK() {
       .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'))
       .map(n => `<option value="${n.nguon_tien}" ${n.nguon_tien === row["Nguồn tiền"] ? "selected" : ""}>${n.nguon_tien}</option>`)
       .join("");
-    const loaiOptions = (settings.quickLoaiThu || [])
-      .sort((a, b) => a.localeCompare(b, 'vi'))
-      .map(l => `<option value="${l}" ${l === row["Loại thu"] ? "selected" : ""}>${l}</option>`)
+    const loaiOptions = loaiThuList.filter(lt => lt.active)
+      .sort((a, b) => a.mo_ta_thu.localeCompare(b.mo_ta_thu, 'vi'))
+      .map(l => `<option value="${l.mo_ta_thu}" ${l.mo_ta_thu === row["Mo ta thu"] ? "selected" : ""}>${l.mo_ta_thu}</option>`)
       .join("");
 
     rowEl.innerHTML = `
@@ -1432,7 +1655,7 @@ function renderThuChuaTK() {
         <div class="tk-edit-row"><label>Ngày</label><input type="date" class="input-std tk-edit-ngay" value="${row["Ngày"] || ""}"></div>
         <div class="tk-edit-row"><label>Mô tả</label><input type="text" class="input-std tk-edit-mota" value="${row["Mô tả"] || ""}"></div>
         <div class="tk-edit-row"><label>Nguồn tiền</label><select class="input-std tk-edit-nguon">${nguonOptions}</select></div>
-        <div class="tk-edit-row"><label>Loại thu</label><select class="input-std tk-edit-loai">${loaiOptions}</select></div>
+        <div class="tk-edit-row"><label>Mô tả thu</label><select class="input-std tk-edit-loai">${loaiOptions}</select></div>
         <div class="tk-edit-row"><label>Số tiền</label><input type="number" class="input-std tk-edit-sotien" value="${parseFloat(row['Thu']) || 0}"></div>
         <div class="tk-edit-actions">
           <button class="btn-submit btn-green tk-btn-confirm-edit" style="flex:1;margin-top:0;">✅ Xác nhận</button>
@@ -1452,12 +1675,12 @@ function renderThuChuaTK() {
     };
     rowEl.querySelector(".tk-btn-confirm-edit").onclick = async () => {
       const payload = {
-        idThu: id,
-        ngay: rowEl.querySelector(".tk-edit-ngay").value,
-        mo_ta: rowEl.querySelector(".tk-edit-mota").value,
+        idThu:      id,
+        ngay:       rowEl.querySelector(".tk-edit-ngay").value,
+        mo_ta_thu:  rowEl.querySelector(".tk-edit-loai").value,
+        ghi_chu:    rowEl.querySelector(".tk-edit-mota").value || null,
         nguon_tien: rowEl.querySelector(".tk-edit-nguon").value,
-        loai_thu: rowEl.querySelector(".tk-edit-loai").value,
-        so_tien: parseFloat(rowEl.querySelector(".tk-edit-sotien").value) || 0
+        so_tien:    parseFloat(rowEl.querySelector(".tk-edit-sotien").value) || 0
       };
       const result = await postData("update_thu", payload);
       if (result && result.status === "success") {
@@ -1572,6 +1795,7 @@ function loadTongKet() {
 
     const div = document.createElement("div");
     div.className = "tk-input-row-group";
+    div.dataset.nguon = nguon.nguon_tien;
     div.style.backgroundColor = bgColor;
     div.style.borderLeft = `4px solid ${borderColor}`;
     div.style.paddingLeft = "10px";
@@ -1586,7 +1810,10 @@ function loadTongKet() {
         <div class="tk-input-wrap">
           <div class="tk-input-badge-row">
             <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0" value="${formatVN(inputVal, 2)}">
-            ${badgeIcon}
+            <div class="tk-badge-stack">
+              <span class="tk-transfer-icon-badge" title="Nguồn bị ảnh hưởng bởi chuyển tiền" style="display:none;">⇄</span>
+              ${badgeIcon}
+            </div>
           </div>
           <div class="tk-tamtinh-row">
             <div class="tk-tamtinh-label">Tạm tính:</div>
@@ -1612,6 +1839,27 @@ function loadTongKet() {
       setTimeout(() => { input.setSelectionRange(oldPos + diff, oldPos + diff); }, 0);
     };
   });
+
+  // Populate transfer dropdowns mỗi khi loadTongKet chạy
+  populateTransferDropdowns();
+
+  // Áp dụng giá trị đã ghi nhớ (transfer pin) nếu có
+  const transferPin = JSON.parse(localStorage.getItem("tkTransferPin") || "null");
+  if (transferPin) {
+    Object.entries(transferPin).forEach(([nguon, val]) => {
+      tkInputs[nguon] = val;
+      const el = document.querySelector(`input[data-nguon="${nguon}"]`);
+      if (el) el.value = formatVN(val, 2);
+    });
+    updateTransferPinUI(true);
+    // Khôi phục log
+    const savedLog = JSON.parse(localStorage.getItem("tkTransferLog") || "null");
+    if (savedLog) { tkTransferLogData = savedLog; renderTransferLog(); }
+  } else {
+    updateTransferPinUI(false);
+    if (!tkTransferLogData.length) renderTransferLog();
+  }
+  updateTransferIcons();
 }
 
 document.getElementById("tk-remember").onclick = () => {
@@ -1676,14 +1924,187 @@ function resetTongKet() {
   tkTamTinh = {};
   tkLastDate = null;
   localStorage.removeItem("tkSoDuGhiNho");
+  localStorage.removeItem("tkTransferPin");
+  localStorage.removeItem("tkTransferLog");
+  tkTransferLogData = [];
   document.getElementById("tk-form").style.display = "none";
+  document.getElementById("tk-transfer-wrap").style.display = "none";
   document.getElementById("tk-result").style.display = "none";
   document.getElementById("tk-confirm").style.display = "none";
   document.getElementById("tk-refresh").style.display = "none";
   document.getElementById("tk-chi-section").style.display = "none";
   document.getElementById("tk-thu-section").style.display = "none";
   document.getElementById("tk-start").style.display = "block";
+  // Đóng transfer panel khi reset
+  const panel = document.getElementById("tk-transfer-panel");
+  const toggle = document.getElementById("tk-transfer-toggle");
+  if (panel) panel.style.display = "none";
+  if (toggle) toggle.classList.remove("open");
 }
+
+// ================= CHUYỂN TIỀN NỘI BỘ =================
+function renderTransferLog() {
+  const logEl = document.getElementById("tk-transfer-log");
+  if (!logEl) return;
+  if (!tkTransferLogData.length) { logEl.style.display = "none"; logEl.innerHTML = ""; return; }
+  logEl.style.display = "block";
+
+  function chip(name) {
+    const bg     = getNguonBgColor(name);
+    const border = getNguonBorderColor(name);
+    return `<span class="tk-log-chip" style="background:${bg};border-color:${border};">${name}</span>`;
+  }
+
+  const isPinnedState = tkTransferLogData.some(e => e.pinned);
+
+  logEl.innerHTML = tkTransferLogData.map((e, i) =>
+    `<div class="tk-transfer-log-item" data-idx="${i}">
+      <span class="tk-log-num">${i + 1}.</span>
+      ${chip(e.from)}
+      <span class="tk-log-arrow">→</span>
+      <span class="tk-log-amount">${formatVN(e.amount)}</span>
+      <span class="tk-log-arrow">→</span>
+      ${chip(e.to)}
+      ${e.pinned ? `<button class="tk-log-pin-btn" data-idx="${i}" title="Gỡ ghim dòng này">📌</button>` : ''}
+    </div>`
+  ).join("");
+
+  logEl.querySelectorAll(".tk-log-pin-btn").forEach(btn => {
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      const idx = parseInt(btn.dataset.idx);
+      const entry = tkTransferLogData[idx];
+      if (!entry) return;
+      tkInputs[entry.from] = (tkInputs[entry.from] || 0) + entry.amount;
+      tkInputs[entry.to]   = (tkInputs[entry.to]   || 0) - entry.amount;
+      document.querySelectorAll(".tk-amount-input").forEach(input => {
+        const nguon = input.dataset.nguon;
+        if (nguon === entry.from || nguon === entry.to)
+          input.value = formatVN(tkInputs[nguon], 2);
+      });
+      tkTransferLogData.splice(idx, 1);
+      const anyPinned = tkTransferLogData.some(e => e.pinned);
+      if (anyPinned) {
+        localStorage.setItem("tkTransferPin", JSON.stringify(tkInputs));
+        localStorage.setItem("tkTransferLog", JSON.stringify(tkTransferLogData));
+      } else {
+        localStorage.removeItem("tkTransferPin");
+        localStorage.removeItem("tkTransferLog");
+      }
+      updateTransferPinUI(anyPinned);
+      renderTransferLog();
+      updateTransferIcons();
+      showToast(`Gỡ ghim: ${entry.from} → ${entry.to}`, 2000);
+    };
+  });
+}
+
+function updateTransferPinUI(pinned) {
+  // pin indicator removed — per-row ghim icons handle it
+}
+
+function updateTransferIcons() {
+  const affected = new Set();
+  tkTransferLogData.forEach(e => { affected.add(e.from); affected.add(e.to); });
+  document.querySelectorAll(".tk-input-row-group").forEach(group => {
+    const badge = group.querySelector(".tk-transfer-icon-badge");
+    if (!badge) return;
+    badge.style.display = affected.has(group.dataset.nguon) ? "inline" : "none";
+  });
+}
+
+function resetTransfers() {
+  tkTransferLogData.forEach(e => {
+    tkInputs[e.from] = (tkInputs[e.from] || 0) + e.amount;
+    tkInputs[e.to]   = (tkInputs[e.to]   || 0) - e.amount;
+  });
+  document.querySelectorAll(".tk-amount-input").forEach(input => {
+    const nguon = input.dataset.nguon;
+    if (nguon !== undefined && tkInputs[nguon] !== undefined)
+      input.value = formatVN(tkInputs[nguon], 2);
+  });
+  tkTransferLogData = [];
+  localStorage.removeItem("tkTransferPin");
+  localStorage.removeItem("tkTransferLog");
+  updateTransferPinUI(false);
+  renderTransferLog();
+  updateTransferIcons();
+}
+
+function populateTransferDropdowns() {
+  const fromSel = document.getElementById("tk-transfer-from");
+  const toSel   = document.getElementById("tk-transfer-to");
+  if (!fromSel || !toSel) return;
+  const options = nguonTienList
+    .filter(n => n.active)
+    .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'))
+    .map(n => `<option value="${n.nguon_tien}">${n.nguon_tien}</option>`)
+    .join("");
+  fromSel.innerHTML = options;
+  toSel.innerHTML   = options;
+  // Chọn 2 nguồn khác nhau mặc định
+  if (toSel.options.length > 1) toSel.selectedIndex = 1;
+}
+
+document.getElementById("tk-transfer-toggle").onclick = () => {
+  const panel  = document.getElementById("tk-transfer-panel");
+  const toggle = document.getElementById("tk-transfer-toggle");
+  const isOpen = panel.style.display !== "none";
+  panel.style.display = isOpen ? "none" : "block";
+  toggle.classList.toggle("open", !isOpen);
+};
+
+document.getElementById("tk-transfer-btn").onclick = () => {
+  const from   = document.getElementById("tk-transfer-from").value;
+  const to     = document.getElementById("tk-transfer-to").value;
+  const raw    = document.getElementById("tk-transfer-amount").value;
+  const amount = parseVN(raw);
+
+  if (!from || !to) { showToast("Chọn nguồn tiền"); return; }
+  if (from === to)  { showToast("Nguồn chuyển và nhận phải khác nhau"); return; }
+  if (!amount || amount <= 0) { showToast("Nhập số tiền hợp lệ"); return; }
+
+  tkInputs[from] = (tkInputs[from] || 0) - amount;
+  tkInputs[to]   = (tkInputs[to]   || 0) + amount;
+
+  // Cập nhật ngay giá trị hiển thị trong các input tương ứng
+  document.querySelectorAll(".tk-amount-input").forEach(input => {
+    const nguon = input.dataset.nguon;
+    if (nguon === from || nguon === to) {
+      input.value = formatVN(tkInputs[nguon], 2);
+    }
+  });
+
+  document.getElementById("tk-transfer-amount").value = "";
+
+  // Thêm vào log và hiển thị
+  tkTransferLogData.push({ from, to, amount });
+  renderTransferLog();
+  updateTransferIcons();
+
+  showToast(`✅ Chuyển ${formatVN(amount)} từ <b>${from}</b> → <b>${to}</b>`, 3000);
+  // Nếu đang pin thì tự cập nhật pin + log luôn
+  if (localStorage.getItem("tkTransferPin")) {
+    localStorage.setItem("tkTransferPin", JSON.stringify(tkInputs));
+    localStorage.setItem("tkTransferLog", JSON.stringify(tkTransferLogData));
+  }
+};
+
+document.getElementById("tk-transfer-remember").onclick = () => {
+  if (!tkTransferLogData.length) { showToast("Chưa có lần chuyển nào để ghi nhớ"); return; }
+  tkTransferLogData.forEach(e => e.pinned = true);
+  localStorage.setItem("tkTransferPin", JSON.stringify(tkInputs));
+  localStorage.setItem("tkTransferLog", JSON.stringify(tkTransferLogData));
+  updateTransferPinUI(true);
+  renderTransferLog();
+  showToast("📌 Đã ghi nhớ! Cập nhật vẫn giữ lại", 3000);
+};
+
+document.getElementById("tk-transfer-reset").onclick = () => {
+  if (!tkTransferLogData.length) { showToast("Không có lần chuyển nào"); return; }
+  resetTransfers();
+  showToast("Đã xóa tất cả lần chuyển tiền");
+};
 
 // ================= MODAL SETTINGS =================
 
@@ -1696,8 +2117,6 @@ function renderModalCheckboxList(type) {
     return;
   }
   
-  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  
   let sourceList, fieldName;
   
   if (type === 'chi') {
@@ -1706,18 +2125,17 @@ function renderModalCheckboxList(type) {
       .sort((a, b) => a.mo_ta_chi.localeCompare(b.mo_ta_chi, 'vi', { sensitivity: 'base' }));
     fieldName = 'mo_ta_chi';
   } else {
-    const allMoTa = thuList.map(t => t["Mô tả"]).filter(Boolean);
-    const distinct = [...new Set(allMoTa)];
-    sourceList = distinct.sort((a, b) => a.localeCompare(b, 'vi', { sensitivity: 'base' }))
-                        .map(desc => ({ desc }));
-    fieldName = 'desc';
+    sourceList = loaiThuList
+      .filter(item => item.active)
+      .sort((a, b) => a.mo_ta_thu.localeCompare(b.mo_ta_thu, 'vi', { sensitivity: 'base' }));
+    fieldName = 'mo_ta_thu';
   }
   
   console.log('📊 Data check:', {
     type,
     sourceListLength: sourceList.length,
-    currentChipsLength: currentChips.length,
-    currentChips: currentChips
+    checkedCount: (type === 'chi' ? loaiChiList : loaiThuList)
+      .filter(i => i.sort_order >= 1 && i.sort_order <= 8).length
   });
   
   if (!sourceList || sourceList.length === 0) {
@@ -1729,8 +2147,8 @@ function renderModalCheckboxList(type) {
   container.innerHTML = '';
   
   sourceList.forEach((item, index) => {
-    const desc = type === 'chi' ? item.mo_ta_chi : item.desc;
-    const isChecked = currentChips.filter(c => c).includes(desc);
+    const desc = type === 'chi' ? item.mo_ta_chi : item.mo_ta_thu;
+    const isChecked = item.sort_order >= 1 && item.sort_order <= 8;
     
     const itemDiv = document.createElement('div');
     itemDiv.className = 'checkbox-item';
@@ -1757,54 +2175,51 @@ function renderModalCheckboxList(type) {
   updateModalSelectedCount(type);
 }
 
-function handleModalChipToggle(type, desc, checked) {
-  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  
+async function handleModalChipToggle(type, desc, checked) {
+  const list      = type === 'chi' ? loaiChiList : loaiThuList;
+  const table     = type === 'chi' ? 'mo_ta_chi' : 'loai_thu';
+  const idField   = type === 'chi' ? 'id_mtc'    : 'id_lt';
+  const descField = type === 'chi' ? 'mo_ta_chi' : 'mo_ta_thu';
+
+  const item = list.find(i => i[descField] === desc);
+  if (!item) { showToast('Không tìm thấy: ' + desc); return; }
+
+  let newSortOrder;
   if (checked) {
-    const nonEmptyCount = currentChips.filter(c => c).length;
-    
-    if (nonEmptyCount >= 8) {
-      showToast("Chỉ được chọn tối đa 8 mô tả");
-      const checkbox = document.querySelector(`input[data-desc="${desc}"]`);
-      if (checkbox) checkbox.checked = false;
+    const usedSlots = list
+      .filter(i => i.sort_order >= 1 && i.sort_order <= 8)
+      .map(i => i.sort_order);
+    if (usedSlots.length >= 8) {
+      showToast('Chỉ được chọn tối đa 8 mô tả');
+      const cb = document.querySelector(`input[data-desc="${desc}"]`);
+      if (cb) cb.checked = false;
       return;
     }
-    
-    const firstEmptyIndex = currentChips.findIndex(c => !c);
-    if (firstEmptyIndex !== -1) {
-      currentChips[firstEmptyIndex] = desc;
+    // Lấy slot nhỏ nhất còn trống trong 1–8
+    for (let s = 1; s <= 8; s++) {
+      if (!usedSlots.includes(s)) { newSortOrder = s; break; }
     }
   } else {
-    const index = currentChips.indexOf(desc);
-    if (index !== -1) {
-      currentChips[index] = "";
-    }
+    newSortOrder = 0;
   }
-  
-  if (type === 'chi') {
-    settings.quickChipsChi = currentChips;
-  } else {
-    settings.quickChipsThu = currentChips;
-  }
-  
-  saveSettings(settings);
-  
-  if (type === 'chi') {
-    renderChiChips();
-  } else {
-    renderThuChips();
-  }
-  
+
+  const r = await supaPatch(table, `${idField}=eq.${item[idField]}`, { sort_order: newSortOrder });
+  if (r === null) return; // supaPatch đã log lỗi
+
+  // Cập nhật local list ngay (không cần re-fetch)
+  item.sort_order = newSortOrder;
+  if (type === 'chi') setCached(CACHE_KEYS.LOAI_CHI, loaiChiList);
+  else                setCached(CACHE_KEYS.LOAI_THU, loaiThuList);
+
+  type === 'chi' ? renderChiChips() : renderThuChips();
   updateModalSelectedCount(type);
 }
 
 function updateModalSelectedCount(type) {
-  const currentChips = type === 'chi' ? settings.quickChipsChi : settings.quickChipsThu;
-  const count = currentChips.filter(c => c).length;
+  const list = type === 'chi' ? loaiChiList : loaiThuList;
+  const count = list.filter(item => item.sort_order >= 1 && item.sort_order <= 8).length;
   const countElement = document.getElementById(`${type}-dropdown-count`);
-  if (countElement) {
-    countElement.textContent = count;
-  }
+  if (countElement) countElement.textContent = count;
 }
 
 function showModal(type) {
@@ -2035,23 +2450,17 @@ function initModalEventListeners() {
 }
 
 function resetSettings(type) {
-  console.log(`🔄 Resetting ${type} settings to default...`);
-  
+  // Chips quản lý qua sort_order trong DB – reset = re-render từ dữ liệu hiện tại
+  console.log(`🔄 Re-rendering ${type} chips from DB...`);
   if (type === 'chi') {
-    settings.quickChipsChi = getDefaultChips('chi');
-    saveSettings(settings);
     renderChiChips();
     renderModalCheckboxList('chi');
-    showToast('✅ Đã reset CHI về mặc định');
+    showToast('✅ Đã tải lại chip CHI từ CSDL');
   } else if (type === 'thu') {
-    settings.quickChipsThu = getDefaultChips('thu');
-    saveSettings(settings);
     renderThuChips();
     renderModalCheckboxList('thu');
-    showToast('✅ Đã reset THU về mặc định');
+    showToast('✅ Đã tải lại chip THU từ CSDL');
   }
-  
-  console.log(`✅ ${type} settings reset complete`);
 }
 
 // ================= TAB BAR =================
@@ -2089,13 +2498,15 @@ window.onload = async () => {
 
   thuList = thuData || [];
   
-  const [loaiChiData, nguonTienData] = await Promise.all([
-    getCachedOrFetch(CACHE_KEYS.LOAI_CHI, 'loai_chi'),
-    getCachedOrFetch(CACHE_KEYS.NGUON_TIEN, 'nguon_tien')
+  const [loaiChiData, nguonTienData, loaiThuData] = await Promise.all([
+    getCachedOrFetch(CACHE_KEYS.LOAI_CHI,   'loai_chi'),
+    getCachedOrFetch(CACHE_KEYS.NGUON_TIEN, 'nguon_tien'),
+    getCachedOrFetch(CACHE_KEYS.LOAI_THU,   'loai_thu')
   ]);
   
-  loaiChiList = loaiChiData || [];
+  loaiChiList  = loaiChiData  || [];
   nguonTienList = nguonTienData || [];
+  loaiThuList  = loaiThuData  || [];
   _nguonColorCache = null; // Reset cache màu sau khi load xong dữ liệu
   
   console.log('✅ Data loaded:', {
@@ -2132,6 +2543,7 @@ window.onload = async () => {
   
   initModalEventListeners();
   initTabBar();
+  initTKSortBars();
 
   console.log('✅ App initialized successfully');
 };

@@ -1,9 +1,27 @@
-=== DATABASE SCHEMA CONFIGURATION (FINAL) ===
-Target Spreadsheet: Database_SoChiTieu.xlsx
+=== DATABASE SCHEMA CONFIGURATION ===
+Backend: Supabase (PostgreSQL)
+Project URL: https://vspfbfeazipxjgymxpzr.supabase.co
+Schema file: supabase_schema.sql
 Locale: Vietnam (vi-VN)
-Number Formatting: 
+Number Formatting:
   - Decimal Separator: "," (comma) -> Ví dụ: 5,5 (năm phẩy năm)
   - Thousand Separator: "." (dot)  -> Ví dụ: 100.000 (một trăm nghìn)
+
+=== CẤU TRÚC 3 CẤP DANH MỤC CHI ===
+  nhom_chi (cấp 1) ──< phan_loai_chi (cấp 2) ──< loai_chi (cấp 3)
+  - nhom_chi: Sinh hoạt, Gia đình, Cá nhân, Bắt buộc, Tài chính, Khác
+  - phan_loai_chi: FK → nhom_chi.id
+  - loai_chi: FK → phan_loai_chi.id
+  → Không thể nhập sai nhom vì được ràng buộc qua FK
+
+=== QUY TẮC sort_order ===
+  0         = không hiện trên chip bar (ẩn)
+  1 → 8     = vị trí chip bar (tối đa 8)
+  Áp dụng cho: loai_chi, loai_thu, nguon_tien
+
+=== LEGACY Google Sheets (đã ngưng) ===
+  GAS URL cũ: https://script.google.com/macros/s/AKfycbzjor1H_.../exec
+  File: Database_SoChiTieu.xlsx
 
 -----------------------------------------------------
 [SHEET 1]: Chi_Tieu_2026

@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Migrate GAS → Supabase</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+    h2 { color: #4ec9b0; }
+    button { padding: 10px 20px; margin: 6px 4px; border: none; border-radius: 6px;
+             background: #0e639c; color: white; cursor: pointer; font-size: 14px; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    button.danger { background: #c0392b; }
+    #log { background: #252526; padding: 16px; border-radius: 8px; margin-top: 16px;
+           height: 500px; overflow-y: auto; font-size: 13px; line-height: 1.6; }
+    .ok   { color: #6a9955; }
+    .err  { color: #f44747; }
+    .info { color: #9cdcfe; }
+    .warn { color: #dcdcaa; }
+    .step { color: #4ec9b0; font-weight: bold; margin-top: 10px; }
+    .sep  { border-top: 1px solid #444; margin: 8px 0; }
+  </style>
+</head>
+<body>
+<h2>🚀 Migrate: Google Sheets → Supabase</h2>
+
+<div>
+  <button onclick="runStep('nguon_tien')">1. Migrate Nguồn tiền</button>
+  <button onclick="runStep('loai_chi')">2. Migrate Loại chi</button>
+  <button onclick="runStep('chi_tieu')">3. Migrate Chi tiêu</button>
+  <button onclick="runStep('thu')">4. Migrate Thu nhập</button>
+  <button onclick="runStep('tk')">5. Migrate Tổng kết</button>
+  <button onclick="runAll()">▶ Chạy tất cả</button>
+</div>
+<div>
+  <button class="danger" onclick="clearLog()">Xóa log</button>
+  <button class="danger" onclick="resetThuTables()">⚠ Xóa thu + loai_thu (reset)</button>
+</div>
+
+<div id="log"></div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const GAS_URL    = "https://script.google.com/macros/s/AKfycbzjor1H_-TcN6hDtV2_P4yhSyi46zpoHZsy2WIaT-hJfoZbC0ircbB9zi3YIO388d1Q/exec";
+const SUPA_URL   = "https://vspfbfeazipxjgymxpzr.supabase.co";
+const SUPA_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzcGZiZmVhemlweGpneW14cHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMjk4MzUsImV4cCI6MjA4NzkwNTgzNX0.tPQtyJDRxqWxGF-bYYSYWu3moNbFrSRSPigvQJFPdDA";
+
+// Map phan_loai (text) → id trong phan_loai_chi (sẽ load từ Supabase)
+let phanLoaiMap = {}; // { "Ăn uống": 1, ... }
+
+// ============================================================
+// UTILS
+// ============================================================
+const logEl = document.getElementById("log");
+
+function log(msg, cls = "") {
+  const d = document.createElement("div");
+  if (cls) d.className = cls;
+  d.innerHTML = msg;
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function clearLog() { logEl.innerHTML = ""; }
+
+function sep() {
+  const d = document.createElement("div");
+  d.className = "sep";
+  logEl.appendChild(d);
+}
+
+async function gasGet(sheet) {
+  log(`📡 Đang fetch GAS: ${sheet}...`, "info");
+  const url = `${GAS_URL}?sheet=${sheet}`;
+  const res = await fetch(url);
+  const json = await res.json();
+  // GAS trả về { status: "success", data: [...] }
+  const rows = (json && json.status === "success" ? json.data : Array.isArray(json) ? json : json.data) || [];
+  if (!rows.length) log(`  ⚠ Raw response: ${JSON.stringify(json).slice(0, 200)}`, "warn");
+  log(`  ✓ Nhận được ${rows.length} dòng`, "ok");
+  return rows;
+}
+
+async function supaGet(table) {
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}?select=*`, {
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` }
+  });
+  return await res.json();
+}
+
+async function supaDeleteAll(table) {
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}?id_thu=neq.zzz`, {
+    method: "DELETE",
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, Prefer: "return=minimal" }
+  });
+  // Dùng filter luôn đúng để xóa tất cả
+  const res2 = await fetch(`${SUPA_URL}/rest/v1/${table}?select=count`, {
+    method: "DELETE",
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, Prefer: "return=minimal",
+               "Content-Range": "*" }
+  });
+  return res.ok;
+}
+
+async function supaDeleteTable(table, filterCol) {
+  // Xóa tất cả bằng filter "not is null" trên PK
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}?${filterCol}=not.is.null`, {
+    method: "DELETE",
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, Prefer: "return=minimal" }
+  });
+  return res.ok;
+}
+
+async function resetThuTables() {
+  if (!confirm("Xóa toàn bộ bảng thu và loai_thu trong Supabase?\nThao tác này không thể hoàn tác!")) return;
+  log("🗑 Đang xóa bảng thu...", "warn");
+  const ok1 = await supaDeleteTable("thu", "id_thu");
+  log(ok1 ? "  ✓ Đã xóa thu" : "  ✗ Lỗi xóa thu", ok1 ? "ok" : "err");
+  log("🗑 Đang xóa bảng loai_thu...", "warn");
+  const ok2 = await supaDeleteTable("loai_thu", "id_loaithu");
+  log(ok2 ? "  ✓ Đã xóa loai_thu" : "  ✗ Lỗi xóa loai_thu", ok2 ? "ok" : "err");
+  log("✅ Reset xong. Có thể chạy bước 4 lại.", "ok");
+}
+
+// conflictCol: tên cột để upsert (nếu null → insert-only, ignore duplicate PK)
+async function supaInsert(table, rows, conflictCol = null) {
+  if (!rows.length) { log(`  ⚠ Không có dữ liệu để insert vào ${table}`, "warn"); return; }
+  const BATCH = 100;
+  let total = 0;
+  // Nếu có conflictCol → upsert (merge), ngược lại → ignore duplicates trên PK
+  const prefer = conflictCol ? "resolution=merge-duplicates" : "resolution=ignore-duplicates";
+  const url    = conflictCol
+    ? `${SUPA_URL}/rest/v1/${table}?on_conflict=${conflictCol}`
+    : `${SUPA_URL}/rest/v1/${table}`;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const batch = rows.slice(i, i + BATCH);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        apikey: SUPA_KEY,
+        Authorization: `Bearer ${SUPA_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: prefer
+      },
+      body: JSON.stringify(batch)
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      log(`  ✗ Lỗi insert batch ${i}–${i+batch.length}: ${err}`, "err");
+    } else {
+      total += batch.length;
+      log(`  ✓ Upserted ${i+1}–${Math.min(i+BATCH, rows.length)} / ${rows.length}`, "ok");
+    }
+  }
+  return total;
+}
+
+// Parse công thức "=25+30.5" → 55.5
+function parseFormula(str) {
+  if (!str) return 0;
+  const s = String(str).replace(/^=/, "").replace(/,/g, ".");
+  try { return s.split("+").reduce((a, b) => a + parseFloat(b || 0), 0); }
+  catch { return 0; }
+}
+
+// ============================================================
+// LOAD phan_loai_chi map từ Supabase
+// ============================================================
+async function loadPhanLoaiMap() {
+  log("📦 Đang load phan_loai_chi từ Supabase...", "info");
+  const rows = await supaGet("phan_loai_chi");
+  if (!rows || rows.error) {
+    log(`  ✗ Không load được phan_loai_chi: ${JSON.stringify(rows)}`, "err");
+    return false;
+  }
+  phanLoaiMap = {};
+  rows.forEach(r => { phanLoaiMap[r.ten_phanloai] = r.id_plc; });
+  log(`  ✓ Loaded ${rows.length} phân loại: ${Object.keys(phanLoaiMap).join(", ")}`, "ok");
+  return true;
+}
+
+// ============================================================
+// BƯỚC 1: NGUỒN TIỀN
+// ============================================================
+async function migrateNguonTien() {
+  log("━━ BƯỚC 1: Nguồn tiền ━━", "step");
+  const rows = await gasGet("nguon_tien");
+  const mapped = rows.map((r, i) => ({
+    nguon_tien: r["nguon_tien"] || r["Nguồn tiền"] || "",
+    nguoi:      r["nguoi"] || r["Người"] || "",
+    nhom:       r["nhom"] || r["Nhóm"] || "",
+    icon:       r["icon"] || "",
+    active:     r["active"] === false || r["active"] === "FALSE" ? false : true,
+    sort_order: i + 1,
+    note:       r["note"] || ""
+  })).filter(r => r.nguon_tien);
+  log(`  → ${mapped.length} nguồn tiền cần insert`, "info");
+  await supaInsert("nguon_tien", mapped, "nguon_tien");
+  sep();
+}
+
+// ============================================================
+// BƯỚC 2: LOẠI CHI (cần phan_loai_chi map)
+// ============================================================
+
+// Map thủ công phan_loai cũ (text) → ten_phanloai mới
+// Nếu không khớp sẽ fallback về "Khác"
+const PHANLOAI_MAP = {
+  "Ăn uống":       "Ăn uống",
+  "Mua sắm":       "Mua sắm chung",
+  "Điện":          "Điện",
+  "Nước":          "Nước",
+  "Internet":      "Internet",
+  "Di chuyển":     "Di chuyển",
+  "Sức khỏe":      "Sức khỏe",
+  "Đám hiếu hỉ":  "Đám hiếu hỉ",
+  "Biểu tặng":     "Biểu tặng",
+  "Giải trí":      "Giải trí",
+  "Học hành":      "Học hành",
+  "Nhà cửa":       "Nhà cửa",
+  "Phí ngân hàng": "Phí ngân hàng",
+  "Sửa chữa":      "Sửa chữa",
+  "Đầu tư":        "Đầu tư",
+  "Cho mượn":      "Cho mượn",
+  "Khác":          "Khác",
+};
+
+// Fix thủ công 4 dòng sai (id_chi → ten_phanloai đúng)
+const LOAI_CHI_FIX = {
+  "c61": "Đám hiếu hỉ",   // Đám ma → Gia đình > Đám hiếu hỉ
+  "c62": "Nhà cửa",        // Cây cảnh → Bắt buộc > Nhà cửa
+  "c64": "Phí ngân hàng",  // Apple → Bắt buộc > Phí ngân hàng
+  "c65": "Nhà cửa",        // Bảo hiểm xe máy → Bắt buộc > Nhà cửa
+};
+
+async function migrateLoaiChi() {
+  log("━━ BƯỚC 2: Loại chi ━━", "step");
+  const ok = await loadPhanLoaiMap();
+  if (!ok) return;
+
+  const rows = await gasGet("loai_chi");
+  const mapped = [];
+  const errors = [];
+
+  rows.forEach(r => {
+    const idChi = r["id_chi"] || "";
+    const phanLoaiRaw = r["phan_loai"] || r["Phân loại"] || "";
+
+    // Dùng fix thủ công nếu có, không thì map text
+    const phanLoaiKey = LOAI_CHI_FIX[idChi] || PHANLOAI_MAP[phanLoaiRaw] || "Khác";
+    const idPhanLoai  = phanLoaiMap[phanLoaiKey];
+
+    if (!idPhanLoai) {
+      errors.push(`  ⚠ ${idChi} "${r["mo_ta_chi"]}" – không map được "${phanLoaiRaw}" → "${phanLoaiKey}"`);
+      return;
+    }
+
+    mapped.push({
+      id_mtc:      idChi,
+      mo_ta_chi:   r["mo_ta_chi"] || "",
+      id_plc:      idPhanLoai,
+      icon:        r["icon"] || "",
+      active:      r["active"] === false || String(r["active"]).toUpperCase() === "FALSE" ? false : true,
+      sort_order:  parseInt(r["sort_order"]) || 0,
+      note:        r["note"] || ""
+    });
+  });
+
+  if (errors.length) {
+    log("  Các dòng không map được phan_loai:", "warn");
+    errors.forEach(e => log(e, "warn"));
+  }
+  log(`  → ${mapped.length} loại chi sẽ insert, ${errors.length} lỗi`, "info");
+  await supaInsert("mo_ta_chi", mapped, "id_mtc");
+  sep();
+}
+
+// ============================================================
+// BƯỚC 3: CHI TIÊU
+// 3a: Load mo_ta_chi map (mo_ta_chi text → id_mtc)
+// 3b: Migrate từng row chi với id_mtc FK
+// ============================================================
+async function migrateChiTieu() {
+  log("━━ BƯỚC 3: Chi tiêu ━━", "step");
+
+  // 3a: Load mo_ta_chi map từ Supabase
+  log("  📦 Load mo_ta_chi map từ Supabase...", "info");
+  const mtcData = await supaGet("mo_ta_chi");
+  if (!mtcData || mtcData.error) {
+    log(`  ✗ Không load được mo_ta_chi: ${JSON.stringify(mtcData)}`, "err");
+    return;
+  }
+  const mtcMap = {}; // { mo_ta_chi text → id_mtc }
+  mtcData.forEach(r => { mtcMap[r.mo_ta_chi] = r.id_mtc; });
+  log(`  ✓ Loaded ${mtcData.length} mô tả chi`, "ok");
+
+  // 3b: Migrate chi tiêu
+  const rows = await gasGet("Chi_Tieu_2026");
+  const errors = [];
+  const mapped = rows
+    .filter(r => r["IDChi"] && String(r["IDChi"]).trim())
+    .map(r => {
+      const formula = String(r["Nghìn VND"] || "0");
+      const soTienNghin = parseFormula(formula);
+      const moTaChi = r["mo_ta_chi"] || "";
+      const idMtc = mtcMap[moTaChi];
+      if (!idMtc) {
+        errors.push(`  ⚠ ${r["IDChi"]} - không tìm được id_mtc cho: "${moTaChi}"`);
+        return null;
+      }
+      return {
+        id_chi:        String(r["IDChi"]).trim(),
+        id_mtc:        idMtc,
+        nguon_tien:    r["Nguồn tiền"] || "",
+        so_tien_nghin: soTienNghin,
+        formula:       formula.startsWith("=") ? formula : null,
+        ngay:          r["Ngày"] || r["ngay"] || "",
+      };
+    })
+    .filter(r => r && r.nguon_tien && r.ngay);
+
+  if (errors.length) errors.forEach(e => log(e, "warn"));
+  log(`  → ${mapped.length} khoản chi sẽ insert, ${errors.length} bỏ qua`, "info");
+  await supaInsert("chi_tieu", mapped, "id_chi");
+  sep();
+}
+
+// ============================================================
+// BƯỚC 4: THU NHẬP
+// 4a: Extract distinct (Mô tả, Loại thu) → loai_thu
+// 4b: Migrate từng row thu với id_loaithu
+// ============================================================
+async function migrateThu() {
+  log("━━ BƯỚC 4: Thu nhập ━━", "step");
+  const rows = await gasGet("Thu_2026");
+
+  // 4a: Tạo loai_thu từ distinct (Mô tả, Loại thu)
+  log("  📦 Bước 4a: Tạo danh mục loại thu...", "info");
+
+  // Kiểm tra nếu DB có loai_thu cũ không khớp GAS → cảnh báo
+  // Load existing loai_thu trước để tránh PK conflict
+  const ltExisting = await supaGet("loai_thu");
+  if (ltExisting && ltExisting.error) {
+    log(`  ✗ Không load được loai_thu: ${JSON.stringify(ltExisting)}`, "err");
+    return;
+  }
+  const existingMap = {}; // { mo_ta_thu: id_loaithu }
+  let maxIdNum = 0;
+  (ltExisting || []).forEach(r => {
+    existingMap[r.mo_ta_thu] = r.id_loaithu;
+    const num = parseInt((r.id_loaithu || "").replace("lt_", "")) || 0;
+    if (num > maxIdNum) maxIdNum = num;
+  });
+  log(`  ✓ DB hiện có ${Object.keys(existingMap).length} loại thu, max ID = lt_${maxIdNum}`, "info");
+
+  // Chỉ insert những mo_ta_thu chưa có trong DB
+  const pairs = {};
+  rows.forEach(r => {
+    const moTa    = (r["Mô tả"] || "").trim();
+    const loaiThu = (r["Loại thu"] || "Khác").trim();
+    if (moTa && !pairs[moTa]) pairs[moTa] = loaiThu;
+  });
+  const newEntries = Object.entries(pairs).filter(([moTa]) => !existingMap[moTa]);
+  const loaiThuRows = newEntries.map(([moTa, loaiThu], i) => ({
+    id_loaithu: `lt_${maxIdNum + i + 1}`,
+    mo_ta_thu:  moTa,
+    loai_thu:   loaiThu,
+    active:     true,
+    sort_order: 0
+  }));
+
+  if (loaiThuRows.length === 0) {
+    log(`  ✓ Không có loại thu mới (tất cả đã tồn tại trong DB)`, "ok");
+  } else {
+    log(`  → ${loaiThuRows.length} loại thu mới sẽ insert (bỏ qua ${Object.keys(pairs).length - loaiThuRows.length} đã có)`, "info");
+    await supaInsert("loai_thu", loaiThuRows, "mo_ta_thu");
+  }
+
+  // Load lại loai_thu map từ Supabase (sau khi insert)
+  log("  📦 Load loai_thu map từ Supabase...", "info");
+  const ltData = await supaGet("loai_thu");
+  if (!ltData || ltData.error) {
+    log(`  ✗ Không load được loai_thu: ${JSON.stringify(ltData)}`, "err");
+    return;
+  }
+  const loaiThuMap = {}; // { mo_ta_thu: id_loaithu }
+  ltData.forEach(r => { loaiThuMap[r.mo_ta_thu] = r.id_loaithu; });
+  log(`  ✓ Loaded ${ltData.length} loại thu`, "ok");
+
+  // 4b: Migrate bảng thu
+  log("  📦 Bước 4b: Migrate giao dịch thu...", "info");
+  const errors = [];
+  const mapped = rows
+    .filter(r => r["IDThu"] && String(r["IDThu"]).trim())
+    .map(r => {
+      const moTa = (r["Mô tả"] || "").trim();
+      const idLoaithu = loaiThuMap[moTa];
+      if (!idLoaithu) {
+        errors.push(`  ⚠ ${r["IDThu"]} - không tìm được loại thu: "${moTa}"`);
+        return null;
+      }
+      return {
+        id_thu:     String(r["IDThu"]).trim(),
+        id_loaithu: idLoaithu,
+        so_tien:    parseInt(r["Thu"]) || 0,
+        ngay:       r["Ngày"] || r["ngay"] || "",
+        nguon_tien: r["Nguồn tiền"] || "",
+        ghi_chu:    null
+      };
+    })
+    .filter(r => r && r.nguon_tien && r.ngay && r.so_tien > 0);
+
+  if (errors.length) {
+    errors.forEach(e => log(e, "warn"));
+  }
+  log(`  → ${mapped.length} khoản thu sẽ insert, ${errors.length} bỏ qua`, "info");
+  await supaInsert("thu", mapped, "id_thu");
+  sep();
+}
+
+// ============================================================
+// BƯỚC 5: TỔNG KẾT (tk_session + tk_detail)
+// ============================================================
+async function migrateTK() {
+  log("━━ BƯỚC 5: Tổng kết ━━", "step");
+
+  const sessions = await gasGet("tk_session");
+  const details  = await gasGet("tk_detail");
+
+  const mappedSessions = sessions
+    .filter(r => r["session_id"])
+    .map(r => ({
+      session_id: String(r["session_id"]).trim(),
+      ngay_tk:    r["ngay_tk"] || "",
+      so_du_lt:   parseInt(r["so_du_lt"]) || 0,
+      so_du_tt:   parseInt(r["so_du_tt"]) || 0,
+      status:     r["status"] || "confirmed",
+      note:       r["note"] || ""
+    }));
+
+  const mappedDetails = details
+    .filter(r => r["session_id"] && r["nguon_tien"])
+    .map(r => ({
+      session_id: String(r["session_id"]).trim(),
+      ngay_tk:    r["ngay_tk"] || "",
+      nguon_tien: r["nguon_tien"] || "",
+      so_tien:    parseInt(r["so_tien"]) || 0
+    }));
+
+  log(`  → ${mappedSessions.length} phiên tổng kết`, "info");
+  await supaInsert("tk_session", mappedSessions, "session_id");
+
+  log(`  → ${mappedDetails.length} chi tiết số dư`, "info");
+  await supaInsert("tk_detail", mappedDetails, "session_id,nguon_tien");
+  sep();
+}
+
+// ============================================================
+// RUNNER
+// ============================================================
+const STEPS = {
+  nguon_tien: migrateNguonTien,
+  loai_chi:   migrateLoaiChi,
+  chi_tieu:   migrateChiTieu,
+  thu:        migrateThu,
+  tk:         migrateTK,
+};
+
+async function runStep(name) {
+  try {
+    await STEPS[name]();
+    log(`✅ Xong: ${name}`, "ok");
+  } catch(e) {
+    log(`❌ Lỗi ${name}: ${e.message}`, "err");
+    console.error(e);
+  }
+}
+
+async function runAll() {
+  log("🚀 Bắt đầu migrate toàn bộ...", "step");
+  for (const name of Object.keys(STEPS)) {
+    await runStep(name);
+  }
+  log("🎉 Migrate hoàn tất!", "step");
+}
+</script>
+</body>
+</html>

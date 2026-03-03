@@ -1,0 +1,72 @@
+Dưới đây là cấu trúc cơ sở dữ liệu chi tiết, được cập nhật đầy đủ các cột có chứa công thức tính toán và mảng (ArrayFormula) để bạn dễ dàng sao chép và thiết lập lại hệ thống:
+
+### 1. Bảng `Chi_Tieu_2026` (Quản lý các khoản chi)
+
+| Tên Cột | Kiểu Dữ Liệu | Giải thích / Ghi chú | Công thức (Formula) |
+| --- | --- | --- | --- |
+| **IDChi** | Chuỗi (Text) | Mã định danh duy nhất (VD: c1, c2) | *(Không có)* |
+| **mo_ta_chi** | Chuỗi (Text) | Nội dung chi tiêu | *(Không có)* |
+| **Nguồn tiền** | Chuỗi (Text) | Nguồn tiền sử dụng | *(Không có)* |
+| **Nghìn VND** | Số thực (Float) / Chuỗi công thức | Số tiền nhập vào (có thể nhận chuỗi dạng `=25+30` từ App) | *(Không có)* |
+| **Số tiền vnđ** | Số nguyên (Integer) | Quy đổi giá trị chi tiêu ra VNĐ | `=[Cột Nghìn VND] * 1000` |
+| **Ngày** | Ngày tháng (Date) | Ngày phát sinh giao dịch | *(Không có)* |
+| **Số dư lý thuyết** | Số nguyên (Integer) | Số dư còn lại sau khi trừ khoản chi này | **Công thức lũy kế:** Tính dựa trên tổng thu trừ đi tổng chi (theo từng Nguồn tiền) đến dòng hiện tại. |
+
+### 2. Bảng `Thu_2026` (Quản lý các khoản thu)
+
+| Tên Cột | Kiểu Dữ Liệu | Giải thích / Ghi chú | Công thức (Formula) |
+| --- | --- | --- | --- |
+| **Thu** | Số nguyên (Integer) | Số tiền thu vào (VNĐ) | *(Không có)* |
+| **Ngày** | Ngày tháng (Date) | Ngày phát sinh khoản thu | *(Không có)* |
+| **Mô tả** | Chuỗi (Text) | Nội dung khoản thu | *(Không có)* |
+| **Nguồn tiền** | Chuỗi (Text) | Nguồn tiền nhận | *(Không có)* |
+| **Loại thu** | Chuỗi (Text) | Phân loại nguồn thu | *(Không có)* |
+| **Tổng thu** | Số nguyên (Integer) | Tổng số tiền thu cộng dồn | **Công thức lũy kế:** Cộng dồn các khoản thu từ trước đến dòng hiện tại. |
+| **IDThu** | Chuỗi (Text) | Mã định danh của khoản thu | *(Không có)* |
+
+### 3. Bảng `tk_session` (Thống kê và đối soát theo phiên)
+
+| Tên Cột | Kiểu Dữ Liệu | Giải thích / Ghi chú | Công thức (Formula) |
+| --- | --- | --- | --- |
+| **session_id** | Chuỗi (Text) | Mã phiên kiểm tra | *(Không có)* |
+| **ngay_tk** | Ngày tháng (Date) | Ngày chốt sổ | *(Không có)* |
+| **so_du_lt** | Số nguyên (Integer) | Số dư lý thuyết (Từ sổ thu/chi) | Tính toán tổng hợp từ bảng Thu và Chi. |
+| **so_du_tt** | Số nguyên (Integer) | Số dư thực tế (Từ ví/ngân hàng) | Được tính tổng từ bảng `tk_detail` của cùng session. |
+| **chenhlech** | Số nguyên (Integer) | Độ chênh lệch giữa thực tế và lý thuyết | `=ARRAYFORMULA(IF([Cột session_id]="", "", [so_du_tt] - [so_du_lt]))` |
+| **status** | Chuỗi (Text) | Trạng thái (VD: confirmed) | *(Không có)* |
+| **note** | Chuỗi (Text) | Ghi chú giải trình | *(Không có)* |
+
+### 4. Bảng `tk_detail` (Chi tiết số dư thực tế theo nguồn tiền)
+
+| Tên Cột | Kiểu Dữ Liệu | Giải thích / Ghi chú | Công thức (Formula) |
+| --- | --- | --- | --- |
+| **session_id** | Chuỗi (Text) | Mã phiên kiểm tra | *(Không có)* |
+| **ngay_tk** | Ngày tháng (Date) | Ngày thực hiện đối soát | *(Không có)* |
+| **nguon_tien** | Chuỗi (Text) | Nguồn tiền được kiểm tra | *(Không có)* |
+| **so_tien** | Số nguyên (Integer) | Số tiền thực tế nhập vào | *(Không có)* |
+
+### 5. Bảng `loai_chi` (Danh mục phân loại chi tiêu)
+
+*(Bảng danh mục này chủ yếu là dữ liệu tĩnh, dùng làm nguồn cho các Dropdown/Data Validation)*
+| Tên Cột | Kiểu Dữ Liệu | Giải thích / Ghi chú | Công thức (Formula) |
+| :--- | :--- | :--- | :--- |
+| **id_chi** | Chuỗi (Text) | Mã định danh loại chi | *(Không có)* |
+| **mo_ta_chi** | Chuỗi (Text) | Tên hạng mục chi tiêu | *(Không có)* |
+| **phan_loai** | Chuỗi (Text) | Phân loại chi tiết | *(Không có)* |
+| **nhom** | Chuỗi (Text) | Nhóm chi tiêu bao quát | *(Không có)* |
+| **icon** | Ký tự (Emoji) | Biểu tượng hiển thị | *(Không có)* |
+| **active** | Số (Boolean) | Trạng thái bật/tắt hiển thị (1/0) | *(Không có)* |
+| **sort_order** | Số nguyên (Integer)| Thứ tự sắp xếp hiển thị | *(Không có)* |
+| **note** | Chuỗi (Text) | Ghi chú | *(Không có)* |
+
+### 6. Bảng `nguon_tien` (Danh mục các nguồn tiền)
+
+*(Tương tự `loai_chi`, đây là bảng dữ liệu tĩnh)*
+| Tên Cột | Kiểu Dữ Liệu | Giải thích / Ghi chú | Công thức (Formula) |
+| :--- | :--- | :--- | :--- |
+| **nguon_tien** | Chuỗi (Text) | Tên tài khoản hoặc ví cụ thể | *(Không có)* |
+| **nguoi** | Chuỗi (Text) | Phân loại người sở hữu | *(Không có)* |
+| **nhom** | Chuỗi (Text) | Nhóm (Ngân hàng, Tiền mặt, Ví) | *(Không có)* |
+| **icon** | Ký tự (Emoji) | Biểu tượng hiển thị | *(Không có)* |
+| **active** | Số (Boolean) | Trạng thái kích hoạt (1/0) | *(Không có)* |
+| **note** | Chuỗi (Text) | Ghi chú | *(Không có)* |

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sổ Thu Chi</title>
-    <link rel="stylesheet" href="style.css?v=3300933" />
+    <link rel="stylesheet" href="style.css?v=3400000" />
 </head>
 <body>
 
@@ -29,7 +29,7 @@
         <div class="header-details collapsed" id="header-details">
             <!-- Dynamic content from JS -->
         </div>
-        <div class="version">v3.3.0933</div>
+        <div class="version">v3.4.0000</div>
     </div>
 
     <!-- ================= TAB CONTENT ================= -->
@@ -141,6 +141,13 @@
                         <div class="card-title red-text">CHI</div>
                         <span id="tk-chi-count" class="tk-section-count"></span>
                     </div>
+                    <div class="tk-sort-bar" id="tk-chi-sort-bar">
+                        <button class="tk-sort-pill tk-sh-ngay active" data-col="Ngày">Ngày <span class="sort-arrow">↓</span></button>
+                        <button class="tk-sort-pill tk-sh-mota" data-col="mo_ta_chi">Mô tả <span class="sort-arrow"></span></button>
+                        <button class="tk-sort-pill tk-sh-nguon" data-col="Nguồn tiền">Nguồn <span class="sort-arrow"></span></button>
+                        <span class="tk-sh-sotien">Số tiền</span>
+                        <span class="tk-sh-edit-gap"></span>
+                    </div>
                     <div id="tk-chi-list"></div>
                 </div>
             </div>
@@ -151,6 +158,14 @@
                     <div class="card-header">
                         <div class="card-title green-text">THU</div>
                         <span id="tk-thu-count" class="tk-section-count"></span>
+                    </div>
+                    <div class="tk-sort-bar" id="tk-thu-sort-bar">
+                        <button class="tk-sort-pill tk-sh-ngay active" data-col="Ngày">Ngày <span class="sort-arrow">↓</span></button>
+                        <button class="tk-sort-pill tk-sh-mota" data-col="Mô tả">Mô tả <span class="sort-arrow"></span></button>
+                        <button class="tk-sort-pill tk-sh-nguon" data-col="Nguồn tiền">Nguồn <span class="sort-arrow"></span></button>
+                        <button class="tk-sort-pill tk-sh-loai" data-col="Loại thu">Loại <span class="sort-arrow"></span></button>
+                        <span class="tk-sh-sotien">Số tiền</span>
+                        <span class="tk-sh-edit-gap"></span>
                     </div>
                     <div id="tk-thu-list"></div>
                 </div>
@@ -165,9 +180,32 @@
                 <button class="btn-submit btn-blue" id="tk-start">Làm tổng kết</button>
                 <button class="btn-submit btn-blue" id="tk-refresh" style="display:none;">🔄 Cập nhật</button>
 
+                <!-- Chuyển tiền nội bộ -->
+                <div class="tk-transfer-wrap" id="tk-transfer-wrap" style="display:none;">
+                    <button class="tk-transfer-toggle" id="tk-transfer-toggle">
+                        ⇄ Chuyển tiền giữa các Nguồn
+                        <span class="tk-transfer-arrow">▸</span>
+                    </button>
+                    <div class="tk-transfer-panel" id="tk-transfer-panel" style="display:none;">
+                        <div class="tk-transfer-row">
+                            <select class="input-std tk-transfer-select" id="tk-transfer-from"></select>
+                            <span class="tk-transfer-icon">→</span>
+                            <select class="input-std tk-transfer-select" id="tk-transfer-to"></select>
+                        </div>
+                        <div class="tk-transfer-row">
+                            <input type="text" inputmode="decimal" class="input-std" id="tk-transfer-amount" placeholder="Số tiền (VNĐ)">
+                            <button class="tk-transfer-btn-action btn-cyan" id="tk-transfer-btn">⇄</button>
+                            <button class="tk-transfer-btn-action btn-yellow" id="tk-transfer-remember" title="Ghi nhớ các lần chuyển">📌</button>
+                            <button class="tk-transfer-btn-action btn-red-icon" id="tk-transfer-reset" title="Xóa tất cả lần chuyển">✕</button>
+                        </div>
+                        <div id="tk-transfer-log" style="display:none;"></div>
+                    </div>
+                </div>
+
                 <div id="tk-form" style="display: none;">
                     <div class="tk-period">Nhập số dư thực tế:</div>
                     <div id="tk-inputs"></div>
+
                     <button class="btn-submit btn-purple" id="tk-remember">Ghi nhớ số dư</button>
                     <button class="btn-submit btn-orange" id="tk-check">Kiểm tra</button>
                     <div id="tk-result" style="display: none;"></div>
@@ -265,7 +303,7 @@
         </div>
     </div>
 
-    <script src="cache.js?v=3300933"></script>
-    <script src="app.js?v=3300933"></script>
+    <script src="cache.js?v=3400000"></script>
+    <script src="app.js?v=3400000"></script>
 </body>
 </html>

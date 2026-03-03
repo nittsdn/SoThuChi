@@ -1240,6 +1240,89 @@ input, select, textarea {
 }
 
 /* =========================
+   TỔNG KẾT - SORT BAR
+========================= */
+/* =========================
+   TỔNG KẾT - SORT BAR
+========================= */
+.tk-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  padding: 8px 6px 8px 10px;
+  background: #dfc49a;
+  border-radius: 8px;
+  border-left: 4px solid #c4a070;
+}
+
+.tk-sort-pill {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s;
+}
+
+.tk-sort-pill.active {
+  color: #fff;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.7);
+  padding-bottom: 1px;
+}
+
+/* Mirror data cell dimensions exactly */
+.tk-sh-ngay {
+  min-width: 82px;
+  flex-shrink: 0;
+}
+
+.tk-sh-mota {
+  flex: 1;
+  min-width: 70px;
+}
+
+.tk-sh-nguon {
+  min-width: 65px;
+  flex-shrink: 0;
+}
+
+.tk-sh-loai {
+  min-width: 65px;
+  flex-shrink: 0;
+}
+
+.tk-sh-sotien {
+  min-width: 75px;
+  text-align: right;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.tk-sh-edit-gap {
+  width: 30px;
+  flex-shrink: 0;
+}
+
+.sort-arrow {
+  font-size: 11px;
+  min-width: 8px;
+  display: inline-block;
+}
+
+/* =========================
    TỔNG KẾT - LIST ROWS
 ========================= */
 .tk-list-row {
@@ -1419,6 +1502,188 @@ input, select, textarea {
 }
 .btn-purple:hover:not(:disabled) {
   background: linear-gradient(135deg, #ba68c8 0%, #7b3db5 100%);
+}
+
+/* =====================================
+   BTN-CYAN (chuyển tiền)
+===================================== */
+.btn-cyan {
+  background: linear-gradient(135deg, #4dd0e1 0%, #0097a7 100%);
+  color: #fff;
+  min-width: 48px;
+  font-size: 18px;
+  padding: 10px 14px;
+}
+.btn-cyan:hover:not(:disabled) {
+  background: linear-gradient(135deg, #26c6da 0%, #00838f 100%);
+}
+
+/* =====================================
+   TRANSFER PANEL (chuyển tiền nội bộ)
+===================================== */
+.tk-transfer-wrap {
+  margin: 2px 0 10px 0;
+}
+
+.tk-transfer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: #e8f5f5;
+  border: 1.5px dashed #0097a7;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #00838f;
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tk-transfer-arrow {
+  margin-left: auto;
+  font-size: 11px;
+  transition: transform 0.2s;
+}
+
+.tk-transfer-toggle.open .tk-transfer-arrow {
+  transform: rotate(90deg);
+}
+
+.tk-transfer-panel {
+  background: #f0fbfc;
+  border: 1.5px dashed #0097a7;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  padding: 12px 12px 8px 12px;
+}
+
+.tk-transfer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tk-transfer-select {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.tk-transfer-icon {
+  font-size: 18px;
+  color: #0097a7;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+#tk-transfer-amount {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.tk-transfer-btn-action {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s;
+}
+.tk-transfer-btn-action:active { opacity: 0.75; }
+
+.btn-yellow {
+  background: linear-gradient(135deg, #ffe082 0%, #ffb300 100%);
+  color: #5d3a00;
+  font-size: 16px;
+}
+.btn-yellow:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ffd740 0%, #ffa000 100%);
+}
+
+.btn-red-icon {
+  background: linear-gradient(135deg, #ef9a9a 0%, #e53935 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+}
+.btn-red-icon:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e57373 0%, #c62828 100%);
+}
+
+.tk-log-pin-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  opacity: 0.75;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.tk-log-pin-btn:hover { opacity: 1; }
+
+#tk-transfer-log {
+  margin: 6px 0 4px 0;
+  padding: 6px 10px 4px 10px;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid #b2dfdb;
+  border-radius: 8px;
+}
+.tk-transfer-log-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 12.5px;
+  padding: 4px 0;
+  border-bottom: 1px dashed #cfd8dc;
+  line-height: 1.4;
+}
+.tk-transfer-log-item:last-child { border-bottom: none; }
+.tk-log-num    { color: #90a4ae; font-size: 11px; min-width: 14px; }
+.tk-log-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 20px;
+  border: 1.5px solid;
+  font-size: 12px;
+  font-weight: 700;
+  color: #37474f;
+  white-space: nowrap;
+  letter-spacing: 0.1px;
+}
+.tk-log-arrow  { color: #90a4ae; font-size: 13px; font-weight: 600; }
+.tk-log-amount { font-weight: 700; color: #2e7d32; font-size: 13px; }
+
+.tk-badge-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.tk-transfer-icon-badge {
+  font-size: 17px;
+  color: #0097a7;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -1px;
 }
 
 /* =====================================
