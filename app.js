@@ -1,4 +1,4 @@
-﻿// Version: v3.4.0000
+﻿// Version: v3.4.0001
 // ================= CONSTANTS =================
 const SUPA_URL = "https://vspfbfeazipxjgymxpzr.supabase.co";
 const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzcGZiZmVhemlweGpneW14cHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMjk4MzUsImV4cCI6MjA4NzkwNTgzNX0.tPQtyJDRxqWxGF-bYYSYWu3moNbFrSRSPigvQJFPdDA";
@@ -252,7 +252,11 @@ async function postData(action, payload) {
       // thuStack lưu VNĐ trực tiếp (khác chiStack lưu nghìn)
       const soTien = parseFormulaNum(String(payload.so_tien));
       const ltItem = loaiThuList.find(lt => lt.mo_ta_thu === payload.mo_ta_thu);
-      if (!ltItem) { showLoading(false); showToast("Không tìm thấy loại thu: " + payload.mo_ta_thu); return null; }
+      if (!ltItem) {
+        showLoading(false);
+        showToast("Không tìm thấy loại thu: " + payload.mo_ta_thu + "\nVui lòng chọn từ chip hoặc kiểm tra danh mục thu");
+        return null;
+      }
       const row = {
         id_thu:     "thu_" + Date.now(),
         id_lt:      ltItem.id_lt,
@@ -387,15 +391,27 @@ function getDefaultChips(type) {
   if (type === 'thu') {
     if (!loaiThuList || loaiThuList.length === 0) {
       console.warn(`getDefaultChips: No loai_thu data available`);
-      return ["", "", "", "", "", "", "", ""];
+      return ["" , "", "", "", "", "", "", ""];
     }
-    // Dùng sort_order 1–8 từ bảng loai_thu; sort_order=0 nghĩa là ẩn
-    const chips = Array(8).fill("");
-    loaiThuList
-      .filter(item => item.active && item.sort_order >= 1 && item.sort_order <= 8)
-      .forEach(item => { chips[item.sort_order - 1] = item.mo_ta_thu; });
-    console.log(`✅ getDefaultChips(thu): ${chips.filter(c => c).length} chips từ sort_order`);
-    return chips;
+    // Dùng sort_order 1–8 nếu đã cấu hình, ngược lại
+    // fallback: lấy tất cả active sắp xếp A-Z (tối đa 8)
+    const configured = loaiThuList.filter(item => item.active && item.sort_order >= 1 && item.sort_order <= 8);
+    if (configured.length > 0) {
+      const chips = Array(8).fill("");
+      configured.forEach(item => { chips[item.sort_order - 1] = item.mo_ta_thu; });
+      console.log(`✅ getDefaultChips(thu): ${configured.length} chips từ sort_order`);
+      return chips;
+    }
+    // Fallback: hiển thị tất cả active, A-Z, tối đa 8
+    const fallback = loaiThuList
+      .filter(item => item.active)
+      .sort((a, b) => a.mo_ta_thu.localeCompare(b.mo_ta_thu, 'vi', { sensitivity: 'base' }))
+      .slice(0, 8)
+      .map(item => item.mo_ta_thu);
+    console.log(`⚠️ getDefaultChips(thu): fallback ${fallback.length} chips (chưa cấu hình sort_order)`);
+    // Pad to 8
+    while (fallback.length < 8) fallback.push("");
+    return fallback;
   }
   
   return ["", "", "", "", "", "", "", ""];
@@ -987,17 +1003,19 @@ let thuEditMode = false;
 let thuEditIndex = -1;
 
 function onThuDescChange(desc) {
+  const loaiThuDropdown = document.getElementById("thu-loai");
   if (!desc) {
-    const loaiThuDropdown = document.getElementById("thu-loai");
+    thuLoai = "";
+    loaiThuDropdown.value = "";
     loaiThuDropdown.disabled = false;
     loaiThuDropdown.style.background = "";
     loaiThuDropdown.style.cursor = "";
+    checkThuReady();
     return;
   }
-  
+
   const ltItem = loaiThuList.find(lt => lt.mo_ta_thu === desc);
-  const loaiThuDropdown = document.getElementById("thu-loai");
-  
+
   if (ltItem && ltItem.loai_thu) {
     thuLoai = ltItem.loai_thu;
     loaiThuDropdown.value = thuLoai;
@@ -1005,11 +1023,13 @@ function onThuDescChange(desc) {
     loaiThuDropdown.style.background = "#f0f0f0";
     loaiThuDropdown.style.cursor = "not-allowed";
   } else {
+    // desc không khớp mo_ta_thu nào → mở dropdown để user chọn thủ công
     loaiThuDropdown.disabled = false;
     loaiThuDropdown.style.background = "";
     loaiThuDropdown.style.cursor = "";
+    // Không xoá thuLoai đã chọn tay trước đó
   }
-  
+
   checkThuReady();
 }
 
@@ -1362,6 +1382,9 @@ let tkEditedChiIds = new Set();
 let tkEditedThuIds = new Set();
 let tkTamTinh = {};
 let tkLastDate = null;
+let tkTransferLogData = [];   // log các lần chuyển tiền trong phiên hiện tại
+let tkChiSort = { col: 'Ngày', dir: 1 };  // dir: 1=asc(cũ→mới), -1=desc
+let tkThuSort = { col: 'Ngày', dir: 1 };
 
 function getTkLastDate() {
   if (!window.tkDetailList || !Array.isArray(window.tkDetailList) || !window.tkDetailList.length) return null;
@@ -1383,6 +1406,7 @@ async function loadTkData() {
 
 document.getElementById("tk-start").onclick = async () => {
   document.getElementById("tk-form").style.display = "block";
+  document.getElementById("tk-transfer-wrap").style.display = "block";
   document.getElementById("tk-start").style.display = "none";
   document.getElementById("tk-refresh").style.display = "block";
   await loadTkData();
@@ -1393,12 +1417,47 @@ document.getElementById("tk-start").onclick = async () => {
 };
 
 document.getElementById("tk-refresh").onclick = async () => {
+  // Nếu không trong trạng thái ghi nhớ thì xóa log chuyển tiền
+  if (!localStorage.getItem("tkTransferPin")) {
+    tkTransferLogData = [];
+  }
   await loadTkData();
   tkLastDate = getTkLastDate();
   renderChiChuaTK();
   renderThuChuaTK();
   loadTongKet();
 };
+
+function updateSortBar(type) {
+  const state = type === 'chi' ? tkChiSort : tkThuSort;
+  const barId = type === 'chi' ? 'tk-chi-sort-bar' : 'tk-thu-sort-bar';
+  document.querySelectorAll(`#${barId} .tk-sort-pill`).forEach(btn => {
+    const isActive = btn.dataset.col === state.col;
+    btn.classList.toggle('active', isActive);
+    const arrow = btn.querySelector('.sort-arrow');
+    if (arrow) arrow.textContent = isActive ? (state.dir === 1 ? '↓' : '↑') : '';
+  });
+}
+
+function initTKSortBars() {
+  [
+    { barId: 'tk-chi-sort-bar', state: tkChiSort, render: renderChiChuaTK, key: 'chi' },
+    { barId: 'tk-thu-sort-bar', state: tkThuSort, render: renderThuChuaTK, key: 'thu' }
+  ].forEach(({ barId, state, render, key }) => {
+    document.querySelectorAll(`#${barId} .tk-sort-pill`).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const col = btn.dataset.col;
+        if (state.col === col) {
+          state.dir *= -1;
+        } else {
+          state.col = col;
+          state.dir = col === 'Ngày' ? -1 : 1;
+        }
+        render();
+      });
+    });
+  });
+}
 
 function renderChiChuaTK() {
   const section = document.getElementById("tk-chi-section");
@@ -1414,7 +1473,15 @@ function renderChiChuaTK() {
   section.style.display = rows.length ? "block" : "none";
   list.innerHTML = "";
 
-  rows.forEach(row => {
+  const sorted = [...rows].sort((a, b) => {
+    const va = a[tkChiSort.col] || '';
+    const vb = b[tkChiSort.col] || '';
+    if (tkChiSort.col === 'Ngày') return (new Date(va) - new Date(vb)) * tkChiSort.dir;
+    return va.toString().localeCompare(vb.toString(), 'vi') * tkChiSort.dir;
+  });
+  updateSortBar('chi');
+
+  sorted.forEach(row => {
     const id = row["IDChi"];
     const isEdited = tkEditedChiIds.has(id);
     const nghinVnd = row["Nghìn VND"] !== undefined ? String(row["Nghìn VND"]) : "";
@@ -1539,7 +1606,15 @@ function renderThuChuaTK() {
   section.style.display = rows.length ? "block" : "none";
   list.innerHTML = "";
 
-  rows.forEach(row => {
+  const sorted = [...rows].sort((a, b) => {
+    const va = a[tkThuSort.col] || '';
+    const vb = b[tkThuSort.col] || '';
+    if (tkThuSort.col === 'Ngày') return (new Date(va) - new Date(vb)) * tkThuSort.dir;
+    return va.toString().localeCompare(vb.toString(), 'vi') * tkThuSort.dir;
+  });
+  updateSortBar('thu');
+
+  sorted.forEach(row => {
     const id = row["IDThu"];
     const isEdited = tkEditedThuIds.has(id);
     const soTienDisplay = formatVN(parseFloat(row["Thu"]) || 0);
@@ -1562,9 +1637,9 @@ function renderThuChuaTK() {
       .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'))
       .map(n => `<option value="${n.nguon_tien}" ${n.nguon_tien === row["Nguồn tiền"] ? "selected" : ""}>${n.nguon_tien}</option>`)
       .join("");
-    const loaiOptions = [...new Set(loaiThuList.filter(lt => lt.active).map(lt => lt.loai_thu))]
-      .sort((a, b) => a.localeCompare(b, 'vi'))
-      .map(l => `<option value="${l}" ${l === row["Loại thu"] ? "selected" : ""}>${l}</option>`)
+    const loaiOptions = loaiThuList.filter(lt => lt.active)
+      .sort((a, b) => a.mo_ta_thu.localeCompare(b.mo_ta_thu, 'vi'))
+      .map(l => `<option value="${l.mo_ta_thu}" ${l.mo_ta_thu === row["Mo ta thu"] ? "selected" : ""}>${l.mo_ta_thu}</option>`)
       .join("");
 
     rowEl.innerHTML = `
@@ -1580,7 +1655,7 @@ function renderThuChuaTK() {
         <div class="tk-edit-row"><label>Ngày</label><input type="date" class="input-std tk-edit-ngay" value="${row["Ngày"] || ""}"></div>
         <div class="tk-edit-row"><label>Mô tả</label><input type="text" class="input-std tk-edit-mota" value="${row["Mô tả"] || ""}"></div>
         <div class="tk-edit-row"><label>Nguồn tiền</label><select class="input-std tk-edit-nguon">${nguonOptions}</select></div>
-        <div class="tk-edit-row"><label>Loại thu</label><select class="input-std tk-edit-loai">${loaiOptions}</select></div>
+        <div class="tk-edit-row"><label>Mô tả thu</label><select class="input-std tk-edit-loai">${loaiOptions}</select></div>
         <div class="tk-edit-row"><label>Số tiền</label><input type="number" class="input-std tk-edit-sotien" value="${parseFloat(row['Thu']) || 0}"></div>
         <div class="tk-edit-actions">
           <button class="btn-submit btn-green tk-btn-confirm-edit" style="flex:1;margin-top:0;">✅ Xác nhận</button>
@@ -1720,6 +1795,7 @@ function loadTongKet() {
 
     const div = document.createElement("div");
     div.className = "tk-input-row-group";
+    div.dataset.nguon = nguon.nguon_tien;
     div.style.backgroundColor = bgColor;
     div.style.borderLeft = `4px solid ${borderColor}`;
     div.style.paddingLeft = "10px";
@@ -1734,7 +1810,10 @@ function loadTongKet() {
         <div class="tk-input-wrap">
           <div class="tk-input-badge-row">
             <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0" value="${formatVN(inputVal, 2)}">
-            ${badgeIcon}
+            <div class="tk-badge-stack">
+              <span class="tk-transfer-icon-badge" title="Nguồn bị ảnh hưởng bởi chuyển tiền" style="display:none;">⇄</span>
+              ${badgeIcon}
+            </div>
           </div>
           <div class="tk-tamtinh-row">
             <div class="tk-tamtinh-label">Tạm tính:</div>
@@ -1760,6 +1839,27 @@ function loadTongKet() {
       setTimeout(() => { input.setSelectionRange(oldPos + diff, oldPos + diff); }, 0);
     };
   });
+
+  // Populate transfer dropdowns mỗi khi loadTongKet chạy
+  populateTransferDropdowns();
+
+  // Áp dụng giá trị đã ghi nhớ (transfer pin) nếu có
+  const transferPin = JSON.parse(localStorage.getItem("tkTransferPin") || "null");
+  if (transferPin) {
+    Object.entries(transferPin).forEach(([nguon, val]) => {
+      tkInputs[nguon] = val;
+      const el = document.querySelector(`input[data-nguon="${nguon}"]`);
+      if (el) el.value = formatVN(val, 2);
+    });
+    updateTransferPinUI(true);
+    // Khôi phục log
+    const savedLog = JSON.parse(localStorage.getItem("tkTransferLog") || "null");
+    if (savedLog) { tkTransferLogData = savedLog; renderTransferLog(); }
+  } else {
+    updateTransferPinUI(false);
+    if (!tkTransferLogData.length) renderTransferLog();
+  }
+  updateTransferIcons();
 }
 
 document.getElementById("tk-remember").onclick = () => {
@@ -1824,14 +1924,187 @@ function resetTongKet() {
   tkTamTinh = {};
   tkLastDate = null;
   localStorage.removeItem("tkSoDuGhiNho");
+  localStorage.removeItem("tkTransferPin");
+  localStorage.removeItem("tkTransferLog");
+  tkTransferLogData = [];
   document.getElementById("tk-form").style.display = "none";
+  document.getElementById("tk-transfer-wrap").style.display = "none";
   document.getElementById("tk-result").style.display = "none";
   document.getElementById("tk-confirm").style.display = "none";
   document.getElementById("tk-refresh").style.display = "none";
   document.getElementById("tk-chi-section").style.display = "none";
   document.getElementById("tk-thu-section").style.display = "none";
   document.getElementById("tk-start").style.display = "block";
+  // Đóng transfer panel khi reset
+  const panel = document.getElementById("tk-transfer-panel");
+  const toggle = document.getElementById("tk-transfer-toggle");
+  if (panel) panel.style.display = "none";
+  if (toggle) toggle.classList.remove("open");
 }
+
+// ================= CHUYỂN TIỀN NỘI BỘ =================
+function renderTransferLog() {
+  const logEl = document.getElementById("tk-transfer-log");
+  if (!logEl) return;
+  if (!tkTransferLogData.length) { logEl.style.display = "none"; logEl.innerHTML = ""; return; }
+  logEl.style.display = "block";
+
+  function chip(name) {
+    const bg     = getNguonBgColor(name);
+    const border = getNguonBorderColor(name);
+    return `<span class="tk-log-chip" style="background:${bg};border-color:${border};">${name}</span>`;
+  }
+
+  const isPinnedState = tkTransferLogData.some(e => e.pinned);
+
+  logEl.innerHTML = tkTransferLogData.map((e, i) =>
+    `<div class="tk-transfer-log-item" data-idx="${i}">
+      <span class="tk-log-num">${i + 1}.</span>
+      ${chip(e.from)}
+      <span class="tk-log-arrow">→</span>
+      <span class="tk-log-amount">${formatVN(e.amount)}</span>
+      <span class="tk-log-arrow">→</span>
+      ${chip(e.to)}
+      ${e.pinned ? `<button class="tk-log-pin-btn" data-idx="${i}" title="Gỡ ghim dòng này">📌</button>` : ''}
+    </div>`
+  ).join("");
+
+  logEl.querySelectorAll(".tk-log-pin-btn").forEach(btn => {
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      const idx = parseInt(btn.dataset.idx);
+      const entry = tkTransferLogData[idx];
+      if (!entry) return;
+      tkInputs[entry.from] = (tkInputs[entry.from] || 0) + entry.amount;
+      tkInputs[entry.to]   = (tkInputs[entry.to]   || 0) - entry.amount;
+      document.querySelectorAll(".tk-amount-input").forEach(input => {
+        const nguon = input.dataset.nguon;
+        if (nguon === entry.from || nguon === entry.to)
+          input.value = formatVN(tkInputs[nguon], 2);
+      });
+      tkTransferLogData.splice(idx, 1);
+      const anyPinned = tkTransferLogData.some(e => e.pinned);
+      if (anyPinned) {
+        localStorage.setItem("tkTransferPin", JSON.stringify(tkInputs));
+        localStorage.setItem("tkTransferLog", JSON.stringify(tkTransferLogData));
+      } else {
+        localStorage.removeItem("tkTransferPin");
+        localStorage.removeItem("tkTransferLog");
+      }
+      updateTransferPinUI(anyPinned);
+      renderTransferLog();
+      updateTransferIcons();
+      showToast(`Gỡ ghim: ${entry.from} → ${entry.to}`, 2000);
+    };
+  });
+}
+
+function updateTransferPinUI(pinned) {
+  // pin indicator removed — per-row ghim icons handle it
+}
+
+function updateTransferIcons() {
+  const affected = new Set();
+  tkTransferLogData.forEach(e => { affected.add(e.from); affected.add(e.to); });
+  document.querySelectorAll(".tk-input-row-group").forEach(group => {
+    const badge = group.querySelector(".tk-transfer-icon-badge");
+    if (!badge) return;
+    badge.style.display = affected.has(group.dataset.nguon) ? "inline" : "none";
+  });
+}
+
+function resetTransfers() {
+  tkTransferLogData.forEach(e => {
+    tkInputs[e.from] = (tkInputs[e.from] || 0) + e.amount;
+    tkInputs[e.to]   = (tkInputs[e.to]   || 0) - e.amount;
+  });
+  document.querySelectorAll(".tk-amount-input").forEach(input => {
+    const nguon = input.dataset.nguon;
+    if (nguon !== undefined && tkInputs[nguon] !== undefined)
+      input.value = formatVN(tkInputs[nguon], 2);
+  });
+  tkTransferLogData = [];
+  localStorage.removeItem("tkTransferPin");
+  localStorage.removeItem("tkTransferLog");
+  updateTransferPinUI(false);
+  renderTransferLog();
+  updateTransferIcons();
+}
+
+function populateTransferDropdowns() {
+  const fromSel = document.getElementById("tk-transfer-from");
+  const toSel   = document.getElementById("tk-transfer-to");
+  if (!fromSel || !toSel) return;
+  const options = nguonTienList
+    .filter(n => n.active)
+    .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'))
+    .map(n => `<option value="${n.nguon_tien}">${n.nguon_tien}</option>`)
+    .join("");
+  fromSel.innerHTML = options;
+  toSel.innerHTML   = options;
+  // Chọn 2 nguồn khác nhau mặc định
+  if (toSel.options.length > 1) toSel.selectedIndex = 1;
+}
+
+document.getElementById("tk-transfer-toggle").onclick = () => {
+  const panel  = document.getElementById("tk-transfer-panel");
+  const toggle = document.getElementById("tk-transfer-toggle");
+  const isOpen = panel.style.display !== "none";
+  panel.style.display = isOpen ? "none" : "block";
+  toggle.classList.toggle("open", !isOpen);
+};
+
+document.getElementById("tk-transfer-btn").onclick = () => {
+  const from   = document.getElementById("tk-transfer-from").value;
+  const to     = document.getElementById("tk-transfer-to").value;
+  const raw    = document.getElementById("tk-transfer-amount").value;
+  const amount = parseVN(raw);
+
+  if (!from || !to) { showToast("Chọn nguồn tiền"); return; }
+  if (from === to)  { showToast("Nguồn chuyển và nhận phải khác nhau"); return; }
+  if (!amount || amount <= 0) { showToast("Nhập số tiền hợp lệ"); return; }
+
+  tkInputs[from] = (tkInputs[from] || 0) - amount;
+  tkInputs[to]   = (tkInputs[to]   || 0) + amount;
+
+  // Cập nhật ngay giá trị hiển thị trong các input tương ứng
+  document.querySelectorAll(".tk-amount-input").forEach(input => {
+    const nguon = input.dataset.nguon;
+    if (nguon === from || nguon === to) {
+      input.value = formatVN(tkInputs[nguon], 2);
+    }
+  });
+
+  document.getElementById("tk-transfer-amount").value = "";
+
+  // Thêm vào log và hiển thị
+  tkTransferLogData.push({ from, to, amount });
+  renderTransferLog();
+  updateTransferIcons();
+
+  showToast(`✅ Chuyển ${formatVN(amount)} từ <b>${from}</b> → <b>${to}</b>`, 3000);
+  // Nếu đang pin thì tự cập nhật pin + log luôn
+  if (localStorage.getItem("tkTransferPin")) {
+    localStorage.setItem("tkTransferPin", JSON.stringify(tkInputs));
+    localStorage.setItem("tkTransferLog", JSON.stringify(tkTransferLogData));
+  }
+};
+
+document.getElementById("tk-transfer-remember").onclick = () => {
+  if (!tkTransferLogData.length) { showToast("Chưa có lần chuyển nào để ghi nhớ"); return; }
+  tkTransferLogData.forEach(e => e.pinned = true);
+  localStorage.setItem("tkTransferPin", JSON.stringify(tkInputs));
+  localStorage.setItem("tkTransferLog", JSON.stringify(tkTransferLogData));
+  updateTransferPinUI(true);
+  renderTransferLog();
+  showToast("📌 Đã ghi nhớ! Cập nhật vẫn giữ lại", 3000);
+};
+
+document.getElementById("tk-transfer-reset").onclick = () => {
+  if (!tkTransferLogData.length) { showToast("Không có lần chuyển nào"); return; }
+  resetTransfers();
+  showToast("Đã xóa tất cả lần chuyển tiền");
+};
 
 // ================= MODAL SETTINGS =================
 
@@ -1904,7 +2177,7 @@ function renderModalCheckboxList(type) {
 
 async function handleModalChipToggle(type, desc, checked) {
   const list      = type === 'chi' ? loaiChiList : loaiThuList;
-  const table     = type === 'chi' ? 'loai_chi'  : 'loai_thu';
+  const table     = type === 'chi' ? 'mo_ta_chi' : 'loai_thu';
   const idField   = type === 'chi' ? 'id_mtc'    : 'id_lt';
   const descField = type === 'chi' ? 'mo_ta_chi' : 'mo_ta_thu';
 
@@ -2270,6 +2543,7 @@ window.onload = async () => {
   
   initModalEventListeners();
   initTabBar();
+  initTKSortBars();
 
   console.log('✅ App initialized successfully');
 };

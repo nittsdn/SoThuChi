@@ -37,7 +37,7 @@ CREATE TABLE phan_loai_chi (
   note         TEXT
 );
 
-INSERT INTO phan_loai_chi (ten_phanloai, id_nhom, sort_order) VALUES
+INSERT INTO phan_loai_chi (ten_phanloai, id_nc, sort_order) VALUES
   ('Ăn uống',         1, 1),
   ('Di chuyển',       1, 2),
   ('Điện',            1, 3),
@@ -226,7 +226,8 @@ CREATE TABLE tk_detail (
   session_id  TEXT NOT NULL REFERENCES tk_session(session_id),
   ngay_tk     DATE NOT NULL,
   nguon_tien  TEXT NOT NULL REFERENCES nguon_tien(nguon_tien),
-  so_tien     BIGINT NOT NULL
+  so_tien     BIGINT NOT NULL,
+  CONSTRAINT tk_detail_session_nguon_uq UNIQUE (session_id, nguon_tien)
 );
 
 -- ============================================================
