@@ -140,7 +140,8 @@ const SHEET_MAP = {
   "loai_chi":      "v_loai_chi",
   "nguon_tien":    "v_nguon_tien",
   "loai_thu":      "loai_thu",
-  "tk_detail":     "tk_detail"
+  "tk_detail":     "tk_detail",
+  "tk_session":    "tk_session"
 };
 
 const SUPA_HEADERS = {
@@ -351,6 +352,61 @@ async function postData(action, payload) {
       });
       result = r ? { status: "success", data: r } : null;
 
+    // ---- insert_nguon_tien ----
+    } else if (action === "insert_nguon_tien") {
+      const r = await supaPost("nguon_tien", {
+        nguon_tien: payload.nguon_tien,
+        nguoi:      payload.nguoi || null,
+        nhom:       payload.nhom || null,
+        icon:       payload.icon || "",
+        active:     true,
+        sort_order: 0,
+        note:       ""
+      });
+      result = r ? { status: "success", data: r } : null;
+
+    // ---- insert_loai_thu (quản lý) ----
+    } else if (action === "insert_loai_thu") {
+      const r = await supaPost("loai_thu", {
+        id_lt:      "lt_" + Date.now(),
+        mo_ta_thu:  payload.mo_ta_thu,
+        loai_thu:   payload.loai_thu,
+        icon:       "",
+        active:     true,
+        sort_order: 0
+      });
+      result = r ? { status: "success", data: r } : null;
+
+    // ---- patch_nguon_tien ----
+    } else if (action === "patch_nguon_tien") {
+      const r = await supaPatch("nguon_tien",
+        `nguon_tien=eq.${encodeURIComponent(payload.nguon_tien)}`, payload.patch);
+      result = r !== null ? { status: "success" } : null;
+
+    // ---- patch_loai_thu ----
+    } else if (action === "patch_loai_thu") {
+      const r = await supaPatch("loai_thu", `id_lt=eq.${payload.id_lt}`, payload.patch);
+      result = r !== null ? { status: "success" } : null;
+
+    // ---- patch_mo_ta_chi ----
+    } else if (action === "patch_mo_ta_chi") {
+      const patch = { ...payload.patch };
+      if (payload.phan_loai) {
+        const plRes = await fetch(
+          `${SUPA_URL}/rest/v1/phan_loai_chi?ten_phanloai=eq.${encodeURIComponent(payload.phan_loai)}&select=id_plc`,
+          { headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY } }
+        );
+        const plData = await plRes.json();
+        if (!plData.length) {
+          showLoading(false);
+          showToast("Không tìm thấy phân loại: " + payload.phan_loai);
+          return null;
+        }
+        patch.id_plc = plData[0].id_plc;
+      }
+      const r = await supaPatch("mo_ta_chi", `id_mtc=eq.${payload.id_mtc}`, patch);
+      result = r !== null ? { status: "success" } : null;
+
     } else {
       console.warn(`postData: unknown action "${action}"`);
       result = null;
@@ -484,6 +540,47 @@ const NGUON_BORDER_PALETTE = [
   "#8866f0", "#cc55ee", "#f055c0", "#f07090",
   "#e0a030", "#55c840", "#30cccc", "#a040e0"
 ];
+
+// QL tab: màu theo nhóm loại thu
+const LOAI_THU_COLOR_MAP = {
+  "Dư năm trước": { bg: "#e8eeff", border: "#5580f0" },
+  "Ngân hàng":    { bg: "#e8f8ff", border: "#30b0e8" },
+  "Cho mượn":     { bg: "#eeebff", border: "#8866f0" },
+  "Thu nhập":     { bg: "#e8fff0", border: "#40c074" },
+  "Khác":         { bg: "#f5f5f5", border: "#aaaaaa" },
+};
+
+// QL tab: màu theo phân loại chi
+const PHAN_LOAI_CHI_COLOR_MAP = {
+  "Ăn uống":          { bg: "#fff3e0", border: "#fb8c00" },
+  "Di chuyển":        { bg: "#fce4ec", border: "#e91e63" },
+  "Điện":             { bg: "#fffde7", border: "#e0b800" },
+  "Nước":             { bg: "#e3f2fd", border: "#1e88e5" },
+  "Internet":         { bg: "#e0f7fa", border: "#00acc1" },
+  "Mua sắm chung":    { bg: "#fbe9e7", border: "#ff7043" },
+  "Sức khỏe":         { bg: "#e8f5e9", border: "#43a047" },
+  "Đám hiếu hỉ":     { bg: "#fce4ec", border: "#d81b60" },
+  "Biểu tặng":        { bg: "#fdf2fb", border: "#ab47bc" },
+  "Mua sắm cá nhân":  { bg: "#ede7f6", border: "#7e57c2" },
+  "Giải trí":         { bg: "#f3e5f5", border: "#9c27b0" },
+  "Học hành":         { bg: "#e8eaf6", border: "#5c6bc0" },
+  "Nhà cửa":          { bg: "#e0f2f1", border: "#00897b" },
+  "Phí ngân hàng":    { bg: "#eceff1", border: "#607d8b" },
+  "Sửa chữa":         { bg: "#fbe9e7", border: "#bf360c" },
+  "Gửi mẹ":           { bg: "#fff8e1", border: "#f9a825" },
+  "Đầu tư":           { bg: "#e8f5e9", border: "#2e7d32" },
+  "Cho mượn":         { bg: "#ede7f6", border: "#6d28d9" },
+  "Khác":             { bg: "#f5f5f5", border: "#9e9e9e" },
+};
+
+function getGroupColor(colorMap, name) {
+  if (colorMap[name]) return colorMap[name];
+  const idx = [...(name || '')].reduce((s, c) => s + c.charCodeAt(0), 0);
+  return {
+    bg:     NGUON_PALETTE[idx % NGUON_PALETTE.length],
+    border: NGUON_BORDER_PALETTE[idx % NGUON_BORDER_PALETTE.length]
+  };
+}
 let _nguonColorCache = null;
 function _buildNguonColorCache() {
   if (_nguonColorCache) return;
@@ -515,8 +612,6 @@ function getNguonBorderColor(nguonTien) {
 
 let settings = null;
 
-let _headerDetailsCache = null;
-
 // ================= HEADER =================
 function updateHeader(chiData, thuData) {
   // ===== UPDATE SUMMARY (BALANCE) =====
@@ -526,103 +621,11 @@ function updateHeader(chiData, thuData) {
   
   tkSoDuLT = soDuLT;  // Lưu vào biến global cho phần Tổng kết
   
-  document.querySelector('.header-summary .balance-tag').textContent = 
+  document.querySelector('#header-balance').textContent = 
     `Số dư LT: ${formatVN(soDuLT)}`;
-  
-  // ===== BUILD DETAILS HTML =====
-  let html = '';
-  
-  // CHI SECTION
-  html += '<div class="header-section-title chi-title" id="header-chi-title">CHI<span id="header-chi-notify" style="margin-left:8px;font-size:14px;color:#007bff;font-weight:normal"></span></div>';
-  if (!chiData || chiData.length === 0) {
-    html += '<div class="header-empty">Chưa có chi tiêu</div>';
-  } else {
-    const last3Chi = chiData.slice(-3);
-    last3Chi.forEach((chi) => {
-      const ngay = chi["Ngày"];
-      if (!ngay || !chi.mo_ta_chi) {
-        console.warn('⚠️ Chi item thiếu data:', chi);
-        return;
-      }
-      const date = parseDateString(ngay);
-      const soTien = chi["Số tiền vnđ"] || 0;
-      html += `
-        <div class="header-item">
-          <span class="item-desc">${chi.mo_ta_chi}</span>
-          <span class="item-amount chi-amount">${formatVN(soTien)}</span>
-          <span class="item-date">${formatDateShort(date)}</span>
-        </div>
-      `;
-    });
-  }
-  // THU SECTION
-  html += '<div class="header-section-title thu-title" id="header-thu-title">THU<span id="header-thu-notify" style="margin-left:8px;font-size:14px;color:#34c759;font-weight:normal"></span></div>';
-  if (!thuData || thuData.length === 0) {
-    html += '<div class="header-empty">Chưa có thu nhập</div>';
-  } else {
-    const lastThu = thuData[thuData.length - 1];
-    const ngay = lastThu["Ngày"];
-    if (!ngay || !lastThu["Mô tả"]) {
-      console.warn('⚠️ Thu item thiếu data:', lastThu);
-      return;
-    }
-    const date = parseDateString(ngay);
-    const soTien = lastThu.Thu || 0;
-    html += `
-      <div class="header-item">
-        <span class="item-desc">${lastThu["Mô tả"]}</span>
-        <span class="item-amount thu-amount">${formatVN(soTien)}</span>
-        <span class="item-date">${formatDateShort(date)}</span>
-      </div>
-    `;
-  }
-  
-  // Chỉ inject vào DOM nếu header đang mở, ngược lại cache lại
-  const headerDetails = document.getElementById("header-details");
-  const isCollapsed = headerDetails.classList.contains('collapsed');
-  if (isCollapsed) {
-    _headerDetailsCache = html;
-  } else {
-    headerDetails.innerHTML = html;
-    _headerDetailsCache = null;
-  }
 }
 
 // ================= HEADER TOGGLE =================
-function initHeaderToggle() {
-  const toggleBtn = document.getElementById('header-toggle-btn');
-  const headerDetails = document.getElementById('header-details');
-  
-  if (!toggleBtn || !headerDetails) {
-    console.warn('⚠️ Header toggle elements not found');
-    return;
-  }
-  
-  // Mặc định: thu gọn, chỉ mở nếu user đã bấm mở trước đó (lưu 'false')
-  const isCollapsed = localStorage.getItem('headerCollapsed') !== 'false';
-  
-  if (isCollapsed) {
-    headerDetails.classList.add('collapsed');
-    toggleBtn.classList.add('collapsed');
-  }
-  
-  // Toggle handler
-  toggleBtn.onclick = () => {
-    const nowCollapsed = headerDetails.classList.toggle('collapsed');
-    toggleBtn.classList.toggle('collapsed');
-    
-    // Nếu vừa mở và có cache, inject vào DOM
-    if (!nowCollapsed && _headerDetailsCache) {
-      headerDetails.innerHTML = _headerDetailsCache;
-      _headerDetailsCache = null;
-    }
-    
-    // Lưu trạng thái
-    localStorage.setItem('headerCollapsed', nowCollapsed);
-  };
-  
-  console.log('✅ Header toggle initialized');
-}
 
 
 // ================= DATE NAVIGATION =================
@@ -1306,6 +1309,7 @@ function resetThuSection() {
   loaiThuDropdown.style.background = "";
   loaiThuDropdown.style.cursor = "";
   document.getElementById("thu-source").value = "";
+  document.getElementById("thu-ghichu-input").value = "";
   document.querySelectorAll("#thu-chips .chip").forEach(c => c.classList.remove("selected"));
   document.getElementById("thu-submit").disabled = true;
   thuAddBtn.textContent = "+";
@@ -1322,7 +1326,7 @@ document.getElementById("thu-submit").onclick = async () => {
     so_tien:    formula,
     mo_ta_thu:  thuDesc,
     nguon_tien: thuSource,
-    ghi_chu:    null
+    ghi_chu:    document.getElementById("thu-ghichu-input").value.trim() || null
   };
   
   console.log('📤 THU Submit payload:', payload);
@@ -2237,6 +2241,9 @@ function showModal(type) {
   
   if (type === 'chi') {
     populateModalDropdowns(type);
+    // Populate icon select
+    const iconSel = document.getElementById('chi-modal-new-icon');
+    if (iconSel) iconSel.innerHTML = qlIconOptions();
   }
   
   console.log(`✅ Modal ${type} opened`);
@@ -2396,7 +2403,7 @@ function initModalEventListeners() {
         mo_ta_chi: name,
         phan_loai: phanloai,
         nhom: phanloai,
-        icon: '',
+        icon: document.getElementById('chi-modal-new-icon') ? document.getElementById('chi-modal-new-icon').value : '',
         note: note
       };
       
@@ -2463,6 +2470,422 @@ function resetSettings(type) {
   }
 }
 
+// ================= TAB QUẢN LÝ =================
+function qlBadge(active) {
+  return active
+    ? '<span class="ql-badge ql-badge-on">● Bật</span>'
+    : '<span class="ql-badge ql-badge-off">○ Tắt</span>';
+}
+
+const QL_ICONS = [
+  ['💳','Thẻ'],['🏦','Ngân hàng'],['💵','Tiền mặt'],['💰','Túi tiền'],['👛','Ví'],
+  ['🪙','Xu'],['📱','Điện thoại'],['🏧','ATM'],['💎','Kim cương'],['🏠','Nhà'],
+  ['🚗','Xe hơi'],['🛵','Xe máy'],['✈️','Máy bay'],['🍜','Ăn uống'],['🛒','Mua sắm'],
+  ['📦','Gói hàng'],['💊','Y tế'],['🎮','Giải trí'],['📚','Học hành'],['☕','Cà phê'],
+  ['🏋️','Thể thao'],['💼','Công việc'],['🎁','Quà tặng'],['🐱','Mèo'],['🐶','Chó'],
+  ['⭐','Sao'],['💡','Ý tưởng'],['🔑','Chìa khóa'],['📊','Biểu đồ'],['💸','Chi tiêu'],
+  ['🏥','Bệnh viện'],['🍺','Đồ uống'],['🎵','Âm nhạc'],['🚌','Xe buýt'],['⛽','Xăng'],
+  ['🧳','Du lịch'],['💻','Máy tính xách tay'],['📞','Điện thoại bàn'],['🏪','Cửa hàng'],['🎬','Phim'],
+  ['🧴','Chăm sóc'],['👕','Quần áo'],['👟','Giày dép'],['🎓','Học phí'],['🌐','Internet'],
+  ['🔧','Sửa chữa'],['⚡','Tiền điện'],['💧','Tiền nước'],['📡','Cước mạng'],['🧹','Vệ sinh'],
+  ['🎂','Sinh nhật'],['🍎','Thực phẩm'],['🔒','Bảo hiểm'],['📷','Chụp ảnh'],['💐','Hoa'],
+  ['🎯','Mục tiêu'],['🌿','Thiên nhiên'],['🪴','Cây cảnh'],['🏡','Sửa nhà'],['🎪','Sự kiện']
+];
+
+const QL_LOAI_THU = ['Dư năm trước','Ngân hàng','Cho mượn','Thu nhập','Khác'];
+
+function qlIconOptions(selected = '') {
+  return '<option value="">-- Icon --</option>' +
+    QL_ICONS.map(([ic, lb]) =>
+      `<option value="${ic}" ${selected === ic ? 'selected' : ''}>${ic} ${lb}</option>`
+    ).join('');
+}
+
+function qlLoaiThuOptions(selected = '') {
+  return '<option value="">-- Chọn nhóm --</option>' +
+    QL_LOAI_THU.map(v =>
+      `<option value="${v}" ${selected === v ? 'selected' : ''}>${v}</option>`
+    ).join('');
+}
+
+async function reloadMasterData() {
+  const [lc, lt, nt] = await Promise.all([
+    fetchData("loai_chi"),
+    fetchData("loai_thu"),
+    fetchData("nguon_tien")
+  ]);
+  loaiChiList  = lc;
+  loaiThuList  = lt;
+  nguonTienList = nt;
+  _nguonColorCache = null;
+  setCached(CACHE_KEYS.LOAI_CHI,   lc);
+  setCached(CACHE_KEYS.LOAI_THU,   lt);
+  setCached(CACHE_KEYS.NGUON_TIEN, nt);
+  populateChiDropdowns();
+  populateThuDropdowns();
+  renderChiChips();
+  renderThuChips();
+}
+
+// ---- NGUỒN TIỀN ----
+async function loadQLNguonTien() {
+  showLoading(true);
+  const data = await fetch(
+    `${SUPA_URL}/rest/v1/nguon_tien?select=*&order=sort_order.asc,nguon_tien.asc`,
+    { headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY } }
+  ).then(r => r.json()).catch(() => []);
+  showLoading(false);
+  renderQLNguonTien(data);
+}
+
+function renderQLNguonTien(data) {
+  const list = document.getElementById("ql-nt-list");
+  if (!data || !data.length) {
+    list.innerHTML = '<div class="ql-empty">Chưa có dữ liệu. Nhấn "Tải danh sách".</div>';
+    return;
+  }
+  list.innerHTML = "";
+  data.forEach(item => {
+    const rowEl = document.createElement("div");
+    rowEl.className = "tk-list-item";
+    const ntBg     = getNguonBgColor(item.nguon_tien);
+    const ntBorder = getNguonBorderColor(item.nguon_tien);
+    rowEl.style.borderLeft   = `4px solid ${ntBorder}`;
+    rowEl.style.background   = `linear-gradient(to right, ${ntBg}, rgba(255,255,255,0) 70%)`;
+    rowEl.style.borderRadius = "8px";
+    rowEl.style.marginBottom = "4px";
+    const nhomOptions = ["", "Bank", "Cash", "Ví", "Khác"].map(n =>
+      `<option value="${n}" ${item.nhom === n ? 'selected' : ''}>${n || '--'}</option>`
+    ).join('');
+    const nguoiOptions = `
+      <option value="" ${!item.nguoi ? 'selected' : ''}>--</option>
+      <option value="Mèo" ${ item.nguoi === 'Mèo' ? 'selected' : ''}>🐱 Mèo</option>
+      <option value="Boé" ${ item.nguoi === 'Boé' ? 'selected' : ''}>🐶 Boé</option>
+      <option value="Khác" ${ item.nguoi === 'Khác' ? 'selected' : ''}>Khác</option>
+      <option value="Tổng hợp" ${ item.nguoi === 'Tổng hợp' ? 'selected' : ''}>Tổng hợp</option>`;
+    rowEl.innerHTML = `
+      <div class="tk-list-view" style="display:flex;align-items:center;gap:6px;padding:10px 12px;">
+        <span style="font-size:18px">${item.icon || '💳'}</span>
+        <span style="flex:1;font-weight:600">${item.nguon_tien}</span>
+        ${item.nhom ? `<span class="ql-tag ql-tag-nhom">${item.nhom}</span>` : ''}
+        ${item.nguoi ? `<span class="ql-tag ql-tag-nguoi">${item.nguoi}</span>` : ''}
+        ${qlBadge(item.active)}
+        <button class="tk-btn-edit" title="Sửa">✏️</button>
+      </div>
+      <div class="tk-list-edit" style="display:none;">
+        <div class="tk-edit-row"><label>Nhóm</label><select class="input-std ql-edit-nhom">${nhomOptions}</select></div>
+        <div class="tk-edit-row"><label>Người</label><select class="input-std ql-edit-nguoi">${nguoiOptions}</select></div>
+        <div class="tk-edit-row"><label>Icon</label><select class="input-std ql-edit-icon">${qlIconOptions(item.icon)}</select></div>
+        <div class="tk-edit-row"><label>Trạng thái</label><select class="input-std ql-edit-active">
+          <option value="true" ${item.active ? 'selected' : ''}>● Bật</option>
+          <option value="false" ${!item.active ? 'selected' : ''}>○ Tắt</option>
+        </select></div>
+        <div class="tk-edit-actions">
+          <button class="btn-submit btn-green ql-btn-confirm" style="flex:1;margin-top:0;">✅ Xác nhận</button>
+          <button class="btn-submit btn-gray ql-btn-cancel" style="flex:1;margin-top:0;">❌ Hủy</button>
+        </div>
+      </div>`;
+    rowEl.querySelector(".tk-btn-edit").onclick = () => {
+      rowEl.querySelector(".tk-list-view").style.display = "none";
+      rowEl.querySelector(".tk-list-edit").style.display = "block";
+    };
+    rowEl.querySelector(".ql-btn-cancel").onclick = () => {
+      rowEl.querySelector(".tk-list-view").style.display = "flex";
+      rowEl.querySelector(".tk-list-edit").style.display = "none";
+    };
+    rowEl.querySelector(".ql-btn-confirm").onclick = async () => {
+      const patch = {
+        nguoi:  rowEl.querySelector(".ql-edit-nguoi").value || null,
+        nhom:   rowEl.querySelector(".ql-edit-nhom").value || null,
+        icon:   rowEl.querySelector(".ql-edit-icon").value,
+        active: rowEl.querySelector(".ql-edit-active").value === "true"
+      };
+      const r = await postData("patch_nguon_tien", { nguon_tien: item.nguon_tien, patch });
+      if (r && r.status === "success") {
+        showToast("Đã cập nhật nguồn tiền", 2000);
+        await reloadMasterData();
+        await loadQLNguonTien();
+      }
+    };
+    list.appendChild(rowEl);
+  });
+}
+
+// ---- LOẠI THU ----
+async function loadQLLoaiThu() {
+  showLoading(true);
+  const data = await fetch(
+    `${SUPA_URL}/rest/v1/loai_thu?select=*&order=loai_thu.asc,mo_ta_thu.asc`,
+    { headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY } }
+  ).then(r => r.json()).catch(() => []);
+  showLoading(false);
+  renderQLLoaiThu(data);
+}
+
+function renderQLLoaiThu(data) {
+  const list = document.getElementById("ql-lt-list");
+  if (!data || !data.length) {
+    list.innerHTML = '<div class="ql-empty">Chưa có dữ liệu. Nhấn "Tải danh sách".</div>';
+    return;
+  }
+  list.innerHTML = "";
+  // Group by loai_thu
+  const groups = {};
+  data.forEach(item => {
+    const g = item.loai_thu || 'Khác';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(item);
+  });
+  Object.entries(groups).forEach(([group, items]) => {
+    const ltColor = getGroupColor(LOAI_THU_COLOR_MAP, group);
+    const header = document.createElement("div");
+    header.className = "ql-group-header";
+    header.style.color      = ltColor.border;
+    header.style.background = `${ltColor.bg}99`;
+    header.style.borderTopColor = `${ltColor.border}55`;
+    header.style.borderRadius   = "4px";
+    header.textContent = group;
+    list.appendChild(header);
+    items.forEach(item => {
+      const rowEl = document.createElement("div");
+      rowEl.className = "tk-list-item";
+      rowEl.style.borderLeft   = `4px solid ${ltColor.border}`;
+      rowEl.style.background   = `linear-gradient(to right, ${ltColor.bg}, rgba(255,255,255,0) 70%)`;
+      rowEl.style.borderRadius = "8px";
+      rowEl.style.marginBottom = "4px";
+      rowEl.innerHTML = `
+        <div class="tk-list-view" style="display:flex;align-items:center;gap:6px;padding:10px 12px;">
+          <span style="font-size:16px">${item.icon || ''}</span>
+          <span style="flex:1;font-weight:500">${item.mo_ta_thu}</span>
+          <span class="ql-tag ql-tag-loai">${item.loai_thu}</span>
+          ${qlBadge(item.active)}
+          <button class="tk-btn-edit" title="Sửa">✏️</button>
+        </div>
+        <div class="tk-list-edit" style="display:none;">
+          <div class="tk-edit-row"><label>Mô tả</label><input type="text" class="input-std ql-edit-mota" value="${item.mo_ta_thu}"></div>
+          <div class="tk-edit-row"><label>Nhóm</label><select class="input-std ql-edit-loai">${qlLoaiThuOptions(item.loai_thu)}</select></div>
+          <div class="tk-edit-row"><label>Icon</label><select class="input-std ql-edit-icon">${qlIconOptions(item.icon)}</select></div>
+          <div class="tk-edit-row"><label>Trạng thái</label><select class="input-std ql-edit-active">
+            <option value="true" ${item.active ? 'selected' : ''}>● Bật</option>
+            <option value="false" ${!item.active ? 'selected' : ''}>○ Tắt</option>
+          </select></div>
+          <div class="tk-edit-actions">
+            <button class="btn-submit btn-green ql-btn-confirm" style="flex:1;margin-top:0;">✅ Xác nhận</button>
+            <button class="btn-submit btn-gray ql-btn-cancel" style="flex:1;margin-top:0;">❌ Hủy</button>
+          </div>
+        </div>`;
+      rowEl.querySelector(".tk-btn-edit").onclick = () => {
+        rowEl.querySelector(".tk-list-view").style.display = "none";
+        rowEl.querySelector(".tk-list-edit").style.display = "block";
+      };
+      rowEl.querySelector(".ql-btn-cancel").onclick = () => {
+        rowEl.querySelector(".tk-list-view").style.display = "flex";
+        rowEl.querySelector(".tk-list-edit").style.display = "none";
+      };
+      rowEl.querySelector(".ql-btn-confirm").onclick = async () => {
+        const patch = {
+          mo_ta_thu: rowEl.querySelector(".ql-edit-mota").value.trim(),
+          loai_thu:  rowEl.querySelector(".ql-edit-loai").value,
+          icon:      rowEl.querySelector(".ql-edit-icon").value,
+          active:    rowEl.querySelector(".ql-edit-active").value === "true"
+        };
+        if (!patch.mo_ta_thu || !patch.loai_thu) { showToast("Vui lòng điền đầy đủ thông tin"); return; }
+        const r = await postData("patch_loai_thu", { id_lt: item.id_lt, patch });
+        if (r && r.status === "success") {
+          showToast("Đã cập nhật loại thu", 2000);
+          await reloadMasterData();
+          await loadQLLoaiThu();
+        }
+      };
+      list.appendChild(rowEl);
+    });
+  });
+}
+
+// ---- MÔ TẢ CHI ----
+async function loadQLMoTaChi() {
+  showLoading(true);
+  const data = await fetchData("loai_chi"); // v_loai_chi
+  showLoading(false);
+  renderQLMoTaChi(data);
+}
+
+function renderQLMoTaChi(data) {
+  const list = document.getElementById("ql-mc-list");
+  if (!data || !data.length) {
+    list.innerHTML = '<div class="ql-empty">Chưa có dữ liệu. Nhấn "Tải danh sách".</div>';
+    return;
+  }
+  list.innerHTML = "";
+  const uniquePhanLoai = [...new Set(data.map(i => i.phan_loai).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'vi'));
+  // Group by phan_loai
+  const groups = {};
+  data.forEach(item => {
+    const g = item.phan_loai || 'Khác';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(item);
+  });
+  Object.entries(groups).sort(([a], [b]) => a.localeCompare(b, 'vi')).forEach(([group, items]) => {
+    const mcColor = getGroupColor(PHAN_LOAI_CHI_COLOR_MAP, group);
+    const header = document.createElement("div");
+    header.className = "ql-group-header";
+    header.style.color      = mcColor.border;
+    header.style.background = `${mcColor.bg}99`;
+    header.style.borderTopColor = `${mcColor.border}55`;
+    header.style.borderRadius   = "4px";
+    header.textContent = group;
+    list.appendChild(header);
+    items.forEach(item => {
+      const rowEl = document.createElement("div");
+      rowEl.className = "tk-list-item";
+      rowEl.style.borderLeft   = `4px solid ${mcColor.border}`;
+      rowEl.style.background   = `linear-gradient(to right, ${mcColor.bg}, rgba(255,255,255,0) 70%)`;
+      rowEl.style.borderRadius = "8px";
+      rowEl.style.marginBottom = "4px";
+      const plOptions = uniquePhanLoai.map(pl =>
+        `<option value="${pl}" ${item.phan_loai === pl ? 'selected' : ''}>${pl}</option>`
+      ).join('');
+      rowEl.innerHTML = `
+        <div class="tk-list-view" style="display:flex;align-items:center;gap:6px;padding:10px 12px;">
+          <span style="font-size:16px">${item.icon || ''}</span>
+          <span style="flex:1;font-weight:500">${item.mo_ta_chi}</span>
+          <span class="ql-tag ql-tag-phanloai">${item.phan_loai || ''}</span>
+          ${qlBadge(item.active)}
+          <button class="tk-btn-edit" title="Sửa">✏️</button>
+        </div>
+        <div class="tk-list-edit" style="display:none;">
+          <div class="tk-edit-row"><label>Mô tả</label><input type="text" class="input-std ql-edit-mota" value="${item.mo_ta_chi}"></div>
+          <div class="tk-edit-row"><label>Phân loại</label><select class="input-std ql-edit-phanloai"><option value="">--</option>${plOptions}</select></div>
+          <div class="tk-edit-row"><label>Icon</label><select class="input-std ql-edit-icon">${qlIconOptions(item.icon)}</select></div>
+          <div class="tk-edit-row"><label>Trạng thái</label><select class="input-std ql-edit-active">
+            <option value="true" ${item.active ? 'selected' : ''}>● Bật</option>
+            <option value="false" ${!item.active ? 'selected' : ''}>○ Tắt</option>
+          </select></div>
+          <div class="tk-edit-actions">
+            <button class="btn-submit btn-green ql-btn-confirm" style="flex:1;margin-top:0;">✅ Xác nhận</button>
+            <button class="btn-submit btn-gray ql-btn-cancel" style="flex:1;margin-top:0;">❌ Hủy</button>
+          </div>
+        </div>`;
+      rowEl.querySelector(".tk-btn-edit").onclick = () => {
+        rowEl.querySelector(".tk-list-view").style.display = "none";
+        rowEl.querySelector(".tk-list-edit").style.display = "block";
+      };
+      rowEl.querySelector(".ql-btn-cancel").onclick = () => {
+        rowEl.querySelector(".tk-list-view").style.display = "flex";
+        rowEl.querySelector(".tk-list-edit").style.display = "none";
+      };
+      rowEl.querySelector(".ql-btn-confirm").onclick = async () => {
+        const newMoTa    = rowEl.querySelector(".ql-edit-mota").value.trim();
+        const newPhanLoai = rowEl.querySelector(".ql-edit-phanloai").value;
+        const newActive  = rowEl.querySelector(".ql-edit-active").value === "true";
+        if (!newMoTa) { showToast("Vui lòng nhập mô tả"); return; }
+        const r = await postData("patch_mo_ta_chi", {
+          id_mtc:    item.id_mtc,
+          patch:     { mo_ta_chi: newMoTa, active: newActive, icon: rowEl.querySelector(".ql-edit-icon").value },
+          phan_loai: newPhanLoai !== item.phan_loai ? newPhanLoai : null
+        });
+        if (r && r.status === "success") {
+          showToast("Đã cập nhật mô tả chi", 2000);
+          await reloadMasterData();
+          await loadQLMoTaChi();
+        }
+      };
+      list.appendChild(rowEl);
+    });
+  });
+}
+
+function initQLTab() {
+  // Populate icon selects trên form thêm mới
+  document.getElementById("ql-nt-new-icon").innerHTML = qlIconOptions();
+  document.getElementById("ql-lt-new-icon").innerHTML = qlIconOptions();
+  document.getElementById("ql-mc-new-icon").innerHTML = qlIconOptions();
+
+  // ---- NGUỒN TIỀN ----
+  document.getElementById("ql-nt-load").onclick = loadQLNguonTien;
+  const ntName   = document.getElementById("ql-nt-new-name");
+  const ntNhom   = document.getElementById("ql-nt-new-nhom");
+  const ntAddBtn = document.getElementById("ql-nt-add");
+  const checkNT  = () => { ntAddBtn.disabled = !(ntName.value.trim() && ntNhom.value); };
+  ntName.oninput  = checkNT;
+  ntNhom.onchange = checkNT;
+  ntAddBtn.onclick = async () => {
+    const r = await postData("insert_nguon_tien", {
+      nguon_tien: ntName.value.trim(),
+      nhom:       ntNhom.value,
+      nguoi:      document.getElementById("ql-nt-new-nguoi").value || null,
+      icon:       document.getElementById("ql-nt-new-icon").value || ""
+    });
+    if (r && r.status === "success") {
+      showToast("Đã thêm nguồn tiền", 2000);
+      ntName.value = ""; ntNhom.value = "";
+      document.getElementById("ql-nt-new-nguoi").value = "";
+      document.getElementById("ql-nt-new-icon").value = "";
+      ntAddBtn.disabled = true;
+      await reloadMasterData();
+      await loadQLNguonTien();
+    }
+  };
+
+  // ---- LOẠI THU ----
+  document.getElementById("ql-lt-load").onclick = loadQLLoaiThu;
+  const ltMota   = document.getElementById("ql-lt-new-mota");
+  const ltLoai   = document.getElementById("ql-lt-new-loai");
+  const ltAddBtn = document.getElementById("ql-lt-add");
+  const checkLT  = () => { ltAddBtn.disabled = !(ltMota.value.trim() && ltLoai.value); };
+  ltMota.oninput  = checkLT;
+  ltLoai.onchange = checkLT;
+  ltAddBtn.onclick = async () => {
+    const r = await postData("insert_loai_thu", {
+      mo_ta_thu: ltMota.value.trim(),
+      loai_thu:  ltLoai.value,
+      icon:      document.getElementById("ql-lt-new-icon").value || ""
+    });
+    if (r && r.status === "success") {
+      showToast("Đã thêm loại thu", 2000);
+      ltMota.value = ""; ltLoai.value = "";
+      document.getElementById("ql-lt-new-icon").value = "";
+      ltAddBtn.disabled = true;
+      await reloadMasterData();
+      await loadQLLoaiThu();
+    }
+  };
+
+  // ---- MÔ TẢ CHI ----
+  document.getElementById("ql-mc-load").onclick = loadQLMoTaChi;
+  const mcMota   = document.getElementById("ql-mc-new-mota");
+  const mcPhanLoai = document.getElementById("ql-mc-new-phanloai");
+  const mcAddBtn = document.getElementById("ql-mc-add");
+  // Populate phan_loai dropdown từ loaiChiList
+  const uniquePL = [...new Set((loaiChiList || []).map(i => i.phan_loai).filter(Boolean))].sort((a,b) => a.localeCompare(b,'vi'));
+  uniquePL.forEach(pl => {
+    const opt = document.createElement('option');
+    opt.value = pl; opt.textContent = pl;
+    mcPhanLoai.appendChild(opt);
+  });
+  const checkMC = () => { mcAddBtn.disabled = !(mcMota.value.trim() && mcPhanLoai.value); };
+  mcMota.oninput     = checkMC;
+  mcPhanLoai.onchange = checkMC;
+  mcAddBtn.onclick = async () => {
+    const r = await postData("insert_loai_chi", {
+      mo_ta_chi: mcMota.value.trim(),
+      phan_loai: mcPhanLoai.value,
+      icon:      document.getElementById("ql-mc-new-icon").value || ""
+    });
+    if (r && r.status === "success") {
+      showToast("Đã thêm mô tả chi", 2000);
+      mcMota.value = ""; mcPhanLoai.value = "";
+      document.getElementById("ql-mc-new-icon").value = "";
+      mcAddBtn.disabled = true;
+      await reloadMasterData();
+      await loadQLMoTaChi();
+    }
+  };
+
+  console.log("✅ QL tab initialized");
+}
+
 // ================= TAB BAR =================
 function switchTab(tabId) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -2471,6 +2894,7 @@ function switchTab(tabId) {
   document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
   if (tabId === 'chi') setTimeout(() => chiInput.focus(), 50);
   if (tabId === 'thu') setTimeout(() => thuInput.focus(), 50);
+  if (tabId === 'bc') renderBaoCao();
 }
 
 function initTabBar() {
@@ -2535,7 +2959,6 @@ window.onload = async () => {
   renderChiChips();
   renderThuChips();
   
-  initHeaderToggle();
   updateHeader(chiData, thuData);
   
   populateChiDropdowns();
@@ -2544,6 +2967,518 @@ window.onload = async () => {
   initModalEventListeners();
   initTabBar();
   initTKSortBars();
+  initQLTab();
 
   console.log('✅ App initialized successfully');
 };
+
+// ================= BÁO CÁO =================
+let bcChartThang = null;
+let bcChartLine  = null;
+let bcChartChi   = null;
+let bcCachedChiData    = null;
+let bcCachedThuData    = null;
+let bcCachedTkData     = null;
+let bcCachedTkSession  = null;
+let bcMode       = 'thang';
+let bcTgSub      = 'nam';   // 'nam' | 'thang'
+let bcDrillLevel = 'nhom';
+
+// Palette 30 mau, xen ke nong/lanh
+const BC_PALETTE_BG = [
+  'rgba(255,87,97,0.82)',   // #ff5761  nong
+  'rgba(2,121,239,0.82)',   // #0279ef  lanh
+  'rgba(250,0,234,0.82)',   // #fa00ea  nong
+  'rgba(1,223,29,0.82)',    // #01df1d  lanh
+  'rgba(206,59,255,0.82)',  // #ce3bff  nong
+  'rgba(147,196,0,0.82)',   // #93c400  lanh
+  'rgba(201,71,38,0.82)',   // #c94726  nong
+  'rgba(68,207,255,0.82)',  // #44cfff  lanh
+  'rgba(198,0,161,0.82)',   // #c600a1  nong
+  'rgba(155,255,147,0.82)', // #9bff93  lanh
+  'rgba(255,112,184,0.82)', // #ff70b8  nong
+  'rgba(2,244,206,0.82)',   // #02f4ce  lanh
+  'rgba(197,122,0,0.82)',   // #c57a00  nong
+  'rgba(89,169,255,0.82)',  // #59a9ff  lanh
+  'rgba(192,176,0,0.82)',   // #c0b000  nong
+  'rgba(0,129,136,0.82)',   // #008188  lanh
+  'rgba(255,182,109,0.82)', // #ffb66d  nong
+  'rgba(120,209,210,0.82)', // #78d1d2  lanh
+  'rgba(221,155,255,0.82)', // #dd9bff  nong
+  'rgba(91,191,80,0.82)',   // #5bbf50  lanh
+  'rgba(159,97,158,0.82)',  // #9f619e  nong
+  'rgba(123,90,255,0.82)',  // #7b5aff  lanh
+  'rgba(188,102,87,0.82)',  // #bc6657  nong
+  'rgba(142,197,166,0.82)', // #8ec5a6  lanh
+  'rgba(255,199,212,0.82)', // #ffc7d4  nong
+  'rgba(221,255,125,0.82)', // #ddff7d  lanh
+  'rgba(255,231,188,0.82)', // #ffe7bc  nong
+  'rgba(87,142,64,0.82)',   // #578e40  lanh
+  'rgba(132,128,147,0.82)', // #848093  neutral
+  'rgba(234,247,255,0.82)'  // #eaf7ff  lanh
+];
+const BC_PALETTE_BD = [
+  '#ff5761','#0279ef','#fa00ea','#01df1d','#ce3bff','#93c400',
+  '#c94726','#44cfff','#c600a1','#9bff93','#ff70b8','#02f4ce',
+  '#c57a00','#59a9ff','#c0b000','#008188','#ffb66d','#78d1d2',
+  '#dd9bff','#5bbf50','#9f619e','#7b5aff','#bc6657','#8ec5a6',
+  '#ffc7d4','#ddff7d','#ffe7bc','#578e40','#848093','#eaf7ff'
+];
+function bcPaletteBg(i)  { return BC_PALETTE_BG[i % BC_PALETTE_BG.length]; }
+function bcPaletteBd(i)  { return BC_PALETTE_BD[i % BC_PALETTE_BD.length]; }
+
+function bcFmtVN(n) {
+  n = Math.round(n || 0);
+  if (Math.abs(n) >= 1000000) return (n / 1000000).toFixed(1).replace('.', ',') + ' tr';
+  if (Math.abs(n) >= 1000) return Math.round(n / 1000) + 'k';
+  return n.toLocaleString('vi-VN');
+}
+
+async function ensureBcData() {
+  if (!bcCachedChiData || !bcCachedThuData) {
+    showLoading(true);
+    // Đảm bảo loaiChiList đã có trước khi lọc
+    if (!loaiChiList || !loaiChiList.length) {
+      loaiChiList = (await fetchData('loai_chi')) || [];
+    }
+    const [chiRaw, thuRaw] = await Promise.all([
+      fetchData('Chi_Tieu_2026'),
+      fetchData('Thu_2026')
+    ]);
+    bcCachedChiData = chiRaw.filter(r => {
+      if (!r.IDChi || !r.IDChi.trim()) return false;
+      const lc = loaiChiList.find(l => l.mo_ta_chi === r.mo_ta_chi);
+      const nhom = (lc && lc.nhom || '').trim();
+      const phanLoai = (lc && lc.phan_loai || '').trim();
+      return nhom !== 'Đầu tư' && phanLoai !== 'Đầu tư';
+    });
+    bcCachedThuData = thuRaw.filter(r => r.IDThu && r.IDThu.trim() && (r['Loại thu'] || '').trim() !== 'Hoàn vốn');
+    showLoading(false);
+  }
+  if (!bcCachedTkData) {
+    [bcCachedTkData, bcCachedTkSession] = await Promise.all([
+      fetchData('tk_detail'),
+      fetchData('tk_session')
+    ]);
+  }
+}
+
+function bcGetYears(chiData, thuData) {
+  const years = new Set();
+  [...chiData, ...thuData].forEach(r => {
+    const d = new Date(r['Ngày']);
+    if (d.getFullYear() > 2000) years.add(d.getFullYear());
+  });
+  return [...years].sort((a, b) => b - a);
+}
+
+// ---- Theo năm: bar chart Thu/Chi theo 12 tháng ----
+function bcRenderThangNam(year) {
+  const chi = bcCachedChiData || [];
+  const thu = bcCachedThuData || [];
+  const chiByMonth = Array(12).fill(0);
+  const thuByMonth = Array(12).fill(0);
+  chi.forEach(r => {
+    const d = new Date(r['Ngày']);
+    if (d.getFullYear() === year) chiByMonth[d.getMonth()] += parseFloat(r['Số tiền vnđ']) || 0;
+  });
+  thu.forEach(r => {
+    const d = new Date(r['Ngày']);
+    if (d.getFullYear() === year) thuByMonth[d.getMonth()] += parseFloat(r['Thu']) || 0;
+  });
+  const labels = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
+  const ctx = document.getElementById('bc-chart-thang').getContext('2d');
+  if (bcChartThang) { bcChartThang.destroy(); bcChartThang = null; }
+  bcChartThang = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Thu', data: thuByMonth, backgroundColor: 'rgba(46,199,89,0.72)', borderColor: '#34c759', borderWidth: 1.5, borderRadius: 5 },
+        { label: 'Chi', data: chiByMonth, backgroundColor: 'rgba(217,83,79,0.72)', borderColor: '#d9534f', borderWidth: 1.5, borderRadius: 5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${formatVN(c.raw)}` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { ticks: { callback: v => bcFmtVN(v), font: { size: 10 }, maxTicksLimit: 5 }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+  let html = `<table class="bc-table"><thead><tr><th>Tháng</th><th class="bc-td-right">Thu</th><th class="bc-td-right">Chi</th><th class="bc-td-right">Chênh lệch</th></tr></thead><tbody>`;
+  let totalThu = 0, totalChi = 0;
+  for (let i = 0; i < 12; i++) {
+    if (!chiByMonth[i] && !thuByMonth[i]) continue;
+    const cl = thuByMonth[i] - chiByMonth[i];
+    totalThu += thuByMonth[i]; totalChi += chiByMonth[i];
+    html += `<tr><td>Tháng ${i+1}</td><td class="bc-td-right bc-td-green">${formatVN(thuByMonth[i])}</td><td class="bc-td-right bc-td-red">${formatVN(chiByMonth[i])}</td><td class="bc-td-right ${cl>=0?'bc-td-green':'bc-td-red'}">${cl>=0?'+':''}${formatVN(cl)}</td></tr>`;
+  }
+  const totalCl = totalThu - totalChi;
+  html += `</tbody><tfoot><tr style="font-weight:700;background:#f8f4ff;"><td>Tổng</td><td class="bc-td-right bc-td-green">${formatVN(totalThu)}</td><td class="bc-td-right bc-td-red">${formatVN(totalChi)}</td><td class="bc-td-right ${totalCl>=0?'bc-td-green':'bc-td-red'}">${totalCl>=0?'+':''}${formatVN(totalCl)}</td></tr></tfoot></table>`;
+  document.getElementById('bc-table-thang').innerHTML = html;
+}
+
+// ---- Theo tháng: line chart, mỗi line = một mo_ta_chi ----
+function bcRenderThangLine(year, month) {
+  const chi = bcCachedChiData || [];
+
+  // Gom tổng theo mo_ta_chi cho tháng đã chọn
+  const totals = {};
+  chi.forEach(r => {
+    const d = new Date(r['Ngày']);
+    if (d.getFullYear() !== year || d.getMonth() + 1 !== month) return;
+    const key = r.mo_ta_chi || 'Khác';
+    totals[key] = (totals[key] || 0) + (parseFloat(r['Số tiền vnđ']) || 0);
+  });
+
+  const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  const tableEl = document.getElementById('bc-table-line');
+  const canvas  = document.getElementById('bc-chart-line');
+  if (bcChartLine) { bcChartLine.destroy(); bcChartLine = null; }
+  canvas.style.height = '';
+  if (!sorted.length) {
+    tableEl.innerHTML = '<div class="bc-empty">Không có dữ liệu chi cho tháng này</div>';
+    return;
+  }
+
+  const total = sorted.reduce((s, [, v]) => s + v, 0);
+  // Top 10 truoc, neu 'Con lai' > bar tren no thi lay them cho den khi thoa man
+  const thirdVal1 = sorted.length > 2 ? sorted[2][1] : Infinity;
+  const chartItems = sorted.slice(0, 10);
+  let rest = sorted.slice(10);
+  while (rest.length > 0) {
+    const conLai = rest.reduce((s, [, v]) => s + v, 0);
+    const lastVal = chartItems[chartItems.length - 1][1];
+    if (conLai <= lastVal * 6 && conLai < thirdVal1) break;
+    chartItems.push(rest.shift());
+  }
+  const conLaiVal = rest.reduce((s, [, v]) => s + v, 0);
+  if (conLaiVal > 0) chartItems.push(['Còn lại', conLaiVal]);
+
+  const catLabels = chartItems.map(([k]) => k);
+  const chartVals = chartItems.map(([, v]) => v);
+  const maxVal    = chartVals[0] || 1;
+
+  // Moi bar cao = 1.2x chieu cao chu (font 11px → line ~14px → bar 14px)
+  // slot = bar / (categoryPercentage * barPercentage) = 14 / (1.0 * 0.6) = 23px
+  // parent height = numBars * slot + 20px padding
+  const SLOT_H = 23;
+  const wrap = canvas.parentElement;
+  wrap.style.height = (catLabels.length * SLOT_H + 20) + 'px';
+  canvas.style.height = '';
+
+  // Inline plugin: hien so tien cuoi moi bar
+  const barLabelPlugin = {
+    id: 'bcBarLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      ctx.save();
+      ctx.font = '10px sans-serif';
+      ctx.fillStyle = '#555';
+      ctx.textBaseline = 'middle';
+      chart.getDatasetMeta(0).data.forEach((bar, i) => {
+        const v = chartVals[i];
+        if (v > 0) ctx.fillText(bcFmtVN(v), bar.x + 5, bar.y);
+      });
+      ctx.restore();
+    }
+  };
+
+  bcChartLine = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: catLabels,
+      datasets: [{
+        data: chartVals,
+        backgroundColor: catLabels.map((lbl, i) => lbl === 'Còn lại' ? 'rgba(180,180,180,0.7)' : bcPaletteBg(i)),
+        borderColor:      catLabels.map((lbl, i) => lbl === 'Còn lại' ? '#999' : bcPaletteBd(i)),
+        borderWidth: 1.5,
+        borderRadius: 3
+      }]
+    },
+    plugins: [barLabelPlugin],
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 90, top: 4, bottom: 4 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${formatVN(c.raw)} (${(c.raw/total*100).toFixed(1)}%)` } }
+      },
+      scales: {
+        x: { display: false, max: maxVal * 1.35 },
+        y: {
+          grid: { display: false },
+          ticks: { font: { size: 11 } },
+          categoryPercentage: 1.0,
+          barPercentage: 0.6
+        }
+      }
+    }
+  });
+
+  let html = `<table class="bc-table"><thead><tr><th>Mô tả chi</th><th class="bc-td-right">Tổng tháng</th></tr></thead><tbody>`;
+  sorted.forEach(([name, val], i) => {
+    const clr = bcPaletteBd(i);
+    html += `<tr><td><span style="width:10px;height:10px;border-radius:50%;display:inline-block;background:${clr};margin-right:6px;vertical-align:middle"></span>${name}</td><td class="bc-td-right bc-td-red">${formatVN(val)}</td></tr>`;
+  });
+  html += `</tbody><tfoot><tr style="font-weight:700;background:#f8f4ff;"><td>Tổng</td><td class="bc-td-right bc-td-red">${formatVN(total)}</td></tr></tfoot></table>`;
+  tableEl.innerHTML = html;
+}
+
+// ---- Phân tích chi: donut với màu đa dạng ----
+function bcRenderChi(monthFilter, yearFilter, level) {
+  const chi = bcCachedChiData || [];
+  const filtered = chi.filter(r => {
+    const d = new Date(r['Ngày']);
+    if (yearFilter && d.getFullYear() !== yearFilter) return false;
+    if (monthFilter && monthFilter > 0 && (d.getMonth() + 1) !== monthFilter) return false;
+    return true;
+  });
+  const groups = {};
+  filtered.forEach(r => {
+    let key;
+    const lc = loaiChiList.find(l => l.mo_ta_chi === r.mo_ta_chi);
+    if (level === 'nhom') key = (lc && lc.nhom) || 'Khác';
+    else if (level === 'phanloai') key = (lc && lc.phan_loai) || 'Khác';
+    else key = r.mo_ta_chi || 'Khác';
+    groups[key] = (groups[key] || 0) + (parseFloat(r['Số tiền vnđ']) || 0);
+  });
+  const sorted = Object.entries(groups).sort((a, b) => b[1] - a[1]);
+  const total = sorted.reduce((s, [, v]) => s + v, 0);
+  const tableEl = document.getElementById('bc-table-chi');
+  if (!sorted.length) {
+    if (bcChartChi) { bcChartChi.destroy(); bcChartChi = null; }
+    tableEl.innerHTML = '<div class="bc-empty">Không có dữ liệu chi</div>';
+    return;
+  }
+  // Gom con lai: top 10, mo rong neu con lai > bar tren * 6 hoac >= gia tri thu 3
+  const thirdVal2 = sorted.length > 2 ? sorted[2][1] : Infinity;
+  const chartItems = sorted.slice(0, 10);
+  let rest = sorted.slice(10);
+  while (rest.length > 0) {
+    const conLai = rest.reduce((s, [, v]) => s + v, 0);
+    const lastVal = chartItems[chartItems.length - 1][1];
+    if (conLai <= lastVal * 6 && conLai < thirdVal2) break;
+    chartItems.push(rest.shift());
+  }
+  const conLaiVal = rest.reduce((s, [, v]) => s + v, 0);
+  if (conLaiVal > 0) chartItems.push(['Còn lại', conLaiVal]);
+
+  const chartLabels  = chartItems.map(([k]) => k);
+  const chartValues  = chartItems.map(([, v]) => v);
+  const bgColors     = chartLabels.map((lbl, i) => lbl === 'Còn lại' ? 'rgba(180,180,180,0.7)' : bcPaletteBg(i));
+  const borderColors = chartLabels.map((lbl, i) => lbl === 'Còn lại' ? '#999' : bcPaletteBd(i));
+
+  const ctx = document.getElementById('bc-chart-chi').getContext('2d');
+  if (bcChartChi) { bcChartChi.destroy(); bcChartChi = null; }
+  bcChartChi = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: chartLabels,
+      datasets: [{ data: chartValues, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 8 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12, padding: 5 } },
+        tooltip: { callbacks: { label: c => ` ${formatVN(c.raw)} (${(c.raw/total*100).toFixed(1)}%)` } }
+      }
+    }
+  });
+  let html = `<table class="bc-table"><thead><tr><th>Mục chi</th><th class="bc-td-right">Số tiền</th><th class="bc-td-right">%</th></tr></thead><tbody>`;
+  sorted.forEach(([k, v], i) => {
+    const pct = total > 0 ? (v / total * 100).toFixed(1) : 0;
+    const barW = Math.max(4, Math.round(v / total * 64));
+    const clr = bcPaletteBd(i);
+    html += `<tr><td><span class="bc-mini-bar" style="width:${barW}px;background:${clr}"></span> ${k}</td><td class="bc-td-right bc-td-red">${formatVN(v)}</td><td class="bc-td-right" style="color:#888">${pct}%</td></tr>`;
+  });
+  html += `</tbody><tfoot><tr style="font-weight:700;background:#f8f4ff;"><td>Tổng</td><td class="bc-td-right bc-td-red">${formatVN(total)}</td><td></td></tr></tfoot></table>`;
+  tableEl.innerHTML = html;
+}
+
+// ---- Tổng kết xem lại: chia theo người, màu nguồn, + so_du_lt + chenhlech ----
+function bcRenderTongKet(ngayTk) {
+  const rows    = (bcCachedTkData    || []).filter(r => r.ngay_tk && r.ngay_tk.startsWith(ngayTk));
+  const session = (bcCachedTkSession || []).find(s => s.ngay_tk && s.ngay_tk.startsWith(ngayTk));
+  const el      = document.getElementById('bc-tk-detail');
+  const sumEl   = document.getElementById('bc-tk-summary');
+  if (!rows.length) {
+    sumEl.innerHTML = '';
+    el.innerHTML = '<div class="bc-empty">Không có dữ liệu</div>';
+    return;
+  }
+
+  // Summary: so_du_lt, so_du_tt, chenhlech từ tk_session
+  if (session) {
+    const lt  = parseFloat(session.so_du_lt) || 0;
+    const tt  = parseFloat(session.so_du_tt) || 0;
+    const cl  = tt - lt;
+    const clSign = cl >= 0 ? '+' : '';
+    sumEl.innerHTML = `
+      <div class="bc-summary-row">
+        <div class="bc-summary-chip bc-sd-lt"><span>Số dư LT</span><span>${formatVN(lt)}</span></div>
+        <div class="bc-summary-chip bc-sd-tt"><span>Số dư TT</span><span>${formatVN(tt)}</span></div>
+        <div class="bc-summary-chip ${cl >= 0 ? 'bc-sd-pos' : 'bc-sd-neg'}"><span>Chênh lệch</span><span>${clSign}${formatVN(cl)}</span></div>
+      </div>`;
+  } else {
+    sumEl.innerHTML = '';
+  }
+
+  // Group theo người
+  const NGUOI_ORDER = ['Mèo', 'Boé'];
+  const NGUOI_GROUP_COLORS = {
+    'Mèo':  { title: '#c2185b', bar: '#f48fb1' },
+    'Boé':  { title: '#1565c0', bar: '#90caf9' },
+  };
+
+  // Lấy thông tin nguoi từ nguonTienList
+  const getNguoi = (nguon) => {
+    const n = nguonTienList.find(x => x.nguon_tien === nguon);
+    return n ? (n.nguoi || 'Khác') : 'Khác';
+  };
+
+  // Sắp xếp rows theo người
+  const sorted = [...rows].sort((a, b) => {
+    const ai = NGUOI_ORDER.indexOf(getNguoi(a.nguon_tien));
+    const bi = NGUOI_ORDER.indexOf(getNguoi(b.nguon_tien));
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+
+  let html = '';
+  let currentNguoi = null;
+  let groupTotal = 0;
+  let groupRows = '';
+
+  const flushGroup = (nguoi, total, rowsHtml) => {
+    const gc = NGUOI_GROUP_COLORS[nguoi] || { title: '#546e7a', bar: '#b0bec5' };
+    html += `<div class="bc-nguoi-group">
+      <div class="bc-nguoi-label" style="color:${gc.title};border-bottom:2px solid ${gc.bar}">${nguoi || 'Khác'}</div>
+      ${rowsHtml}
+      <div class="bc-group-total">Tổng <span>${formatVN(total)}</span></div>
+    </div>`;
+  };
+
+  sorted.forEach(r => {
+    const nguoi = getNguoi(r.nguon_tien);
+    if (nguoi !== currentNguoi) {
+      if (currentNguoi !== null) flushGroup(currentNguoi, groupTotal, groupRows);
+      currentNguoi = nguoi;
+      groupTotal = 0;
+      groupRows = '';
+    }
+    const v = parseFloat(r.so_tien) || 0;
+    groupTotal += v;
+    const bg  = getNguonBgColor(r.nguon_tien);
+    const brd = getNguonBorderColor(r.nguon_tien);
+    groupRows += `<div class="bc-tk-row" style="background:${bg};border-left:3px solid ${brd}">
+      <span class="bc-tk-label">${r.nguon_tien}</span>
+      <span class="bc-tk-val">${formatVN(v)}</span>
+    </div>`;
+  });
+  if (currentNguoi !== null) flushGroup(currentNguoi, groupTotal, groupRows);
+
+  el.innerHTML = html;
+}
+
+async function initBcTab() {
+  await ensureBcData();
+  const chi   = bcCachedChiData || [];
+  const thu   = bcCachedThuData || [];
+  const years = bcGetYears(chi, thu);
+  const curYear  = new Date().getFullYear();
+  const curMonth = new Date().getMonth() + 1;
+  // "tháng trước" là default cho phân tích chi
+  const prevMonth = curMonth === 1 ? 12 : curMonth - 1;
+  const prevYear  = curMonth === 1 ? curYear - 1 : curYear;
+
+  // ---- Theo năm ----
+  const yearSel = document.getElementById('bc-year-select');
+  yearSel.innerHTML = (years.length ? years : [curYear]).map(y => `<option value="${y}"${y===curYear?' selected':''}>${y}</option>`).join('');
+  yearSel.onchange = () => bcRenderThangNam(parseInt(yearSel.value));
+
+  // ---- Theo tháng (line) ----
+  const tgYearSel  = document.getElementById('bc-tg-year');
+  const tgMonthSel = document.getElementById('bc-tg-month');
+  tgYearSel.innerHTML = (years.length ? years : [curYear]).map(y => `<option value="${y}"${y===curYear?' selected':''}>${y}</option>`).join('');
+  tgMonthSel.innerHTML = Array.from({length:12},(_,i)=>`<option value="${i+1}"${i+1===curMonth?' selected':''}>${'Tháng '+(i+1)}</option>`).join('');
+  const reRenderLine = () => bcRenderThangLine(parseInt(tgYearSel.value), parseInt(tgMonthSel.value));
+  tgYearSel.onchange  = reRenderLine;
+  tgMonthSel.onchange = reRenderLine;
+
+  // Sub-pills Theo thời gian
+  document.querySelectorAll('#bc-tg-sub-bar .bc-drill-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#bc-tg-sub-bar .bc-drill-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      bcTgSub = btn.dataset.tgsub;
+      document.getElementById('bc-tg-nam').style.display   = bcTgSub === 'nam'   ? '' : 'none';
+      document.getElementById('bc-tg-thang').style.display = bcTgSub === 'thang' ? '' : 'none';
+      if (bcTgSub === 'nam')   bcRenderThangNam(parseInt(yearSel.value));
+      if (bcTgSub === 'thang') reRenderLine();
+    });
+  });
+
+  // ---- Phân tích chi ----
+  const chiYearSel  = document.getElementById('bc-chi-year');
+  const chiMonthSel = document.getElementById('bc-chi-month');
+  chiYearSel.innerHTML  = (years.length ? years : [curYear]).map(y => `<option value="${y}"${y===prevYear?' selected':''}>${y}</option>`).join('');
+  chiMonthSel.innerHTML = `<option value="0">Tất cả</option>` + Array.from({length:12},(_,i)=>`<option value="${i+1}"${i+1===prevMonth?' selected':''}>${'Tháng '+(i+1)}</option>`).join('');
+  const reRenderChi = () => bcRenderChi(parseInt(chiMonthSel.value), parseInt(chiYearSel.value), bcDrillLevel);
+  chiYearSel.onchange  = reRenderChi;
+  chiMonthSel.onchange = reRenderChi;
+
+  document.querySelectorAll('.bc-drill-pill[data-level]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.bc-drill-pill[data-level]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      bcDrillLevel = btn.dataset.level;
+      reRenderChi();
+    });
+  });
+
+  // ---- Tổng kết ----
+  const tkSel = document.getElementById('bc-tk-select');
+  // Normalize to YYYY-MM-DD (cả tk_session lẫn tk_detail có thể dùng timestamp)
+  const normDate = d => d ? d.slice(0, 10) : '';
+  const tkDates = [...new Set(
+    [...(bcCachedTkSession||[]), ...(bcCachedTkData||[])].map(r => normDate(r.ngay_tk)).filter(Boolean)
+  )].sort((a, b) => b.localeCompare(a));
+  tkSel.innerHTML = tkDates.length
+    ? tkDates.map(d=>`<option value="${d}">${new Date(d + 'T00:00:00').toLocaleDateString('vi-VN')}</option>`).join('')
+    : `<option value="">-- Chưa có dữ liệu --</option>`;
+  tkSel.onchange = () => { if (tkSel.value) bcRenderTongKet(tkSel.value); };
+
+  // Mode pills
+  document.querySelectorAll('#bc-section-bar .bc-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#bc-section-bar .bc-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.bc-mode-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('bc-mode-' + btn.dataset.mode).classList.add('active');
+      bcMode = btn.dataset.mode;
+      if (bcMode === 'thang')   bcRenderThangNam(parseInt(yearSel.value));
+      if (bcMode === 'chi')     reRenderChi();
+      if (bcMode === 'tongket' && tkDates.length) bcRenderTongKet(tkSel.value || tkDates[0]);
+    });
+  });
+
+  // Render mặc định
+  bcRenderThangNam(curYear);
+  reRenderChi();
+  if (tkDates.length) bcRenderTongKet(tkDates[0]);
+}
+
+async function renderBaoCao() {
+  bcCachedChiData   = null;
+  bcCachedThuData   = null;
+  bcCachedTkData    = null;
+  bcCachedTkSession = null;
+  await initBcTab();
+}
+

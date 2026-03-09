@@ -4,7 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sổ Thu Chi</title>
-    <link rel="stylesheet" href="style.css?v=3400000" />
+    <link rel="stylesheet" href="style.css?v=3500001" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Pacifico&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -18,18 +22,17 @@
 
     <!-- ================= HEADER ================= -->
     <div class="header">
-        <div class="header-top">
-            <h1>Sổ Thu Chi</h1>
-            <button class="btn-header-toggle" id="header-toggle-btn">▼</button>
+        <div class="header-row">
+            <div class="header-brand">
+                <span class="header-icon">📒</span>
+                <span class="header-title-text">Sổ Thu Chi</span>
+                <span class="header-version">v3.5</span>
+            </div>
+            <div class="header-balance-wrap">
+                <div class="balance-tag" id="header-balance">Số dư LT: 0</div>
+            </div>
         </div>
-        <div class="header-notify" id="header-notify" style="margin-top:8px;font-size:15px;color:#007bff;font-weight:bold"></div>
-        <div class="header-summary">
-            <div class="balance-tag">Số dư LT: 0</div>
-        </div>
-        <div class="header-details collapsed" id="header-details">
-            <!-- Dynamic content from JS -->
-        </div>
-        <div class="version">v3.4.0000</div>
+        <div class="header-notify" id="header-notify"></div>
     </div>
 
     <!-- ================= TAB CONTENT ================= -->
@@ -117,6 +120,7 @@
                     <select class="input-std" id="thu-loai">
                         <option value="">-- Loại thu --</option>
                     </select>
+                    <input class="input-std" id="thu-ghichu-input" placeholder="Ghi chú (cho phép rỗng)">
                 </div>
 
                 <div class="input-group-block ig-green">
@@ -214,6 +218,146 @@
             </div>
         </div>
 
+        <!-- TAB: BÁO CÁO -->
+        <div id="tab-bc" class="tab-panel">
+            <div class="card bc-card">
+
+                <!-- Mode selector -->
+                <div class="bc-section-bar" id="bc-section-bar">
+                    <button class="bc-pill active" data-mode="thang">⏳ Theo thời gian</button>
+                    <button class="bc-pill" data-mode="chi">🍩 Phân tích chi</button>
+                    <button class="bc-pill" data-mode="tongket">📋 Tổng kết</button>
+                </div>
+
+                <!-- Mode: Theo thời gian -->
+                <div id="bc-mode-thang" class="bc-mode-panel active">
+                    <div class="bc-sub-bar" id="bc-tg-sub-bar">
+                        <button class="bc-drill-pill active" data-tgsub="nam">Theo năm</button>
+                        <button class="bc-drill-pill" data-tgsub="thang">Theo tháng</button>
+                    </div>
+                    <!-- Sub: Theo năm -->
+                    <div id="bc-tg-nam">
+                        <div class="bc-filter-row">
+                            <select class="input-std bc-select" id="bc-year-select"></select>
+                        </div>
+                        <div class="bc-chart-wrap"><canvas id="bc-chart-thang"></canvas></div>
+                        <div id="bc-table-thang"></div>
+                    </div>
+                    <!-- Sub: Theo tháng -->
+                    <div id="bc-tg-thang" style="display:none;">
+                        <div class="bc-filter-row">
+                            <select class="input-std bc-select" id="bc-tg-year"></select>
+                            <select class="input-std bc-select" id="bc-tg-month"></select>
+                        </div>
+                        <div class="bc-chart-wrap"><canvas id="bc-chart-line"></canvas></div>
+                        <div id="bc-table-line"></div>
+                    </div>
+                </div>
+
+                <!-- Mode: Phân tích chi -->
+                <div id="bc-mode-chi" class="bc-mode-panel">
+                    <div class="bc-filter-row">
+                        <select class="input-std bc-select" id="bc-chi-year"></select>
+                        <select class="input-std bc-select" id="bc-chi-month"></select>
+                    </div>
+                    <div class="bc-drill-bar" id="bc-drill-bar">
+                        <button class="bc-drill-pill active" data-level="nhom">Nhóm chi</button>
+                        <button class="bc-drill-pill" data-level="phanloai">Phân loại</button>
+                        <button class="bc-drill-pill" data-level="mota">Mô tả chi</button>
+                    </div>
+                    <div class="bc-chart-wrap"><canvas id="bc-chart-chi"></canvas></div>
+                    <div id="bc-table-chi"></div>
+                </div>
+
+                <!-- Mode: Tổng kết xem lại -->
+                <div id="bc-mode-tongket" class="bc-mode-panel">
+                    <div class="bc-filter-row">
+                        <select class="input-std bc-select" id="bc-tk-select"></select>
+                    </div>
+                    <div id="bc-tk-summary" class="bc-tk-summary"></div>
+                    <div id="bc-tk-detail" class="bc-tk-detail"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- TAB: QUẢN LÝ -->
+        <div id="tab-ql" class="tab-panel">
+
+            <!-- NGUỒN TIỀN -->
+            <div class="card card-nt">
+                <div class="card-header">
+                    <div class="card-title" style="color:#ff9500;">NGUỒN TIỀN</div>
+                    <button class="btn-ql-load btn-ql-nt" id="ql-nt-load">Tải danh sách</button>
+                </div>
+                <div id="ql-nt-list"></div>
+                <div class="ql-add-form ql-add-nt">
+                    <div class="ql-add-title">➕ Thêm nguồn tiền</div>
+                    <input class="input-std" id="ql-nt-new-name" placeholder="Tên nguồn *">
+                    <select class="input-std" id="ql-nt-new-nhom">
+                        <option value="">-- Nhóm *--</option>
+                        <option value="Bank">Bank</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Ví">Ví</option>
+                        <option value="Khác">Khác</option>
+                    </select>
+                    <select class="input-std" id="ql-nt-new-nguoi">
+                        <option value="">-- Người --</option>
+                        <option value="Mèo">🐱 Mèo</option>
+                        <option value="Boé">🐶 Boé</option>
+                        <option value="Khác">Khác</option>
+                        <option value="Tổng hợp">Tổng hợp</option>
+                    </select>
+                    <select class="input-std" id="ql-nt-new-icon">
+                        <option value="">-- Icon (tùy chọn) --</option>
+                    </select>
+                    <button class="btn-submit btn-orange" id="ql-nt-add" disabled>Thêm</button>
+                </div>
+            </div>
+
+            <!-- LOẠI THU -->
+            <div class="card card-lt">
+                <div class="card-header">
+                    <div class="card-title green-text">LOẠI THU</div>
+                    <button class="btn-ql-load btn-ql-lt" id="ql-lt-load">Tải danh sách</button>
+                </div>
+                <div id="ql-lt-list"></div>
+                <div class="ql-add-form ql-add-lt">
+                    <div class="ql-add-title">➕ Thêm loại thu</div>
+                    <input class="input-std" id="ql-lt-new-mota" placeholder="Mô tả thu *">
+                    <select class="input-std" id="ql-lt-new-loai">
+                        <option value="">-- Nhóm *--</option>
+                        <option value="Dư năm trước">Dư năm trước</option>
+                        <option value="Ngân hàng">Ngân hàng</option>
+                        <option value="Cho mượn">Cho mượn</option>
+                        <option value="Thu nhập">Thu nhập</option>
+                        <option value="Khác">Khác</option>
+                    </select>
+                    <select class="input-std" id="ql-lt-new-icon"></select>
+                    <button class="btn-submit btn-green" id="ql-lt-add" disabled>Thêm</button>
+                </div>
+            </div>
+
+            <!-- MÔ TẢ CHI -->
+            <div class="card card-mc">
+                <div class="card-header">
+                    <div class="card-title red-text">MÔ TẢ CHI</div>
+                    <button class="btn-ql-load btn-ql-mc" id="ql-mc-load">Tải danh sách</button>
+                </div>
+                <div id="ql-mc-list"></div>
+                <div class="ql-add-form ql-add-mc">
+                    <div class="ql-add-title">➕ Thêm mô tả chi</div>
+                    <input class="input-std" id="ql-mc-new-mota" placeholder="Mô tả chi *">
+                    <select class="input-std" id="ql-mc-new-phanloai">
+                        <option value="">-- Phân loại *--</option>
+                    </select>
+                    <select class="input-std" id="ql-mc-new-icon"></select>
+                    <button class="btn-submit btn-red" id="ql-mc-add" disabled>Thêm</button>
+                </div>
+            </div>
+
+        </div>
+
     </div>
 
     <!-- ================= TAB BAR ================= -->
@@ -229,6 +373,14 @@
         <button class="tab-btn tab-btn-tk" data-tab="tk">
             <span class="tab-icon">📊</span>
             <span class="tab-label">TỔNG KẾT</span>
+        </button>
+        <button class="tab-btn tab-btn-bc" data-tab="bc">
+            <span class="tab-icon">📈</span>
+            <span class="tab-label">BÁO CÁO</span>
+        </button>
+        <button class="tab-btn tab-btn-ql" data-tab="ql">
+            <span class="tab-icon">🗂️</span>
+            <span class="tab-label">QUẢN LÝ</span>
         </button>
     </nav>
 
@@ -266,6 +418,7 @@
                     <select id="chi-modal-new-phanloai" class="input-std">
                         <option value="">-- Chọn phân loại *--</option>
                     </select>
+                    <select id="chi-modal-new-icon" class="input-std"></select>
                     <input type="text" id="chi-modal-new-note" class="input-std" placeholder="Ghi chú (optional)">
                     <button id="chi-modal-add-btn" class="btn-submit btn-blue" disabled>Thêm</button>
                 </div>
@@ -303,7 +456,7 @@
         </div>
     </div>
 
-    <script src="cache.js?v=3400000"></script>
-    <script src="app.js?v=3400000"></script>
+    <script src="cache.js?v=3500029"></script>
+    <script src="app.js?v=3500029"></script>
 </body>
 </html>
