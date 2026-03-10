@@ -1356,6 +1356,7 @@ input, select, textarea {
   padding: 0;
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 3px;
   -webkit-tap-highlight-color: transparent;
   transition: color 0.15s;
@@ -1369,7 +1370,8 @@ input, select, textarea {
 
 /* Mirror data cell dimensions exactly */
 .tk-sh-ngay {
-  min-width: 82px;
+  min-width: 80px;
+  max-width: 80px;
   flex-shrink: 0;
 }
 
@@ -1379,7 +1381,7 @@ input, select, textarea {
 }
 
 .tk-sh-nguon {
-  min-width: 65px;
+  width: 66px;
   flex-shrink: 0;
 }
 
@@ -1400,7 +1402,7 @@ input, select, textarea {
 }
 
 .tk-sh-edit-gap {
-  width: 30px;
+  width: 28px;
   flex-shrink: 0;
 }
 
@@ -1431,33 +1433,43 @@ input, select, textarea {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
 }
 
 .tk-list-cell {
   font-size: 13px;
+  text-align: left;
 }
 
 .tk-cell-ngay {
-  min-width: 82px;
-  color: #888;
+  min-width: 80px;
+  max-width: 80px;
+  color: #1a73e8;
   flex-shrink: 0;
+  font-weight: 600;
+  font-size: 12px;
 }
 
 .tk-cell-mota {
   flex: 1;
   min-width: 70px;
   font-weight: 500;
+  text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .tk-cell-nguon {
-  min-width: 65px;
+  width: 66px;
+  flex-shrink: 0;
   color: #555;
   font-size: 12px;
-  flex-shrink: 0;
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .tk-cell-loai {
@@ -1486,8 +1498,10 @@ input, select, textarea {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 16px;
-  padding: 4px 6px;
+  font-size: 15px;
+  padding: 4px;
+  width: 28px;
+  text-align: center;
   border-radius: 8px;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;

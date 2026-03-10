@@ -1651,7 +1651,6 @@ function renderThuChuaTK() {
         <div class="tk-list-cell tk-cell-ngay">${formatDateTK(row["Ngày"])}</div>
         <div class="tk-list-cell tk-cell-mota">${row["Mô tả"] || ""}</div>
         <div class="tk-list-cell tk-cell-nguon">${row["Nguồn tiền"] || ""}</div>
-        <div class="tk-list-cell tk-cell-loai">${row["Loại thu"] || ""}</div>
         <div class="tk-list-cell tk-cell-sotien green-text">${soTienDisplay}</div>
         <button class="tk-btn-edit" title="Sửa">✏️</button>
       </div>
