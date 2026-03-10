@@ -2075,6 +2075,20 @@ input, select, textarea {
 .bc-td-red { color: #d9534f; }
 .bc-td-blue { color: #007bff; }
 .bc-td-bold { font-weight: 700; }
+.bc-num { cursor: pointer; border-bottom: 1px dotted currentColor; white-space: nowrap; }
+#bc-num-tip {
+  position: absolute;
+  background: #333;
+  color: #fff;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  text-align: center;
+}
 
 .bc-mini-bar {
   display: inline-block;

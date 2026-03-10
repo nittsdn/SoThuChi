@@ -3033,6 +3033,29 @@ function bcFmtVN(n) {
   if (Math.abs(n) >= 1000) return Math.round(n / 1000) + 'k';
   return n.toLocaleString('vi-VN');
 }
+function bcNumSpan(n, sign) {
+  const prefix = (sign && n > 0) ? '+' : '';
+  const full  = prefix + formatVN(n);
+  const short = prefix + bcFmtVN(n);
+  if (short === full) return full;
+  return `<span class="bc-num" data-full="${full}" title="Nhấn để xem đầy đủ" onclick="bcShowNumTip(this)">${short}</span>`;
+}
+function bcShowNumTip(el) {
+  const existing = document.getElementById('bc-num-tip');
+  if (existing) { existing.remove(); if (existing._src === el) return; }
+  const tip = document.createElement('div');
+  tip.id = 'bc-num-tip';
+  tip._src = el;
+  tip.textContent = el.dataset.full;
+  document.body.appendChild(tip);
+  const r = el.getBoundingClientRect();
+  const tw = Math.min(180, window.innerWidth - 16);
+  let left = r.left + r.width / 2 - tw / 2;
+  if (left < 8) left = 8;
+  if (left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
+  tip.style.cssText = `left:${left + window.scrollX}px;top:${r.top + window.scrollY - 34}px;width:${tw}px`;
+  setTimeout(() => document.addEventListener('click', function h(){ tip.remove(); document.removeEventListener('click', h); }, { capture: true, once: true }), 0);
+}
 
 async function ensureBcData() {
   if (!bcCachedChiData || !bcCachedThuData) {
@@ -3116,10 +3139,10 @@ function bcRenderThangNam(year) {
     if (!chiByMonth[i] && !thuByMonth[i]) continue;
     const cl = thuByMonth[i] - chiByMonth[i];
     totalThu += thuByMonth[i]; totalChi += chiByMonth[i];
-    html += `<tr><td>Tháng ${i+1}</td><td class="bc-td-right bc-td-green">${formatVN(thuByMonth[i])}</td><td class="bc-td-right bc-td-red">${formatVN(chiByMonth[i])}</td><td class="bc-td-right ${cl>=0?'bc-td-green':'bc-td-red'}">${cl>=0?'+':''}${formatVN(cl)}</td></tr>`;
+    html += `<tr><td>${i+1}</td><td class="bc-td-right bc-td-green">${bcNumSpan(thuByMonth[i])}</td><td class="bc-td-right bc-td-red">${bcNumSpan(chiByMonth[i])}</td><td class="bc-td-right ${cl>=0?'bc-td-green':'bc-td-red'}">${bcNumSpan(cl, true)}</td></tr>`;
   }
   const totalCl = totalThu - totalChi;
-  html += `</tbody><tfoot><tr style="font-weight:700;background:#f8f4ff;"><td>Tổng</td><td class="bc-td-right bc-td-green">${formatVN(totalThu)}</td><td class="bc-td-right bc-td-red">${formatVN(totalChi)}</td><td class="bc-td-right ${totalCl>=0?'bc-td-green':'bc-td-red'}">${totalCl>=0?'+':''}${formatVN(totalCl)}</td></tr></tfoot></table>`;
+  html += `</tbody><tfoot><tr style="font-weight:700;background:#f8f4ff;"><td>Tổng</td><td class="bc-td-right bc-td-green">${bcNumSpan(totalThu)}</td><td class="bc-td-right bc-td-red">${bcNumSpan(totalChi)}</td><td class="bc-td-right ${totalCl>=0?'bc-td-green':'bc-td-red'}">${bcNumSpan(totalCl, true)}</td></tr></tfoot></table>`;
   document.getElementById('bc-table-thang').innerHTML = html;
 }
 
