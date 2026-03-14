@@ -497,6 +497,40 @@ let chiStack = [];
 let chiDesc = "";
 let chiSource = "";
 
+// --- Desc → Nguon mapping (localStorage) ---
+function getNguonMap(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
+}
+function saveNguonMap(key, map) {
+  localStorage.setItem(key, JSON.stringify(map));
+}
+function applyChiNguon(desc) {
+  if (!desc) return;
+  const map = getNguonMap('chiDescNguonMap');
+  const nguon = map[desc];
+  if (nguon) {
+    const sel = document.getElementById('chi-source');
+    if (sel && sel.querySelector(`option[value="${nguon}"]`)) {
+      sel.value = nguon;
+      chiSource = nguon;
+      checkChiReady();
+    }
+  }
+}
+function applyThuNguon(desc) {
+  if (!desc) return;
+  const map = getNguonMap('thuDescNguonMap');
+  const nguon = map[desc];
+  if (nguon) {
+    const sel = document.getElementById('thu-source');
+    if (sel && sel.querySelector(`option[value="${nguon}"]`)) {
+      sel.value = nguon;
+      thuSource = nguon;
+      checkThuReady();
+    }
+  }
+}
+
 let editMode = false;
 let editIndex = -1;
 
@@ -745,6 +779,7 @@ function renderChiChips() {
         btn.classList.add("selected");
         chiDesc = chip;
         document.getElementById("chi-desc-dropdown").value = "";
+        applyChiNguon(chip);
         checkChiReady();
       };
       chipGrid.appendChild(btn);
@@ -925,12 +960,18 @@ document.getElementById("chi-desc-dropdown").onchange = (e) => {
   if (e.target.value) {
     chiDesc = e.target.value;
     document.querySelectorAll("#chi-chips .chip").forEach(c => c.classList.remove("selected"));
+    applyChiNguon(chiDesc);
     checkChiReady();
   }
 };
 
 document.getElementById("chi-source").onchange = (e) => {
   chiSource = e.target.value;
+  if (chiDesc && chiSource) {
+    const map = getNguonMap('chiDescNguonMap');
+    map[chiDesc] = chiSource;
+    saveNguonMap('chiDescNguonMap', map);
+  }
   checkChiReady();
 };
 
@@ -1050,6 +1091,7 @@ function renderThuChips() {
         thuDesc = chip;
         document.getElementById("thu-desc-input").value = "";
         onThuDescChange(chip);
+        applyThuNguon(chip);
       };
       chipGrid.appendChild(btn);
     }
@@ -1273,6 +1315,7 @@ document.getElementById("thu-desc-input").oninput = (e) => {
   if (thuDesc) {
     document.querySelectorAll("#thu-chips .chip").forEach(c => c.classList.remove("selected"));
     onThuDescChange(thuDesc);
+    applyThuNguon(thuDesc);
   } else {
     onThuDescChange("");
   }
@@ -1285,6 +1328,11 @@ document.getElementById("thu-loai").onchange = (e) => {
 
 document.getElementById("thu-source").onchange = (e) => {
   thuSource = e.target.value;
+  if (thuDesc && thuSource) {
+    const map = getNguonMap('thuDescNguonMap');
+    map[thuDesc] = thuSource;
+    saveNguonMap('thuDescNguonMap', map);
+  }
   checkThuReady();
 };
 
