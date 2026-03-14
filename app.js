@@ -67,6 +67,10 @@ function formatDateAPI(d) {
   return `${year}-${month}-${day}`;
 }
 
+function fmtLocalDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function formatDateTK(dateStr) {
   const d = parseDateString(dateStr);
   if (!d) return dateStr || "";
@@ -118,7 +122,7 @@ function parseDateString(dateStr) {
 }
 
 // ================= TOAST NOTIFICATION =================
-function showToast(message, duration = 20000) {
+function showToast(message, duration = 5000) {
   const toast = document.getElementById("toast");
   toast.innerHTML = message.replace(/\n/g, "<br>");
   toast.classList.add("show");
@@ -711,6 +715,11 @@ chiDateInput.onchange = (e) => {
   const today = new Date();
   today.setHours(23, 59, 59, 999);
   
+  if (chiDateInput.min && dateStr < chiDateInput.min) {
+    showToast("Ngày này đã được tổng kết");
+    renderChiDate();
+    return;
+  }
   if (selected <= today) {
     chiDate = selected;
     renderChiDate();
@@ -721,7 +730,12 @@ chiDateInput.onchange = (e) => {
 };
 
 document.getElementById("chi-date-prev").onclick = () => {
-  chiDate = changeDate(chiDate, -1);
+  const newDate = changeDate(chiDate, -1);
+  if (chiDateInput.min && fmtLocalDate(newDate) < chiDateInput.min) {
+    showToast("Ngày này đã được tổng kết");
+    return;
+  }
+  chiDate = newDate;
   renderChiDate();
 };
 
@@ -746,6 +760,11 @@ thuDateInput.onchange = (e) => {
   const today = new Date();
   today.setHours(23, 59, 59, 999);
   
+  if (thuDateInput.min && dateStr < thuDateInput.min) {
+    showToast("Ngày này đã được tổng kết");
+    renderThuDate();
+    return;
+  }
   if (selected <= today) {
     thuDate = selected;
     renderThuDate();
@@ -756,7 +775,12 @@ thuDateInput.onchange = (e) => {
 };
 
 document.getElementById("thu-date-prev").onclick = () => {
-  thuDate = changeDate(thuDate, -1);
+  const newDate = changeDate(thuDate, -1);
+  if (thuDateInput.min && fmtLocalDate(newDate) < thuDateInput.min) {
+    showToast("Ngày này đã được tổng kết");
+    return;
+  }
+  thuDate = newDate;
   renderThuDate();
 };
 
@@ -1521,7 +1545,8 @@ function renderChiChuaTK() {
     return new Date(row["Ngày"]) > tkLastDate;
   });
 
-  countEl.textContent = `(${rows.length} dòng)`;
+  const fromLabel = tkLastDate ? `từ ${formatDateTK(fmtLocalDate(tkLastDate))}` : 'toàn bộ';
+  countEl.textContent = fromLabel;
   section.style.display = rows.length ? "block" : "none";
   list.innerHTML = "";
 
@@ -1533,7 +1558,7 @@ function renderChiChuaTK() {
   });
   updateSortBar('chi');
 
-  sorted.forEach(row => {
+  sorted.forEach((row, idx) => {
     const id = row["IDChi"];
     const isEdited = tkEditedChiIds.has(id);
     const nghinVnd = row["Nghìn VND"] !== undefined ? String(row["Nghìn VND"]) : "";
@@ -1564,14 +1589,14 @@ function renderChiChuaTK() {
 
     rowEl.innerHTML = `
       <div class="tk-list-view">
-        <div class="tk-list-cell tk-cell-ngay">${formatDateTK(row["Ngày"])}</div>
+        <div class="tk-list-cell tk-cell-ngay"><span class="tk-stt">${idx+1}</span>${formatDateTK(row["Ngày"])}</div>
         <div class="tk-list-cell tk-cell-mota">${row["mo_ta_chi"] || ""}</div>
         <div class="tk-list-cell tk-cell-nguon">${row["Nguồn tiền"] || ""}</div>
         <div class="tk-list-cell tk-cell-sotien red-text tk-sotien-tip">${soTienDisplay}</div>
         <button class="tk-btn-edit" title="Sửa">✏️</button>
       </div>
       <div class="tk-list-edit" style="display:none;">
-        <div class="tk-edit-row"><label>Ngày</label><input type="date" class="input-std tk-edit-ngay" value="${row["Ngày"] || ""}"></div>
+        <div class="tk-edit-row"><label>Ngày</label><input type="date" class="input-std tk-edit-ngay" value="${row["Ngày"] || ""}"${tkLastDate ? ` min="${fmtLocalDate(new Date(tkLastDate.getTime()+86400000))}"` : ''}></div>
         <div class="tk-edit-row"><label>Mô tả</label><select class="input-std tk-edit-mota">${moTaOptions}</select></div>
         <div class="tk-edit-row"><label>Nguồn tiền</label><select class="input-std tk-edit-nguon">${nguonOptions}</select></div>
         <div class="tk-edit-row">
@@ -1654,7 +1679,8 @@ function renderThuChuaTK() {
     return new Date(row["Ngày"]) > tkLastDate;
   });
 
-  countEl.textContent = `(${rows.length} dòng)`;
+  const fromLabelThu = tkLastDate ? `từ ${formatDateTK(fmtLocalDate(tkLastDate))}` : 'toàn bộ';
+  countEl.textContent = fromLabelThu;
   section.style.display = rows.length ? "block" : "none";
   list.innerHTML = "";
 
@@ -1666,7 +1692,7 @@ function renderThuChuaTK() {
   });
   updateSortBar('thu');
 
-  sorted.forEach(row => {
+  sorted.forEach((row, idx) => {
     const id = row["IDThu"];
     const isEdited = tkEditedThuIds.has(id);
     const soTienDisplay = formatVN(parseFloat(row["Thu"]) || 0);
@@ -1696,14 +1722,14 @@ function renderThuChuaTK() {
 
     rowEl.innerHTML = `
       <div class="tk-list-view">
-        <div class="tk-list-cell tk-cell-ngay">${formatDateTK(row["Ngày"])}</div>
+        <div class="tk-list-cell tk-cell-ngay"><span class="tk-stt">${idx+1}</span>${formatDateTK(row["Ngày"])}</div>
         <div class="tk-list-cell tk-cell-mota">${row["Mô tả"] || ""}</div>
         <div class="tk-list-cell tk-cell-nguon">${row["Nguồn tiền"] || ""}</div>
         <div class="tk-list-cell tk-cell-sotien green-text">${soTienDisplay}</div>
         <button class="tk-btn-edit" title="Sửa">✏️</button>
       </div>
       <div class="tk-list-edit" style="display:none;">
-        <div class="tk-edit-row"><label>Ngày</label><input type="date" class="input-std tk-edit-ngay" value="${row["Ngày"] || ""}"></div>
+        <div class="tk-edit-row"><label>Ngày</label><input type="date" class="input-std tk-edit-ngay" value="${row["Ngày"] || ""}"${tkLastDate ? ` min="${fmtLocalDate(new Date(tkLastDate.getTime()+86400000))}"` : ''}></div>
         <div class="tk-edit-row"><label>Mô tả</label><input type="text" class="input-std tk-edit-mota" value="${row["Mô tả"] || ""}"></div>
         <div class="tk-edit-row"><label>Nguồn tiền</label><select class="input-std tk-edit-nguon">${nguonOptions}</select></div>
         <div class="tk-edit-row"><label>Mô tả thu</label><select class="input-std tk-edit-loai">${loaiOptions}</select></div>
@@ -3015,6 +3041,22 @@ window.onload = async () => {
   initTabBar();
   initTKSortBars();
   initQLTab();
+
+  // Fetch tk_detail để lấy ngày TK cuối hiển thị trên header Chi/Thu
+  fetchData('tk_detail').then(tkDetail => {
+    if (!tkDetail || !tkDetail.length) return;
+    const dates = tkDetail.map(r => r.ngay_tk).filter(Boolean).map(d => new Date(d));
+    if (!dates.length) return;
+    const lastTk = new Date(Math.max(...dates));
+    const lastTkStr = `từ ${formatDateTK(fmtLocalDate(lastTk))}`;
+    const chiSub = document.getElementById('chi-date-sub');
+    const thuSub = document.getElementById('thu-date-sub');
+    if (chiSub) chiSub.textContent = lastTkStr;
+    if (thuSub) thuSub.textContent = lastTkStr;
+    const minDateStr = fmtLocalDate(new Date(lastTk.getTime() + 86400000));
+    chiDateInput.min = minDateStr;
+    thuDateInput.min = minDateStr;
+  });
 
   console.log('✅ App initialized successfully');
 };

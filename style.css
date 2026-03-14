@@ -427,8 +427,18 @@ input, select, button {
 }
 
 .card-title {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 22px;
+  font-weight: 400;
+  font-family: 'Pacifico', cursive;
+}
+.card-title-sub {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  font-family: sans-serif;
+  color: #999;
+  letter-spacing: 0;
+  margin-top: 1px;
 }
 
 .red-text {
@@ -1323,8 +1333,9 @@ input, select, textarea {
 }
 
 .tk-section-count {
-  font-size: 13px;
-  color: #888;
+  font-size: 12px;
+  color: #999;
+  font-style: italic;
 }
 
 /* =========================
@@ -1366,6 +1377,15 @@ input, select, textarea {
   color: #fff;
   border-bottom: 2px solid rgba(255, 255, 255, 0.7);
   padding-bottom: 1px;
+}
+
+.tk-sh-stt {
+  width: 24px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  text-align: center;
 }
 
 /* Mirror data cell dimensions exactly */
@@ -1440,6 +1460,13 @@ input, select, textarea {
 .tk-list-cell {
   font-size: 13px;
   text-align: left;
+}
+
+.tk-stt {
+  font-size: 10px;
+  color: #bbb;
+  font-weight: 600;
+  margin-right: 3px;
 }
 
 .tk-cell-ngay {

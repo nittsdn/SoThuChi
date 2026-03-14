@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sổ Thu Chi</title>
-    <link rel="stylesheet" href="style.css?v=3500034" />
+    <link rel="stylesheet" href="style.css?v=3500043" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Pacifico&display=swap" rel="stylesheet">
@@ -42,7 +42,8 @@
         <div id="tab-chi" class="tab-panel active">
             <div class="card card-chi">
                 <div class="card-header">
-                    <div class="card-title red-text">CHI</div>
+                    <div class="card-title red-text" id="chi-card-title">Chi</div>
+                    <span id="chi-date-sub" class="tk-section-count" style="flex:1; margin-left:10px;"></span>
                     <button class="btn-settings-icon" id="chi-settings-btn">⚙️</button>
                 </div>
 
@@ -90,7 +91,8 @@
         <div id="tab-thu" class="tab-panel">
             <div class="card card-thu">
                 <div class="card-header">
-                    <div class="card-title green-text">THU</div>
+                    <div class="card-title green-text" id="thu-card-title">Thu</div>
+                    <span id="thu-date-sub" class="tk-section-count" style="flex:1; margin-left:10px;"></span>
                     <button class="btn-settings-icon" id="thu-settings-btn">⚙️</button>
                 </div>
 
@@ -142,7 +144,7 @@
             <div id="tk-chi-section" style="display:none;">
                 <div class="card card-chi">
                     <div class="card-header">
-                        <div class="card-title red-text">CHI</div>
+                        <div class="card-title red-text">Chi</div>
                         <span id="tk-chi-count" class="tk-section-count"></span>
                     </div>
                     <div class="tk-sort-bar" id="tk-chi-sort-bar">
@@ -160,7 +162,7 @@
             <div id="tk-thu-section" style="display:none;">
                 <div class="card card-thu">
                     <div class="card-header">
-                        <div class="card-title green-text">THU</div>
+                        <div class="card-title green-text">Thu</div>
                         <span id="tk-thu-count" class="tk-section-count"></span>
                     </div>
                     <div class="tk-sort-bar" id="tk-thu-sort-bar">
@@ -177,7 +179,7 @@
             <!-- Form tổng kết -->
             <div class="card">
                 <div class="card-header">
-                    <div class="card-title blue-text">TỔNG KẾT</div>
+                    <div class="card-title blue-text">Tổng Kết</div>
                 </div>
 
                 <button class="btn-submit btn-blue" id="tk-start">Làm tổng kết</button>
@@ -286,7 +288,7 @@
             <!-- NGUỒN TIỀN -->
             <div class="card card-nt">
                 <div class="card-header">
-                    <div class="card-title" style="color:#ff9500;">NGUỒN TIỀN</div>
+                    <div class="card-title" style="color:#ff9500;">Nguồn Tiền</div>
                     <button class="btn-ql-load btn-ql-nt" id="ql-nt-load">Tải danh sách</button>
                 </div>
                 <div id="ql-nt-list"></div>
@@ -317,7 +319,7 @@
             <!-- LOẠI THU -->
             <div class="card card-lt">
                 <div class="card-header">
-                    <div class="card-title green-text">LOẠI THU</div>
+                    <div class="card-title green-text">Loại Thu</div>
                     <button class="btn-ql-load btn-ql-lt" id="ql-lt-load">Tải danh sách</button>
                 </div>
                 <div id="ql-lt-list"></div>
@@ -340,7 +342,7 @@
             <!-- MÔ TẢ CHI -->
             <div class="card card-mc">
                 <div class="card-header">
-                    <div class="card-title red-text">MÔ TẢ CHI</div>
+                    <div class="card-title red-text">Mô Tả Chi</div>
                     <button class="btn-ql-load btn-ql-mc" id="ql-mc-load">Tải danh sách</button>
                 </div>
                 <div id="ql-mc-list"></div>
@@ -455,7 +457,7 @@
         </div>
     </div>
 
-    <script src="cache.js?v=3500035"></script>
-    <script src="app.js?v=3500035"></script>
+    <script src="cache.js?v=3500043"></script>
+    <script src="app.js?v=3500043"></script>
 </body>
 </html>
