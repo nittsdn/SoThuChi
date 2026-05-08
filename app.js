@@ -256,10 +256,25 @@ async function postData(action, payload) {
     } else if (action === "insert_thu") {
       // thuStack lưu VNĐ trực tiếp (khác chiStack lưu nghìn)
       const soTien = parseFormulaNum(String(payload.so_tien));
-      const ltItem = loaiThuList.find(lt => lt.mo_ta_thu === payload.mo_ta_thu);
+      let ltItem = loaiThuList.find(lt => lt.mo_ta_thu === payload.mo_ta_thu);
+      // Nếu mô tả chưa có trong DB nhưng loai_thu được cung cấp → tự tạo mục mới
+      if (!ltItem && payload.loai_thu) {
+        const newId = "lt_" + Date.now();
+        const created = await supaPost("loai_thu", {
+          id_lt: newId, mo_ta_thu: payload.mo_ta_thu,
+          loai_thu: payload.loai_thu, icon: "", active: true, sort_order: 0
+        });
+        if (created && created.length > 0) {
+          ltItem = created[0];
+          loaiThuList.push(ltItem);
+          setCached(CACHE_KEYS.LOAI_THU, loaiThuList);
+          populateThuDropdowns();
+          renderModalCheckboxList('thu');
+        }
+      }
       if (!ltItem) {
         showLoading(false);
-        showToast("Không tìm thấy loại thu: " + payload.mo_ta_thu + "\nVui lòng chọn từ chip hoặc kiểm tra danh mục thu");
+        showToast("Không tìm thấy loại thu. Chọn từ danh sách hoặc thêm qua ⚙️");
         return null;
       }
       const row = {
@@ -661,6 +676,19 @@ function updateHeader(chiData, thuData) {
   
   document.querySelector('#header-balance').textContent = 
     `Số dư LT: ${formatVN(soDuLT)}`;
+}
+
+// Fetch lại cả 2 bảng và cập nhật header + globals cho TK tab
+async function refreshTxData() {
+  const [chiRaw, thuRaw] = await Promise.all([
+    fetchData('Chi_Tieu_2026'),
+    fetchData('Thu_2026')
+  ]);
+  const chiFiltered = chiRaw.filter(item => item.IDChi && item.IDChi.trim());
+  const thuFiltered = thuRaw.filter(item => item.IDThu && item.IDThu.trim());
+  window.tkChiList = chiFiltered;
+  window.tkThuList = thuFiltered;
+  updateHeader(chiFiltered, thuFiltered);
 }
 
 // ================= HEADER TOGGLE =================
@@ -1114,6 +1142,7 @@ function renderThuChips() {
         btn.classList.add("selected");
         thuDesc = chip;
         document.getElementById("thu-desc-input").value = "";
+        document.getElementById("thu-desc-dropdown").value = "";
         onThuDescChange(chip);
         applyThuNguon(chip);
       };
@@ -1155,6 +1184,25 @@ function populateThuDropdowns() {
       loaiSelect.appendChild(option);
     }
   });
+
+  // Dropdown mô tả còn lại (không nằm trong 8 chip)
+  const descDropdown = document.getElementById("thu-desc-dropdown");
+  if (descDropdown) {
+    const chipMoTa = new Set(
+      loaiThuList.filter(lt => lt.active && lt.sort_order >= 1 && lt.sort_order <= 8).map(lt => lt.mo_ta_thu)
+    );
+    descDropdown.innerHTML = '<option value="">-- Chọn mô tả khác --</option>';
+    loaiThuList
+      .filter(lt => lt.active && !chipMoTa.has(lt.mo_ta_thu))
+      .sort((a, b) => a.mo_ta_thu.localeCompare(b.mo_ta_thu, 'vi', { sensitivity: 'base' }))
+      .forEach(lt => {
+        const opt = document.createElement("option");
+        opt.value = lt.mo_ta_thu;
+        opt.textContent = lt.mo_ta_thu;
+        descDropdown.appendChild(opt);
+      });
+    descDropdown.style.display = descDropdown.options.length > 1 ? "" : "none";
+  }
 }
 
 const thuInput = document.getElementById("thu-input");
@@ -1336,10 +1384,24 @@ thuClearBtn.onclick = () => {
 
 document.getElementById("thu-desc-input").oninput = (e) => {
   thuDesc = e.target.value;
+  document.getElementById("thu-desc-dropdown").value = "";
   if (thuDesc) {
     document.querySelectorAll("#thu-chips .chip").forEach(c => c.classList.remove("selected"));
     onThuDescChange(thuDesc);
     applyThuNguon(thuDesc);
+  } else {
+    onThuDescChange("");
+  }
+};
+
+document.getElementById("thu-desc-dropdown").onchange = (e) => {
+  const val = e.target.value;
+  thuDesc = val;
+  document.getElementById("thu-desc-input").value = "";
+  document.querySelectorAll("#thu-chips .chip").forEach(c => c.classList.remove("selected"));
+  if (val) {
+    onThuDescChange(val);
+    applyThuNguon(val);
   } else {
     onThuDescChange("");
   }
@@ -1375,6 +1437,8 @@ function resetThuSection() {
   thuInput.value = "";
   document.getElementById("thu-display").textContent = "Tổng: 0";
   document.getElementById("thu-desc-input").value = "";
+  const descDropdown = document.getElementById("thu-desc-dropdown");
+  if (descDropdown) descDropdown.value = "";
   const loaiThuDropdown = document.getElementById("thu-loai");
   loaiThuDropdown.value = "";
   loaiThuDropdown.disabled = false;
@@ -1397,6 +1461,7 @@ document.getElementById("thu-submit").onclick = async () => {
     ngay:       formatDateAPI(thuDate),
     so_tien:    formula,
     mo_ta_thu:  thuDesc,
+    loai_thu:   thuLoai,
     nguon_tien: thuSource,
     ghi_chu:    document.getElementById("thu-ghichu-input").value.trim() || null
   };
@@ -1478,6 +1543,11 @@ async function loadTkData() {
   window.tkDetailList = tkDetail;
   window.tkChiList = chi.filter(item => item.IDChi && item.IDChi.trim());
   window.tkThuList = thu.filter(item => item.IDThu && item.IDThu.trim());
+
+  // Tính lại tkSoDuLT từ tổng thu - tổng chi (bao gồm cả Thu sau khoản Chi cuối)
+  const totalThu = thu.reduce((sum, r) => sum + (parseFloat(r["Thu"]) || 0), 0);
+  const totalChi = chi.reduce((sum, r) => sum + (parseFloat(r["Số tiền vnđ"]) || 0), 0);
+  tkSoDuLT = totalThu - totalChi;
 }
 
 document.getElementById("tk-start").onclick = async () => {
@@ -1648,8 +1718,7 @@ function renderChiChuaTK() {
       if (result && result.status === "success") {
         tkEditedChiIds.add(id);
         showToast("Đã cập nhật chi thành công", 3000);
-        const chi = await fetchData('Chi_Tieu_2026');
-        window.tkChiList = chi.filter(item => item.IDChi && item.IDChi.trim());
+        await refreshTxData();
         renderChiChuaTK();
         loadTongKet();
       }
@@ -1659,8 +1728,7 @@ function renderChiChuaTK() {
       const result = await postData("delete_chi", { idChi: id });
       if (result && result.status === "success") {
         showToast("Đã xoá khoản chi thành công", 3000);
-        const chi = await fetchData('Chi_Tieu_2026');
-        window.tkChiList = chi.filter(item => item.IDChi && item.IDChi.trim());
+        await refreshTxData();
         renderChiChuaTK();
         loadTongKet();
       }
@@ -1763,8 +1831,7 @@ function renderThuChuaTK() {
       if (result && result.status === "success") {
         tkEditedThuIds.add(id);
         showToast("Đã cập nhật thu thành công", 3000);
-        const thu = await fetchData('Thu_2026');
-        window.tkThuList = thu.filter(item => item.IDThu && item.IDThu.trim());
+        await refreshTxData();
         renderThuChuaTK();
         loadTongKet();
       }
@@ -1774,8 +1841,7 @@ function renderThuChuaTK() {
       const result = await postData("delete_thu", { idThu: id });
       if (result && result.status === "success") {
         showToast("Đã xoá khoản thu thành công", 3000);
-        const thu = await fetchData('Thu_2026');
-        window.tkThuList = thu.filter(item => item.IDThu && item.IDThu.trim());
+        await refreshTxData();
         renderThuChuaTK();
         loadTongKet();
       }
@@ -1934,7 +2000,19 @@ function loadTongKet() {
     if (savedLog) { tkTransferLogData = savedLog; renderTransferLog(); }
   } else {
     updateTransferPinUI(false);
-    if (!tkTransferLogData.length) renderTransferLog();
+    // Áp dụng lại log chuyển tiền chưa pin (tránh bị mất khi loadTongKet chạy lại)
+    if (tkTransferLogData.length) {
+      tkTransferLogData.forEach(e => {
+        if (tkInputs[e.from] !== undefined) tkInputs[e.from] -= e.amount;
+        if (tkInputs[e.to]   !== undefined) tkInputs[e.to]   += e.amount;
+      });
+      document.querySelectorAll(".tk-amount-input").forEach(input => {
+        const nguon = input.dataset.nguon;
+        if (nguon && tkInputs[nguon] !== undefined)
+          input.value = formatVN(tkInputs[nguon], 2);
+      });
+    }
+    renderTransferLog();
   }
   updateTransferIcons();
 }
@@ -2289,6 +2367,7 @@ async function handleModalChipToggle(type, desc, checked) {
   else                setCached(CACHE_KEYS.LOAI_THU, loaiThuList);
 
   type === 'chi' ? renderChiChips() : renderThuChips();
+  if (type === 'thu') populateThuDropdowns();
   updateModalSelectedCount(type);
 }
 
@@ -2318,6 +2397,9 @@ function showModal(type) {
     const iconSel = document.getElementById('chi-modal-new-icon');
     if (iconSel) iconSel.innerHTML = qlIconOptions();
   }
+  if (type === 'thu') {
+    populateModalDropdowns(type);
+  }
   
   console.log(`✅ Modal ${type} opened`);
 }
@@ -2346,6 +2428,17 @@ function populateModalDropdowns(type) {
       });
       
       console.log(`✅ Populated ${uniquePhanLoai.length} phân loại options (sorted A-Z)`);
+    }
+  }
+  if (type === 'thu') {
+    const thuLoaiSelect = document.getElementById('thu-modal-new-loai');
+    if (thuLoaiSelect) {
+      thuLoaiSelect.innerHTML = '<option value="">-- Chọn nhóm *--</option>';
+      QL_LOAI_THU.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = v;
+        thuLoaiSelect.appendChild(opt);
+      });
     }
   }
 }
@@ -2506,7 +2599,44 @@ function initModalEventListeners() {
       }
     };
   }
-  
+
+  // ---- THU MODAL: Thêm mô tả thu mới ----
+  const thuModalNewMota = document.getElementById('thu-modal-new-mota');
+  const thuModalNewLoai = document.getElementById('thu-modal-new-loai');
+  const thuModalAddBtn  = document.getElementById('thu-modal-add-btn');
+
+  function checkThuModalAddReady() {
+    if (!thuModalAddBtn) return;
+    thuModalAddBtn.disabled = !(thuModalNewMota && thuModalNewMota.value.trim() && thuModalNewLoai && thuModalNewLoai.value);
+  }
+  if (thuModalNewMota)  thuModalNewMota.oninput  = checkThuModalAddReady;
+  if (thuModalNewLoai)  thuModalNewLoai.onchange = checkThuModalAddReady;
+
+  if (thuModalAddBtn) {
+    thuModalAddBtn.onclick = async () => {
+      const name = thuModalNewMota.value.trim();
+      const loai = thuModalNewLoai.value;
+      if (!name || !loai) { showToast('Vui lòng nhập đầy đủ thông tin'); return; }
+      if (loaiThuList.find(lt => lt.mo_ta_thu.toLowerCase() === name.toLowerCase())) {
+        showToast('Mô tả này đã tồn tại'); return;
+      }
+      const result = await postData('insert_loai_thu', { mo_ta_thu: name, loai_thu: loai, icon: '' });
+      if (result && result.status === 'success') {
+        showToast(`Đã thêm mô tả thu "${name}"`, 3000);
+        clearCache(CACHE_KEYS.LOAI_THU);
+        const lt = await fetchData('loai_thu');
+        loaiThuList = lt || [];
+        setCached(CACHE_KEYS.LOAI_THU, loaiThuList);
+        thuModalNewMota.value = '';
+        thuModalNewLoai.value = '';
+        thuModalAddBtn.disabled = true;
+        renderThuChips();
+        populateThuDropdowns();
+        renderModalCheckboxList('thu');
+      }
+    };
+  }
+
   const chiResetBtn = document.getElementById('chi-modal-reset');
   const thuResetBtn = document.getElementById('thu-modal-reset');
   
@@ -2692,6 +2822,14 @@ async function loadQLLoaiThu() {
     { headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY } }
   ).then(r => r.json()).catch(() => []);
   showLoading(false);
+  // Cập nhật loaiThuList và cache để tab Thu dùng dữ liệu mới nhất
+  if (data && data.length) {
+    loaiThuList = data;
+    setCached(CACHE_KEYS.LOAI_THU, data);
+    renderThuChips();
+    populateThuDropdowns();
+    renderModalCheckboxList('thu');
+  }
   renderQLLoaiThu(data);
 }
 

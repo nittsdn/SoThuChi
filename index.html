@@ -118,11 +118,16 @@
 
                 <div class="input-group-block ig-orange">
                     <div class="chip-grid" id="thu-chips"></div>
-                    <input class="input-std" id="thu-desc-input" placeholder="Mô tả thu">
-                    <select class="input-std" id="thu-loai">
-                        <option value="">-- Loại thu --</option>
+                    <select class="input-std" id="thu-desc-dropdown" style="display:none;">
+                        <option value="">-- Chọn mô tả khác --</option>
                     </select>
-                    <input class="input-std" id="thu-ghichu-input" placeholder="Ghi chú (cho phép rỗng)">
+                    <div class="thu-manual-block">
+                        <input class="input-std" id="thu-desc-input" placeholder="Mô tả tùy ý (không có trong danh sách)">
+                        <select class="input-std" id="thu-loai">
+                            <option value="">-- Loại thu --</option>
+                        </select>
+                        <input class="input-std" id="thu-ghichu-input" placeholder="Ghi chú (cho phép rỗng)">
+                    </div>
                 </div>
 
                 <div class="input-group-block ig-green">
@@ -449,9 +454,18 @@
 
                     <div class="dropdown-content" id="thu-dropdown-content">
                         <div class="checkbox-list" id="thu-modal-checkbox-list">
-                            <!-- Dynamically populated from Thu_2026 -->
+                            <!-- Dynamically populated -->
                         </div>
                     </div>
+                </div>
+
+                <div class="modal-section">
+                    <h4>➕ Thêm mô tả thu mới</h4>
+                    <input type="text" id="thu-modal-new-mota" class="input-std" placeholder="Mô tả thu *">
+                    <select id="thu-modal-new-loai" class="input-std">
+                        <option value="">-- Chọn nhóm *--</option>
+                    </select>
+                    <button id="thu-modal-add-btn" class="btn-submit btn-blue" disabled>Thêm</button>
                 </div>
             </div>
         </div>

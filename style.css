@@ -475,6 +475,20 @@ input, select, button {
 .ig-purple { background: #f3e5f5; }
 .ig-blue   { background: #DCF2FF; }
 .ig-orange { background: #f3e5f5; }
+
+/* Sub-block nhập thủ công trong tab Thu */
+.thu-manual-block {
+  background: #e8d5f0;
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.thu-manual-block .input-std {
+  margin-bottom: 0;
+}
 .ig-green  { background: #D1F3E2; }
 .ig-red    { background: #fff9c4; }
 .ig-indigo { background: #DCF2FF; }
