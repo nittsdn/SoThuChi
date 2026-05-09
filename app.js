@@ -148,12 +148,16 @@ const SHEET_MAP = {
   "tk_session":    "tk_session"
 };
 
-const SUPA_HEADERS = {
-  "apikey":        SUPA_KEY,
-  "Authorization": "Bearer " + SUPA_KEY,
-  "Content-Type":  "application/json",
-  "Prefer":        "return=representation"
-};
+function getSupaHeaders() {
+  const token = (typeof currentAccessToken !== 'undefined' && currentAccessToken)
+    ? currentAccessToken : SUPA_KEY;
+  return {
+    "apikey":        SUPA_KEY,
+    "Authorization": "Bearer " + token,
+    "Content-Type":  "application/json",
+    "Prefer":        "return=representation"
+  };
+}
 
 // Parse công thức "=4+0.5" hoặc số thuần → NUMERIC (đơn vị nghìn)
 function parseFormulaNum(val) {
@@ -169,7 +173,7 @@ async function fetchData(sheet) {
     showLoading(true);
     console.log(`fetchData: GET /rest/v1/${endpoint}`);
     const res = await fetch(`${SUPA_URL}/rest/v1/${endpoint}?select=*`, {
-      headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY }
+      headers: getSupaHeaders()
     });
     showLoading(false);
     if (!res.ok) {
@@ -192,7 +196,7 @@ async function fetchData(sheet) {
 async function supaPost(table, body) {
   const res = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
     method: "POST",
-    headers: SUPA_HEADERS,
+    headers: getSupaHeaders(),
     body: JSON.stringify(body)
   });
   if (!res.ok) {
@@ -206,7 +210,7 @@ async function supaPost(table, body) {
 async function supaPatch(table, filter, body) {
   const res = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, {
     method: "PATCH",
-    headers: SUPA_HEADERS,
+    headers: getSupaHeaders(),
     body: JSON.stringify(body)
   });
   if (!res.ok) {
@@ -220,7 +224,7 @@ async function supaPatch(table, filter, body) {
 async function supaDelete(table, filter) {
   const res = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`, {
     method: "DELETE",
-    headers: { ...SUPA_HEADERS, Prefer: "return=minimal" }
+    headers: { ...getSupaHeaders(), Prefer: "return=minimal" }
   });
   if (!res.ok) {
     const err = await res.text();
@@ -352,7 +356,7 @@ async function postData(action, payload) {
       // Tìm id_plc theo tên
       const plRes = await fetch(
         `${SUPA_URL}/rest/v1/phan_loai_chi?ten_phanloai=eq.${encodeURIComponent(payload.phan_loai)}&select=id_plc`,
-        { headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY } }
+        { headers: getSupaHeaders() }
       );
       const plData = await plRes.json();
       if (!plData.length) {
@@ -413,7 +417,7 @@ async function postData(action, payload) {
       if (payload.phan_loai) {
         const plRes = await fetch(
           `${SUPA_URL}/rest/v1/phan_loai_chi?ten_phanloai=eq.${encodeURIComponent(payload.phan_loai)}&select=id_plc`,
-          { headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY } }
+          { headers: getSupaHeaders() }
         );
         const plData = await plRes.json();
         if (!plData.length) {
@@ -2735,7 +2739,7 @@ async function loadQLNguonTien() {
   showLoading(true);
   const data = await fetch(
     `${SUPA_URL}/rest/v1/nguon_tien?select=*&order=sort_order.asc,nguon_tien.asc`,
-    { headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY } }
+    { headers: getSupaHeaders() }
   ).then(r => r.json()).catch(() => []);
   showLoading(false);
   renderQLNguonTien(data);
@@ -2819,7 +2823,7 @@ async function loadQLLoaiThu() {
   showLoading(true);
   const data = await fetch(
     `${SUPA_URL}/rest/v1/loai_thu?select=*&order=loai_thu.asc,mo_ta_thu.asc`,
-    { headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY } }
+    { headers: getSupaHeaders() }
   ).then(r => r.json()).catch(() => []);
   showLoading(false);
   // Cập nhật loaiThuList và cache để tab Thu dùng dữ liệu mới nhất
@@ -3116,7 +3120,7 @@ function initTabBar() {
 }
 
 // ================= INIT =================
-window.onload = async () => {
+async function initApp() {
   console.log('🚀 App starting...');
   
   renderChiDate();
@@ -3197,7 +3201,7 @@ window.onload = async () => {
   });
 
   console.log('✅ App initialized successfully');
-};
+}
 
 // ================= BÁO CÁO =================
 let bcChartThang = null;

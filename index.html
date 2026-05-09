@@ -9,6 +9,46 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Pacifico&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <style>
+        .screen { display: none; }
+        #screen-login {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+        }
+        .login-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            width: 90%;
+            max-width: 360px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .login-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            text-align: center;
+            color: #1a1a2e;
+            margin-bottom: 4px;
+        }
+        .btn-logout {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            opacity: 0.65;
+            line-height: 1;
+        }
+        .btn-logout:hover { opacity: 1; background: rgba(0,0,0,0.06); }
+    </style>
 </head>
 <body>
 
@@ -19,6 +59,25 @@
     <div id="loading" class="loading">
         <div class="spinner"></div>
     </div>
+
+    <!-- ================= LOGIN SCREEN ================= -->
+    <div id="screen-login" class="screen" style="display:none;">
+        <div class="login-card">
+            <div class="login-title">📒 Sổ Thu Chi</div>
+            <input id="inp-email" type="email" class="input-std" placeholder="Email" autocomplete="email"
+                onkeydown="if(event.key==='Enter')document.getElementById('inp-password').focus()" />
+            <input id="inp-password" type="password" class="input-std" placeholder="Mật khẩu" autocomplete="current-password"
+                onkeydown="if(event.key==='Enter')document.getElementById('btn-login').click()" />
+            <button id="btn-login" class="btn-submit btn-blue" onclick="signInWithEmail(
+                document.getElementById('inp-email').value,
+                document.getElementById('inp-password').value
+            )">&#272;ăng nhập</button>
+            <p id="login-error" style="color:red;text-align:center;margin:4px 0 0 0;font-size:0.9em;min-height:1.2em;"></p>
+        </div>
+    </div>
+
+    <!-- ================= APP SCREEN ================= -->
+    <div id="screen-app" class="screen" style="display:none;">
 
     <!-- ================= HEADER ================= -->
     <div class="header">
@@ -31,6 +90,7 @@
             <div class="header-balance-wrap">
                 <div class="balance-tag" id="header-balance">Số dư LT: 0</div>
             </div>
+            <button class="btn-logout" onclick="signOut()" title="Đăng xuất">⏏</button>
         </div>
         <div class="header-notify" id="header-notify"></div>
     </div>
@@ -471,7 +531,12 @@
         </div>
     </div>
 
-    <script src="cache.js?v=3500043"></script>
-    <script src="app.js?v=3500043"></script>
+    </div><!-- /screen-app -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js?v=3500044"></script>
+    <script src="cache.js?v=3500044"></script>
+    <script src="app.js?v=3500044"></script>
+    <script src="auth.js?v=3500044"></script>
 </body>
 </html>
