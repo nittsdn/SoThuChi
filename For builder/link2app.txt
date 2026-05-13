@@ -1,0 +1,46 @@
+App sổ thu chi cần đúng 3 thứ để kết nối DB nhà trọ:
+
+---
+
+### 1. Supabase credentials (DB nhà trọ)
+```js
+const NHATRO_URL = 'https://fgprqbimcuzxsoquqlpr.supabase.co';
+const NHATRO_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZncHJxYmltY3V6eHNvcXVxbHByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NjU4MjEsImV4cCI6MjA4ODQ0MTgyMX0.lFdQ3FQ71gvgcXGuBKqJPyvlw0Ma5AaFXvVNMoVUg7U';
+```
+
+### 2. Khởi tạo client riêng (tách khỏi client STC)
+```js
+const dbNhaTro = supabase.createClient(NHATRO_URL, NHATRO_KEY);
+```
+
+### 3. RLS — đây là điểm quan trọng
+
+DB nhà trọ bật RLS, yêu cầu user đã đăng nhập có role `'user'` hoặc `'admin'`. Có 2 hướng:
+
+| Hướng | Mô tả | Phù hợp |
+|---|---|---|
+| **A. Đăng nhập Supabase nhà trọ** | Dùng `dbNhaTro.auth.signInWithPassword()` với tài khoản `nittsdn@gmail.com` | App cá nhân, đơn giản |
+| **B. Dùng service_role key** | Bypass RLS hoàn toàn, không cần auth | Chỉ dùng phía server, **không nên để lộ trong frontend** |
+
+→ **Khuyến nghị hướng A**: đăng nhập 1 lần, lưu session, sau đó mọi query đều qua được.
+
+---
+
+### Query cần dùng
+
+```js
+// Lấy bill đã thu theo tháng
+dbNhaTro.from('bills')
+  .select('id, total, paid_at, month, bill_type, rooms(code, bank_account_id)')
+  .eq('is_paid', true)
+  .eq('bill_type', 'monthly')
+  .eq('month', '2026-05-01')
+
+// Lấy danh sách TK ngân hàng (để cấu hình mapping)
+dbNhaTro.from('bank_accounts')
+  .select('id, label, bank, account_number, account_name')
+```
+
+---
+
+Bạn cần cho tôi biết **sổ thu chi đang build bằng gì** (HTML/JS thuần như nhà trọ, hay framework khác) để tôi hỗ trợ đúng cách tích hợp.

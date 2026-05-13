@@ -1982,6 +1982,180 @@ input, select, textarea {
 .ql-row-mc .tk-list-edit { background: rgba(217,83,79,0.05); border-top: 1px dashed rgba(217,83,79,0.25); }
 
 /* Colored group headers */
+
+/* =========================
+   CARD NHÀ TRỌ SYNC
+========================= */
+.card-nhatro {
+  border: 2px solid rgba(0, 137, 123, 0.3);
+  border-left: 4px solid #00897b;
+  margin-top: 12px;
+}
+.nhatro-title-text {
+  font-weight: 700;
+  color: #00695c;
+  font-size: 1.05rem;
+}
+
+/* Config panel */
+.ig-nhatro-config {
+  background: #e0f2f1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.nhatro-bank-sel,
+.nhatro-nguon-sel {
+  border: 1px solid #00897b !important;
+}
+
+/* Month selector */
+.ig-nhatro-month {
+  background: #e0f2f1;
+}
+.nhatro-month-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nhatro-month-label {
+  font-weight: 600;
+  color: #004d40;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+.nhatro-month-field {
+  flex: 1;
+  border: 1px solid #00897b !important;
+}
+.btn-nhatro-load {
+  background: linear-gradient(135deg, #4db6ac 0%, #00897b 100%);
+  color: #fff;
+  border: none;
+}
+
+/* Bill list */
+.nhatro-bill-header {
+  display: grid;
+  grid-template-columns: 46px 1fr auto auto;
+  gap: 4px;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #78909c;
+  border-bottom: 1px solid #b2dfdb;
+  margin-bottom: 4px;
+}
+.nhatro-bill-row {
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border-left: 4px solid #ccc;
+}
+.nhatro-row-added  { background: #e8f5e9; border-left-color: #43a047; }
+.nhatro-row-paid   { background: #e0f7fa; border-left-color: #00acc1; }
+.nhatro-row-sent   { background: #fffde7; border-left-color: #fbc02d; }
+.nhatro-row-unsent { background: #f5f5f5; border-left-color: #bdbdbd; opacity: 0.65; }
+
+.nhatro-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nhatro-room-code {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #004d40;
+  min-width: 36px;
+}
+.nhatro-amount {
+  flex: 1;
+  font-weight: 600;
+  color: #1a237e;
+  font-size: 0.92rem;
+}
+.nhatro-status-cell { min-width: 72px; }
+.nhatro-action-cell { min-width: 56px; text-align: right; }
+
+.nhatro-row-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+}
+.nhatro-addinfo {
+  font-size: 0.78rem;
+  color: #546e7a;
+  flex: 1;
+}
+.nhatro-nguon-tag {
+  font-size: 0.73rem;
+  background: #b2dfdb;
+  color: #004d40;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+
+/* Status badges */
+.nhatro-badge {
+  font-size: 0.74rem;
+  border-radius: 8px;
+  padding: 2px 7px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.nhatro-badge-added  { background: #c8e6c9; color: #1b5e20; }
+.nhatro-badge-paid   { background: #b2ebf2; color: #006064; }
+.nhatro-badge-sent   { background: #fff9c4; color: #827717; }
+.nhatro-badge-unsent { background: #eeeeee; color: #757575; }
+
+/* Checkbox label */
+.nhatro-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #00695c;
+  background: #e0f2f1;
+  border: 1px solid #00897b;
+  border-radius: 8px;
+  padding: 3px 8px;
+  user-select: none;
+}
+.nhatro-check-label input { accent-color: #00897b; }
+
+/* Submit button */
+.btn-nhatro-submit {
+  background: linear-gradient(135deg, #26a69a 0%, #00695c 100%);
+  color: #fff;
+  border: none;
+  padding: 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 1rem;
+  width: 100%;
+  margin-top: 8px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.btn-nhatro-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Empty state */
+.nhatro-empty {
+  text-align: center;
+  color: #90a4ae;
+  font-size: 0.86rem;
+  padding: 16px 0;
+  font-style: italic;
+}
 .ql-group-nt {
   color: #c47400;
   background: rgba(255,149,0,0.09);

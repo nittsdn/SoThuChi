@@ -3183,6 +3183,7 @@ async function initApp() {
   initTabBar();
   initTKSortBars();
   initQLTab();
+  initNhatroCard();
 
   // Fetch tk_detail để lấy ngày TK cuối hiển thị trên header Chi/Thu
   fetchData('tk_detail').then(tkDetail => {
@@ -3736,3 +3737,363 @@ async function renderBaoCao() {
   await initBcTab();
 }
 
+// ================= NHÀ TRỌ SYNC =================
+const NT_URL = "https://fgprqbimcuzxsoquqlpr.supabase.co";
+const NT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZncHJxYmltY3V6eHNvcXVxbHByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NjU4MjEsImV4cCI6MjA4ODQ0MTgyMX0.lFdQ3FQ71gvgcXGuBKqJPyvlw0Ma5AaFXvVNMoVUg7U";
+const NT_HEADERS = {
+  "apikey": NT_KEY,
+  "Authorization": "Bearer " + NT_KEY,
+  "Content-Type": "application/json"
+};
+
+let nhatroIdLt = null;
+let nhatroBankAccounts = [];
+let nhatroRoomsByBank = {};   // bankId -> [{id, code}]
+let nhatroBills = [];
+let nhatroChecked = new Set();
+let nhatroAdded = new Set();
+let nhatroSelectedBankId = null;
+let nhatroSelectedNguonTien = "";
+
+async function ntFetch(path) {
+  try {
+    const res = await fetch(`${NT_URL}/rest/v1/${path}`, { headers: NT_HEADERS });
+    if (!res.ok) { console.error('ntFetch error:', res.status, await res.text()); return []; }
+    return await res.json();
+  } catch(e) { console.error('ntFetch network error:', e); return []; }
+}
+
+async function getNhatroIdLt() {
+  if (nhatroIdLt) return nhatroIdLt;
+  const res = await fetch(
+    `${SUPA_URL}/rest/v1/loai_thu?mo_ta_thu=eq.Nh%C3%A0%20tr%E1%BB%8D&select=id_lt`,
+    { headers: getSupaHeaders() }
+  );
+  if (res.ok) {
+    const data = await res.json();
+    if (data && data.length > 0) nhatroIdLt = data[0].id_lt;
+  }
+  return nhatroIdLt;
+}
+
+// Ghi nhớ liên kết bankAccountId → nguonTien
+function getNhatroBankNguonMap() {
+  try { return JSON.parse(localStorage.getItem('nhatroBankNguonMap') || '{}'); }
+  catch { return {}; }
+}
+function saveNhatroBankNguon(bankId, nguonTien) {
+  const map = getNhatroBankNguonMap();
+  map[String(bankId)] = nguonTien;
+  localStorage.setItem('nhatroBankNguonMap', JSON.stringify(map));
+}
+function getRememberedNguon(bankId) {
+  return getNhatroBankNguonMap()[String(bankId)] || "";
+}
+
+async function initNhatroCard() {
+  const [bankAccounts, allRooms] = await Promise.all([
+    ntFetch('bank_accounts?select=id,label,bank,account_number,account_name'),
+    ntFetch('rooms?select=id,code,bank_account_id')
+  ]);
+  nhatroBankAccounts = bankAccounts || [];
+
+  // Index rooms by bank_account_id
+  nhatroRoomsByBank = {};
+  (allRooms || []).forEach(r => {
+    const key = String(r.bank_account_id);
+    if (!nhatroRoomsByBank[key]) nhatroRoomsByBank[key] = [];
+    nhatroRoomsByBank[key].push(r);
+  });
+  console.log('[nhatro] rooms by bank:', nhatroRoomsByBank);
+
+  const now = new Date();
+  document.getElementById('nhatro-month-input').value =
+    `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  // Populate bank account dropdown
+  const bankSel = document.getElementById('nhatro-bank-select');
+  nhatroBankAccounts.forEach(ba => {
+    const opt = document.createElement('option');
+    opt.value = ba.id;
+    opt.textContent = `${ba.bank} — ${ba.account_number}${ba.label ? ' (' + ba.label + ')' : ''}`;
+    bankSel.appendChild(opt);
+  });
+
+  // Restore remembered bank selection
+  const lastBankId = localStorage.getItem('nhatroLastBankId');
+  if (lastBankId && bankSel.querySelector(`option[value="${lastBankId}"]`)) {
+    bankSel.value = lastBankId;
+    nhatroSelectedBankId = lastBankId;
+    showNhatroNguonSelect(lastBankId);
+  }
+
+  bankSel.addEventListener('change', e => {
+    const bankId = e.target.value;
+    nhatroSelectedBankId = bankId || null;
+    nhatroBills = [];
+    nhatroChecked = new Set();
+    nhatroAdded = new Set();
+    document.getElementById('nhatro-bill-list').innerHTML = '';
+    document.getElementById('nhatro-submit').style.display = 'none';
+    if (bankId) {
+      localStorage.setItem('nhatroLastBankId', bankId);
+      showNhatroNguonSelect(bankId);
+    } else {
+      document.getElementById('nhatro-nguon-select').style.display = 'none';
+    }
+  });
+
+  document.getElementById('nhatro-nguon-select').addEventListener('change', e => {
+    nhatroSelectedNguonTien = e.target.value;
+    if (nhatroSelectedBankId && nhatroSelectedNguonTien) {
+      saveNhatroBankNguon(nhatroSelectedBankId, nhatroSelectedNguonTien);
+    }
+  });
+
+  document.getElementById('nhatro-load-btn').onclick = loadNhatroBills;
+  document.getElementById('nhatro-submit').onclick = submitNhatroThu;
+}
+
+function showNhatroNguonSelect(bankId) {
+  const nguonSel = document.getElementById('nhatro-nguon-select');
+  nguonSel.style.display = 'block';
+  nguonSel.innerHTML = '<option value="">-- Nguồn tiền liên kết --</option>';
+  nguonTienList
+    .filter(n => n.active)
+    .sort((a, b) => a.nguon_tien.localeCompare(b.nguon_tien, 'vi'))
+    .forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n.nguon_tien;
+      opt.textContent = n.nguon_tien;
+      nguonSel.appendChild(opt);
+    });
+  const remembered = getRememberedNguon(bankId);
+  if (remembered && nguonSel.querySelector(`option[value="${remembered}"]`)) {
+    nguonSel.value = remembered;
+    nhatroSelectedNguonTien = remembered;
+  } else {
+    nhatroSelectedNguonTien = "";
+  }
+}
+
+async function loadNhatroBills() {
+  if (!nhatroSelectedBankId) { showToast('Vui lòng chọn TK ngân hàng'); return; }
+  if (!nhatroSelectedNguonTien) { showToast('Vui lòng chọn Nguồn tiền liên kết'); return; }
+
+  const monthVal = document.getElementById('nhatro-month-input').value;
+  if (!monthVal) { showToast('Vui lòng chọn tháng'); return; }
+
+  const [year, month] = monthVal.split('-');
+  const monthStr = `${year}-${month}-01`;
+
+  showLoading(true);
+
+  // Lấy rooms thuộc TK này (đã index sẵn trong initNhatroCard)
+  const bankRooms = nhatroRoomsByBank[String(nhatroSelectedBankId)] || [];
+  if (!bankRooms.length) {
+    showLoading(false);
+    nhatroBills = [];
+    renderNhatroBillList('no-rooms');
+    return;
+  }
+  const roomIds = bankRooms.map(r => r.id);
+  const roomMap = Object.fromEntries(bankRooms.map(r => [String(r.id), r]));
+
+  // Fetch bills theo room_id (không join — tránh phụ thuộc rooms RLS policy)
+  const bills = await ntFetch(
+    `bills?select=id,room_id,month,bill_type,total,is_paid,is_sent,paid_at` +
+    `&month=eq.${monthStr}&room_id=in.(${roomIds.join(',')})`
+  );
+  console.log('[nhatro] raw bills:', bills);
+
+  nhatroBills = (bills || [])
+    .map(b => ({ ...b, rooms: roomMap[String(b.room_id)] || null }))
+    .filter(b => b.rooms)
+    .sort((a, b) => (a.rooms.code || '').localeCompare(b.rooms.code || ''));
+
+  nhatroAdded = new Set();
+  nhatroChecked = new Set();
+
+  if (nhatroBills.length > 0) {
+    const expectedIds = nhatroBills.map(b => `nhatro_${b.id}`);
+    const thuRes = await fetch(
+      `${SUPA_URL}/rest/v1/thu?id_thu=in.(${expectedIds.join(',')})&select=id_thu`,
+      { headers: getSupaHeaders() }
+    );
+    if (thuRes.ok) {
+      const thuData = await thuRes.json();
+      thuData.forEach(t => nhatroAdded.add(t.id_thu));
+    }
+  }
+
+  showLoading(false);
+  renderNhatroBillList();
+}
+
+function buildNhatroAddInfo(bill, room, month, year) {
+  if (bill.bill_type === 'monthly')  return `P${room.code} Thang ${parseInt(month)} ${year}`;
+  if (bill.bill_type === 'checkout') return `P${room.code} tra phong`;
+  if (bill.bill_type === 'checkin')  return `P${room.code} nhan phong`;
+  return `P${room.code}`;
+}
+
+function renderNhatroBillList(reason) {
+  const container = document.getElementById('nhatro-bill-list');
+  container.innerHTML = '';
+
+  if (!nhatroBills.length) {
+    let msg = 'Không có bill trong tháng này cho TK đã chọn';
+    if (reason === 'no-rooms') msg = '⚠ Không tìm được phòng nào cho TK này (kiểm tra DB)';
+    container.innerHTML = `<div class="nhatro-empty">${msg}</div>`;
+    document.getElementById('nhatro-submit').style.display = 'none';
+    return;
+  }
+
+  const monthVal = document.getElementById('nhatro-month-input').value;
+  const [year, month] = monthVal.split('-');
+
+  const header = document.createElement('div');
+  header.className = 'nhatro-bill-header';
+  header.innerHTML = '<span>Phòng</span><span>Số tiền</span><span>Trạng thái</span><span></span>';
+  container.appendChild(header);
+
+  // Nguồn tiền chung cho tất cả bill của TK này
+  const nguonTien = nhatroSelectedNguonTien;
+  let hasPaidUnAdded = false;
+
+  nhatroBills.forEach(bill => {
+    const room = bill.rooms || {};
+    const addedKey = `nhatro_${bill.id}`;
+    const isAdded   = nhatroAdded.has(addedKey);
+    const isChecked = nhatroChecked.has(String(bill.id));
+    const addInfo   = buildNhatroAddInfo(bill, room, month, year);
+
+    if (bill.is_paid && !isAdded) hasPaidUnAdded = true;
+
+    let statusClass, statusBadge, actionHtml;
+    if (isAdded) {
+      statusClass = 'nhatro-row-added';
+      statusBadge = '<span class="nhatro-badge nhatro-badge-added">✓ Đã ghi</span>';
+      actionHtml  = '';
+    } else if (bill.is_paid) {
+      statusClass = 'nhatro-row-paid';
+      statusBadge = '<span class="nhatro-badge nhatro-badge-paid">✓ Đã thu</span>';
+      actionHtml  = `<label class="nhatro-check-label"><input type="checkbox" class="nhatro-check" data-bill-id="${bill.id}"${isChecked ? ' checked' : ''}><span>Thêm</span></label>`;
+    } else if (bill.is_sent) {
+      statusClass = 'nhatro-row-sent';
+      statusBadge = '<span class="nhatro-badge nhatro-badge-sent">📤 Đã gửi</span>';
+      actionHtml  = '';
+    } else {
+      statusClass = 'nhatro-row-unsent';
+      statusBadge = '<span class="nhatro-badge nhatro-badge-unsent">○ Chưa gửi</span>';
+      actionHtml  = '';
+    }
+
+    const row = document.createElement('div');
+    row.className = `nhatro-bill-row ${statusClass}`;
+    row.innerHTML = `
+      <div class="nhatro-row-top">
+        <span class="nhatro-room-code">P${room.code}</span>
+        <span class="nhatro-amount">${formatVN(bill.total)}đ</span>
+        <span class="nhatro-status-cell">${statusBadge}</span>
+        <span class="nhatro-action-cell">${actionHtml}</span>
+      </div>
+      <div class="nhatro-row-bottom">
+        <span class="nhatro-addinfo">${addInfo}</span>
+        <span class="nhatro-nguon-tag">${nguonTien}</span>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+
+  container.querySelectorAll('.nhatro-check').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const id = e.target.dataset.billId;
+      if (e.target.checked) nhatroChecked.add(id);
+      else nhatroChecked.delete(id);
+      updateNhatroSubmitBtn();
+    });
+  });
+
+  const submitBtn = document.getElementById('nhatro-submit');
+  submitBtn.style.display = hasPaidUnAdded ? 'block' : 'none';
+  updateNhatroSubmitBtn();
+}
+
+function updateNhatroSubmitBtn() {
+  const btn = document.getElementById('nhatro-submit');
+  const count = nhatroChecked.size;
+  btn.disabled = count === 0;
+  btn.textContent = count > 0 ? `📥 Thêm ${count} khoản vào Thu` : '📥 Thêm vào Thu';
+}
+
+async function submitNhatroThu() {
+  if (!nhatroChecked.size) return;
+  if (!nhatroSelectedNguonTien) { showToast('Vui lòng chọn Nguồn tiền liên kết'); return; }
+
+  const id_lt = await getNhatroIdLt();
+  if (!id_lt) {
+    showToast('Không tìm thấy loại thu "Nhà trọ" trong sổ thu chi');
+    return;
+  }
+
+  const monthVal = document.getElementById('nhatro-month-input').value;
+  const [year, month] = monthVal.split('-');
+
+  showLoading(true);
+  let successCount = 0;
+  const errors = [];
+
+  for (const billId of [...nhatroChecked]) {
+    const bill = nhatroBills.find(b => String(b.id) === String(billId));
+    if (!bill) continue;
+
+    const room = bill.rooms || {};
+    const addInfo = buildNhatroAddInfo(bill, room, month, year);
+    const ngay = bill.paid_at
+      ? bill.paid_at.slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+
+    const body = {
+      id_thu:     `nhatro_${bill.id}`,
+      id_lt:      id_lt,
+      so_tien:    bill.total,
+      ngay:       ngay,
+      nguon_tien: nhatroSelectedNguonTien,
+      ghi_chu:    addInfo
+    };
+
+    const res = await fetch(`${SUPA_URL}/rest/v1/thu`, {
+      method: "POST",
+      headers: getSupaHeaders(),
+      body: JSON.stringify(body)
+    });
+
+    if (res.ok || res.status === 409) {
+      nhatroAdded.add(`nhatro_${bill.id}`);
+      nhatroChecked.delete(billId);
+      successCount++;
+    } else {
+      const errText = await res.text();
+      errors.push(`P${room.code}: lỗi ${res.status}`);
+      console.error(`submitNhatroThu P${room.code}:`, errText);
+    }
+  }
+
+  showLoading(false);
+
+  if (successCount > 0) {
+    showToast(`✓ Đã thêm ${successCount} khoản thu nhà trọ`, 3000);
+    const [chiDataRaw, thuDataRaw] = await Promise.all([
+      fetchData("Chi_Tieu_2026"),
+      fetchData("Thu_2026")
+    ]);
+    const chiData = chiDataRaw.filter(i => i.IDChi && i.IDChi.trim());
+    const thuData = thuDataRaw.filter(i => i.IDThu && i.IDThu.trim());
+    updateHeader(chiData, thuData);
+    thuList = thuData || [];
+  }
+  if (errors.length) showToast('⚠ ' + errors.join(' | '), 5000);
+
+  renderNhatroBillList();
+}

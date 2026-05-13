@@ -200,6 +200,40 @@
                     Thêm thu
                 </button>
             </div>
+
+            <!-- CARD: NHÀ TRỌ SYNC -->
+            <div class="card card-nhatro">
+                <div class="card-header">
+                    <div class="card-title nhatro-title-text">🏠 Nhà Trọ</div>
+                </div>
+
+                <!-- Chọn TK + Nguồn tiền liên kết -->
+                <div class="input-group-block ig-nhatro-config">
+                    <select class="input-std nhatro-bank-sel" id="nhatro-bank-select">
+                        <option value="">-- Chọn TK ngân hàng --</option>
+                    </select>
+                    <select class="input-std nhatro-nguon-sel" id="nhatro-nguon-select" style="display:none;">
+                        <option value="">-- Nguồn tiền liên kết --</option>
+                    </select>
+                </div>
+
+                <!-- Chọn tháng + load -->
+                <div class="input-group-block ig-nhatro-month">
+                    <div class="nhatro-month-row">
+                        <span class="nhatro-month-label">Tháng</span>
+                        <input type="month" id="nhatro-month-input" class="input-std nhatro-month-field">
+                        <button class="btn-square btn-nhatro-load" id="nhatro-load-btn">🔄</button>
+                    </div>
+                </div>
+
+                <!-- Danh sách bill -->
+                <div id="nhatro-bill-list"></div>
+
+                <!-- Nút thêm vào thu -->
+                <button class="btn-submit btn-nhatro-submit" id="nhatro-submit" style="display:none;" disabled>
+                    📥 Thêm vào Thu
+                </button>
+            </div>
         </div>
 
         <!-- TAB: TỔNG KẾT -->
