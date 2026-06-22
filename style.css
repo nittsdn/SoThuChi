@@ -49,6 +49,14 @@
   flex-shrink: 0;
   line-height: 1;
 }
+.tk-badge-saved {
+  font-size: 11px;
+  color: #1b7e3a;
+  background: #e6f7ec;
+  border-radius: 6px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
 .tk-tamtinh-row {
   display: flex;
   align-items: center;
@@ -68,6 +76,39 @@
   font-weight: bold;
   color: #888;
   font-size: 12px;
+}
+.tk-save-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 3px;
+}
+.tk-save-btn {
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 6px;
+  border: 1px solid #bbb;
+  background: #f5f5f5;
+  color: #444;
+  cursor: pointer;
+  line-height: 1.5;
+}
+.tk-save-btn:hover { background: #e8e8e8; }
+.tk-save-btn--saved {
+  background: #e6f7ec;
+  border-color: #8bc34a;
+  color: #2e7d32;
+}
+.tk-save-btn--saved:hover { background: #d4f0dd; }
+.tk-input-manual {
+  background: #f0fdf4 !important;
+  border-color: #8bc34a !important;
+}
+.tk-transfer-warn {
+  font-size: 11px;
+  color: #b45309;
+  width: 100%;
+  text-align: right;
+  margin-top: 2px;
 }
 .tk-input-row-group {
   border-bottom: none;

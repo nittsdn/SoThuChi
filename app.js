@@ -328,16 +328,44 @@ async function postData(action, payload) {
     } else if (action === "delete_thu") {
       result = await supaDelete("thu", `id_thu=eq.${payload.idThu}`);
 
+    // ---- upsert_tk_draft ----
+    } else if (action === "upsert_tk_draft") {
+      // Lưu SDTT của 1 nguồn tiền vào tk_draft (upsert theo ngày + nguồn)
+      const res = await fetch(`${SUPA_URL}/rest/v1/tk_draft`, {
+        method: "POST",
+        headers: { ...getSupaHeaders(), "Prefer": "resolution=merge-duplicates,return=representation" },
+        body: JSON.stringify({
+          ngay_tk:    payload.ngay_tk,
+          nguon_tien: payload.nguon_tien,
+          sdtt:       Math.round(payload.sdtt),
+          updated_at: new Date().toISOString()
+        })
+      });
+      result = res.ok ? { status: "success" } : null;
+      if (!res.ok) console.error("upsert_tk_draft error:", await res.text());
+
+    // ---- delete_tk_draft ----
+    } else if (action === "delete_tk_draft") {
+      // Xóa draft của 1 nguồn tiền (bỏ manual, trả về tamtinh)
+      const r = await supaDelete("tk_draft",
+        `ngay_tk=eq.${payload.ngay_tk}&nguon_tien=eq.${encodeURIComponent(payload.nguon_tien)}`
+      );
+      result = r ? { status: "success" } : null;
+
     // ---- insert_tk ----
     } else if (action === "insert_tk") {
       const sessionId = "tk_" + Date.now();
+      const cutoffAt  = new Date().toISOString();
       const session = await supaPost("tk_session", {
-        session_id: sessionId,
-        ngay_tk:    payload.ngay_tk,
-        so_du_lt:   Math.round(payload.so_du_lt),
-        so_du_tt:   Math.round(payload.so_du_tt),
-        status:     "confirmed",
-        note:       payload.note || ""
+        session_id:     sessionId,
+        ngay_tk:        payload.ngay_tk,
+        so_du_lt:       Math.round(payload.so_du_lt),
+        so_du_tt:       Math.round(payload.so_du_tt),
+        status:         "confirmed",
+        note:           payload.note || "",
+        data_cutoff_at: cutoffAt,
+        tong_thu_ky:    Math.round(payload.tong_thu_ky || 0),
+        tong_chi_ky:    Math.round(payload.tong_chi_ky || 0)
       });
       if (!session) { result = null; }
       else {
@@ -348,7 +376,11 @@ async function postData(action, payload) {
           so_tien:    Math.round(d.so_tien)
         }));
         const dr = await supaPost("tk_detail", details);
-        result = dr ? { status: "success" } : null;
+        // Xóa toàn bộ draft của ngày này sau khi chốt
+        if (dr) {
+          await supaDelete("tk_draft", `ngay_tk=eq.${payload.ngay_tk}`);
+        }
+        result = dr ? { status: "success", session_id: sessionId } : null;
       }
 
     // ---- insert_loai_chi ----
@@ -1521,15 +1553,18 @@ function showNghinTooltip(targetEl, nghinVnd) {
 }
 
 // ================= TỔNG KẾT (SUMMARY) =================
-let tkInputs = {};
+let tkInputs = {};          // { nguon: sdtt_manual | tamtinh }  — chỉ dùng để tính tổng SDTT
+let tkManual = {};          // { nguon: true/false }             — đánh dấu đã nhập tay (từ DB draft)
+let tkTamTinh = {};         // { nguon: tamtinh }                — tạm tính thuần (không có transfer)
+let tkTransferDelta = {};   // { nguon: delta }                  — delta từ transfer (layer độc lập)
 let tkSoDuLT = 0;
 let tkEditedChiIds = new Set();
 let tkEditedThuIds = new Set();
-let tkTamTinh = {};
 let tkLastDate = null;
 let tkTransferLogData = [];   // log các lần chuyển tiền trong phiên hiện tại
 let tkChiSort = { col: 'Ngày', dir: 1 };  // dir: 1=asc(cũ→mới), -1=desc
 let tkThuSort = { col: 'Ngày', dir: 1 };
+const TK_TODAY = () => formatDateAPI(new Date());
 
 function getTkLastDate() {
   if (!window.tkDetailList || !Array.isArray(window.tkDetailList) || !window.tkDetailList.length) return null;
@@ -1539,16 +1574,25 @@ function getTkLastDate() {
 }
 
 async function loadTkData() {
-  const [tkDetail, chi, thu] = await Promise.all([
+  const todayStr = TK_TODAY();
+  const [tkDetail, chi, thu, draftRaw] = await Promise.all([
     fetchData('tk_detail'),
     fetchData('Chi_Tieu_2026'),
-    fetchData('Thu_2026')
+    fetchData('Thu_2026'),
+    // Fetch tk_draft cho ngày hôm nay
+    fetch(`${SUPA_URL}/rest/v1/tk_draft?ngay_tk=eq.${todayStr}&select=nguon_tien,sdtt,updated_at`, { headers: getSupaHeaders() })
+      .then(r => r.ok ? r.json() : [])
+      .catch(() => [])
   ]);
   window.tkDetailList = tkDetail;
   window.tkChiList = chi.filter(item => item.IDChi && item.IDChi.trim());
   window.tkThuList = thu.filter(item => item.IDThu && item.IDThu.trim());
 
-  // Tính lại tkSoDuLT từ tổng thu - tổng chi (bao gồm cả Thu sau khoản Chi cuối)
+  // Lưu draft DB vào window (nguon → {sdtt, updated_at})
+  window.tkDraftDB = {};
+  (draftRaw || []).forEach(r => { window.tkDraftDB[r.nguon_tien] = r; });
+
+  // Tính SDLT all-time
   const totalThu = thu.reduce((sum, r) => sum + (parseFloat(r["Thu"]) || 0), 0);
   const totalChi = chi.reduce((sum, r) => sum + (parseFloat(r["Số tiền vnđ"]) || 0), 0);
   tkSoDuLT = totalThu - totalChi;
@@ -1567,10 +1611,6 @@ document.getElementById("tk-start").onclick = async () => {
 };
 
 document.getElementById("tk-refresh").onclick = async () => {
-  // Nếu không trong trạng thái ghi nhớ thì xóa log chuyển tiền
-  if (!localStorage.getItem("tkTransferPin")) {
-    tkTransferLogData = [];
-  }
   await loadTkData();
   tkLastDate = getTkLastDate();
   renderChiChuaTK();
@@ -1854,15 +1894,49 @@ function renderThuChuaTK() {
   });
 }
 
+function _calcTamTinh(nguonName) {
+  let lastSnapshot = null;
+  if (window.tkDetailList && Array.isArray(window.tkDetailList)) {
+    lastSnapshot = window.tkDetailList
+      .filter(row => row.nguon_tien === nguonName)
+      .sort((a, b) => new Date(b.ngay_tk) - new Date(a.ngay_tk))[0];
+  }
+  const lastDate = lastSnapshot ? lastSnapshot.ngay_tk : null;
+  const lastSoDu = lastSnapshot ? (parseFloat(lastSnapshot.so_tien) || 0) : 0;
+  let thuMoi = 0, chiMoi = 0;
+  if (window.tkThuList && Array.isArray(window.tkThuList)) {
+    thuMoi = window.tkThuList
+      .filter(r => r["Nguồn tiền"] === nguonName && (!lastDate || new Date(r["Ngày"]) > new Date(lastDate)))
+      .reduce((s, r) => s + (parseFloat(r["Thu"]) || 0), 0);
+  }
+  if (window.tkChiList && Array.isArray(window.tkChiList)) {
+    chiMoi = window.tkChiList
+      .filter(r => r["Nguồn tiền"] === nguonName && (!lastDate || new Date(r["Ngày"]) > new Date(lastDate)))
+      .reduce((s, r) => s + (parseFloat(r["Số tiền vnđ"]) || 0), 0);
+  }
+  return lastSoDu + thuMoi - chiMoi;
+}
+
+function _getDisplayValue(nguonName) {
+  // Giá trị hiển thị = SDTT manual (DB) nếu có, không thì tamtinh + transfer delta
+  if (tkManual[nguonName]) return tkInputs[nguonName];
+  const delta = tkTransferDelta[nguonName] || 0;
+  return tkTamTinh[nguonName] + delta;
+}
+
+function _syncInputsFromState() {
+  // Đồng bộ tkInputs từ manual/tamtinh+delta, cập nhật DOM
+  nguonTienList.filter(n => n.active).forEach(nguon => {
+    const val = _getDisplayValue(nguon.nguon_tien);
+    tkInputs[nguon.nguon_tien] = val;
+    const el = document.querySelector(`input.tk-amount-input[data-nguon="${nguon.nguon_tien}"]`);
+    if (el) el.value = formatVN(val, 2);
+  });
+}
+
 function loadTongKet() {
   const inputsContainer = document.getElementById("tk-inputs");
   inputsContainer.innerHTML = "";
-
-  const ghiNho = JSON.parse(localStorage.getItem("tkSoDuGhiNho") || "{}");
-  const hasGhiNho = Object.keys(ghiNho).length > 0;
-
-  const remBtn = document.getElementById("tk-remember");
-  if (remBtn) remBtn.textContent = hasGhiNho ? "Dùng giá trị tạm" : "Ghi nhớ số dư";
 
   // Sắp xếp theo người (Mèo → Boé → Khác) rồi theo tên tài khoản
   const NGUOI_ORDER = ["Mèo", "Boé"];
@@ -1877,10 +1951,9 @@ function loadTongKet() {
       return a.nguon_tien.localeCompare(b.nguon_tien, 'vi', { sensitivity: 'base' });
     });
 
-  // Bảng màu khung theo người
   const NGUOI_GROUP_COLORS = {
-    "Mèo":  { border: "#f48fb1", bg: "transparent", label: "#c2185b" },
-    "Boé":  { border: "#90caf9", bg: "transparent", label: "#1565c0" },
+    "Mèo":   { border: "#f48fb1", bg: "transparent", label: "#c2185b" },
+    "Boé":   { border: "#90caf9", bg: "transparent", label: "#1565c0" },
     default: { border: "#b0bec5", bg: "transparent", label: "#546e7a" }
   };
 
@@ -1888,7 +1961,7 @@ function loadTongKet() {
   let currentGroup = null;
 
   sortedNguonTien.forEach(nguon => {
-    // Tạo khung màu mới cho từng người
+    // Nhóm theo người
     if (nguon.nguoi !== currentNguoi) {
       currentNguoi = nguon.nguoi;
       const colors = NGUOI_GROUP_COLORS[currentNguoi] || NGUOI_GROUP_COLORS.default;
@@ -1905,44 +1978,46 @@ function loadTongKet() {
       inputsContainer.appendChild(currentGroup);
     }
 
-    let lastSnapshot = null;
-    if (window.tkDetailList && Array.isArray(window.tkDetailList)) {
-      lastSnapshot = window.tkDetailList
-        .filter(row => row.nguon_tien === nguon.nguon_tien)
-        .sort((a, b) => new Date(b.ngay_tk) - new Date(a.ngay_tk))[0];
+    const nguonName = nguon.nguon_tien;
+    const tamTinh = _calcTamTinh(nguonName);
+    tkTamTinh[nguonName] = tamTinh;
+
+    // Draft từ DB hôm nay?
+    const draftEntry = (window.tkDraftDB || {})[nguonName];
+    if (draftEntry) {
+      tkManual[nguonName] = true;
+      tkInputs[nguonName] = parseFloat(draftEntry.sdtt) || 0;
+    } else {
+      tkManual[nguonName] = false;
+      const delta = tkTransferDelta[nguonName] || 0;
+      tkInputs[nguonName] = tamTinh + delta;
     }
-    const lastDate = lastSnapshot ? lastSnapshot.ngay_tk : null;
-    const lastSoDu = lastSnapshot ? (parseFloat(lastSnapshot.so_tien) || 0) : 0;
 
-    let thuMoi = 0;
-    if (window.tkThuList && Array.isArray(window.tkThuList)) {
-      thuMoi = window.tkThuList
-        .filter(row => row["Nguồn tiền"] === nguon.nguon_tien && (!lastDate || new Date(row["Ngày"]) > new Date(lastDate)))
-        .reduce((sum, row) => sum + (parseFloat(row["Thu"]) || 0), 0);
+    const isManual = tkManual[nguonName];
+    const displayVal = tkInputs[nguonName];
+    const delta = tkTransferDelta[nguonName] || 0;
+    const draftTime = draftEntry
+      ? new Date(draftEntry.updated_at).toLocaleTimeString('vi', { hour: '2-digit', minute: '2-digit' })
+      : null;
+
+    // Badge
+    let badgeHtml;
+    if (isManual) {
+      badgeHtml = `<span class="tk-badge-icon tk-badge-saved" title="Đã lưu lúc ${draftTime}">📌 ${draftTime}</span>`;
+    } else {
+      badgeHtml = `<span class="tk-badge-icon" title="Tạm tính">🚧</span>`;
     }
-    let chiMoi = 0;
-    if (window.tkChiList && Array.isArray(window.tkChiList)) {
-      chiMoi = window.tkChiList
-        .filter(row => row["Nguồn tiền"] === nguon.nguon_tien && (!lastDate || new Date(row["Ngày"]) > new Date(lastDate)))
-        .reduce((sum, row) => sum + (parseFloat(row["Số tiền vnđ"]) || 0), 0);
-    }
-    const tamTinh = lastSoDu + thuMoi - chiMoi;
-    tkTamTinh[nguon.nguon_tien] = tamTinh;
 
-    const useGhiNho = hasGhiNho && ghiNho[nguon.nguon_tien] !== undefined;
-    const inputVal = useGhiNho ? ghiNho[nguon.nguon_tien] : tamTinh;
-    tkInputs[nguon.nguon_tien] = inputVal;
+    const transferWarning = isManual && delta !== 0
+      ? `<div class="tk-transfer-warn">⚠ Có transfer ±${formatVN(Math.abs(delta))} — đã nhập tay, bỏ qua</div>`
+      : '';
 
-    const badgeIcon = useGhiNho
-      ? '<span class="tk-badge-icon" title="Đã ghi nhớ">📌</span>'
-      : '<span class="tk-badge-icon" title="T\u1ea1m t\u00ednh">🚧</span>';
-
-    const bgColor = getNguonBgColor(nguon.nguon_tien);
-    const borderColor = getNguonBorderColor(nguon.nguon_tien);
+    const bgColor = getNguonBgColor(nguonName);
+    const borderColor = getNguonBorderColor(nguonName);
 
     const div = document.createElement("div");
     div.className = "tk-input-row-group";
-    div.dataset.nguon = nguon.nguon_tien;
+    div.dataset.nguon = nguonName;
     div.style.backgroundColor = bgColor;
     div.style.borderLeft = `4px solid ${borderColor}`;
     div.style.paddingLeft = "10px";
@@ -1952,26 +2027,34 @@ function loadTongKet() {
       <div class="tk-input-row">
         <div class="tk-label">
           <span class="tk-label-icon">${nguon.icon || ''}</span>
-          <span class="tk-label-name">${nguon.nguon_tien}</span>
+          <span class="tk-label-name">${nguonName}</span>
         </div>
         <div class="tk-input-wrap">
           <div class="tk-input-badge-row">
-            <input type="text" inputmode="decimal" data-nguon="${nguon.nguon_tien}" class="input-std tk-amount-input" placeholder="0" value="${formatVN(inputVal, 2)}">
+            <input type="text" inputmode="decimal" data-nguon="${nguonName}"
+                   class="input-std tk-amount-input${isManual ? ' tk-input-manual' : ''}"
+                   placeholder="0" value="${formatVN(displayVal, 2)}">
             <div class="tk-badge-stack">
               <span class="tk-transfer-icon-badge" title="Nguồn bị ảnh hưởng bởi chuyển tiền" style="display:none;">⇄</span>
-              ${badgeIcon}
+              ${badgeHtml}
             </div>
           </div>
           <div class="tk-tamtinh-row">
-            <div class="tk-tamtinh-label">Tạm tính:</div>
-            <div class="tk-tamtinh-value">${formatVN(tamTinh)}</div>
+            <div class="tk-tamtinh-label">Tạm tính${delta !== 0 && !isManual ? ' (+transfer)' : ''}:</div>
+            <div class="tk-tamtinh-value">${formatVN(isManual ? tamTinh : displayVal)}</div>
+            ${transferWarning}
+          </div>
+          <div class="tk-save-row">
+            <button class="tk-save-btn${isManual ? ' tk-save-btn--saved' : ''}" data-nguon="${nguonName}" title="${isManual ? 'Bỏ lưu (dùng tạm tính)' : 'Lưu số dư này lên DB'}">
+              ${isManual ? '✕ Bỏ lưu' : '💾 Lưu'}
+            </button>
           </div>
         </div>
       </div>
     `;
     currentGroup.appendChild(div);
 
-    const input = div.querySelector("input");
+    const input = div.querySelector("input.tk-amount-input");
     input.onfocus = () => input.select();
     input.oninput = () => {
       let val = input.value.replace(/[^\d.,]/g, "");
@@ -1982,56 +2065,76 @@ function loadTongKet() {
       const oldPos = input.selectionStart;
       const diff = formatted.length - input.value.length;
       input.value = formatted;
-      tkInputs[nguon.nguon_tien] = num;
+      // Nhập tay → đánh dấu manual (nhưng chưa lưu DB, nút save sẽ đổi màu)
+      tkManual[nguonName] = true;
+      tkInputs[nguonName] = num;
+      const saveBtn = div.querySelector(".tk-save-btn");
+      if (saveBtn) { saveBtn.textContent = '💾 Lưu'; saveBtn.classList.remove('tk-save-btn--saved'); }
       setTimeout(() => { input.setSelectionRange(oldPos + diff, oldPos + diff); }, 0);
+    };
+
+    // Nút lưu / bỏ lưu per-account
+    const saveBtn = div.querySelector(".tk-save-btn");
+    saveBtn.onclick = async () => {
+      const todayStr = TK_TODAY();
+      if (tkManual[nguonName] && (window.tkDraftDB || {})[nguonName]) {
+        // Đang manual + đã lưu DB → bỏ lưu
+        saveBtn.disabled = true; saveBtn.textContent = '...';
+        const r = await postData("delete_tk_draft", { ngay_tk: todayStr, nguon_tien: nguonName });
+        if (r) {
+          delete (window.tkDraftDB || {})[nguonName];
+          tkManual[nguonName] = false;
+          const delta2 = tkTransferDelta[nguonName] || 0;
+          tkInputs[nguonName] = tkTamTinh[nguonName] + delta2;
+          showToast(`Đã bỏ lưu ${nguonName}, dùng tạm tính`, 2000);
+          loadTongKet();
+        }
+        saveBtn.disabled = false;
+      } else {
+        // Lưu lên DB
+        const val = tkInputs[nguonName] || 0;
+        saveBtn.disabled = true; saveBtn.textContent = '...';
+        const r = await postData("upsert_tk_draft", { ngay_tk: todayStr, nguon_tien: nguonName, sdtt: val });
+        if (r) {
+          if (!window.tkDraftDB) window.tkDraftDB = {};
+          window.tkDraftDB[nguonName] = { sdtt: val, updated_at: new Date().toISOString() };
+          tkManual[nguonName] = true;
+          showToast(`Đã lưu ${nguonName}: ${formatVN(val)}`, 2000);
+          loadTongKet();
+        } else {
+          saveBtn.disabled = false;
+          saveBtn.textContent = '💾 Lưu';
+        }
+      }
     };
   });
 
-  // Populate transfer dropdowns mỗi khi loadTongKet chạy
+  // Populate transfer dropdowns
   populateTransferDropdowns();
-
-  // Áp dụng giá trị đã ghi nhớ (transfer pin) nếu có
-  const transferPin = JSON.parse(localStorage.getItem("tkTransferPin") || "null");
-  if (transferPin) {
-    Object.entries(transferPin).forEach(([nguon, val]) => {
-      tkInputs[nguon] = val;
-      const el = document.querySelector(`input[data-nguon="${nguon}"]`);
-      if (el) el.value = formatVN(val, 2);
-    });
-    updateTransferPinUI(true);
-    // Khôi phục log
-    const savedLog = JSON.parse(localStorage.getItem("tkTransferLog") || "null");
-    if (savedLog) { tkTransferLogData = savedLog; renderTransferLog(); }
-  } else {
-    updateTransferPinUI(false);
-    // Áp dụng lại log chuyển tiền chưa pin (tránh bị mất khi loadTongKet chạy lại)
-    if (tkTransferLogData.length) {
-      tkTransferLogData.forEach(e => {
-        if (tkInputs[e.from] !== undefined) tkInputs[e.from] -= e.amount;
-        if (tkInputs[e.to]   !== undefined) tkInputs[e.to]   += e.amount;
-      });
-      document.querySelectorAll(".tk-amount-input").forEach(input => {
-        const nguon = input.dataset.nguon;
-        if (nguon && tkInputs[nguon] !== undefined)
-          input.value = formatVN(tkInputs[nguon], 2);
-      });
-    }
-    renderTransferLog();
-  }
+  // Áp dụng transfer delta vào icons
+  renderTransferLog();
   updateTransferIcons();
 }
 
 document.getElementById("tk-remember").onclick = () => {
-  const stored = localStorage.getItem("tkSoDuGhiNho");
-  const hasGhiNho = stored && Object.keys(JSON.parse(stored)).length > 0;
-  if (hasGhiNho) {
-    localStorage.removeItem("tkSoDuGhiNho");
-    showToast("Đã chuyển sang dùng giá trị tạm tính");
-  } else {
-    localStorage.setItem("tkSoDuGhiNho", JSON.stringify(tkInputs));
-    showToast("Đã ghi nhớ số dư");
-  }
-  loadTongKet();
+  // Lưu tất cả nguồn chưa có draft lên DB (batch save)
+  const todayStr = TK_TODAY();
+  const toSave = nguonTienList.filter(n => n.active && !tkManual[n.nguon_tien]);
+  if (!toSave.length) { showToast("Tất cả đã được lưu"); return; }
+  Promise.all(toSave.map(n =>
+    postData("upsert_tk_draft", { ngay_tk: todayStr, nguon_tien: n.nguon_tien, sdtt: tkInputs[n.nguon_tien] || 0 })
+  )).then(results => {
+    const ok = results.filter(Boolean).length;
+    toSave.forEach((n, i) => {
+      if (results[i]) {
+        if (!window.tkDraftDB) window.tkDraftDB = {};
+        window.tkDraftDB[n.nguon_tien] = { sdtt: tkInputs[n.nguon_tien] || 0, updated_at: new Date().toISOString() };
+        tkManual[n.nguon_tien] = true;
+      }
+    });
+    showToast(`Đã lưu ${ok}/${toSave.length} nguồn tiền`);
+    loadTongKet();
+  });
 };
 
 document.getElementById("tk-check").onclick = () => {
@@ -2053,11 +2156,15 @@ document.getElementById("tk-confirm").onclick = async () => {
     nguon_tien: nguon,
     so_tien: soTien
   }));
+  const totalThu = (window.tkThuList || []).reduce((s, r) => s + (parseFloat(r["Thu"]) || 0), 0);
+  const totalChi = (window.tkChiList || []).reduce((s, r) => s + (parseFloat(r["Số tiền vnđ"]) || 0), 0);
   const payload = {
-    ngay_tk: formatDateAPI(new Date()),
-    so_du_lt: tkSoDuLT,
-    so_du_tt: tkSoDuTT,
-    chi_tiet: chiTiet,
+    ngay_tk:     formatDateAPI(new Date()),
+    so_du_lt:    tkSoDuLT,
+    so_du_tt:    tkSoDuTT,
+    chi_tiet:    chiTiet,
+    tong_thu_ky: totalThu,
+    tong_chi_ky: totalChi,
     note: ""
   };
   const result = await postData("insert_tk", payload);
@@ -2076,16 +2183,20 @@ document.getElementById("tk-confirm").onclick = async () => {
 };
 
 function resetTongKet() {
-  tkInputs = {};
-  tkSoDuLT = 0;
-  tkEditedChiIds = new Set();
-  tkEditedThuIds = new Set();
-  tkTamTinh = {};
-  tkLastDate = null;
+  tkInputs         = {};
+  tkManual         = {};
+  tkTamTinh        = {};
+  tkTransferDelta  = {};
+  tkTransferLogData = [];
+  tkSoDuLT         = 0;
+  tkEditedChiIds   = new Set();
+  tkEditedThuIds   = new Set();
+  tkLastDate       = null;
+  window.tkDraftDB = {};
+  // Xóa localStorage cũ (nếu còn sót)
   localStorage.removeItem("tkSoDuGhiNho");
   localStorage.removeItem("tkTransferPin");
   localStorage.removeItem("tkTransferLog");
-  tkTransferLogData = [];
   document.getElementById("tk-form").style.display = "none";
   document.getElementById("tk-transfer-wrap").style.display = "none";
   document.getElementById("tk-result").style.display = "none";
@@ -2094,7 +2205,6 @@ function resetTongKet() {
   document.getElementById("tk-chi-section").style.display = "none";
   document.getElementById("tk-thu-section").style.display = "none";
   document.getElementById("tk-start").style.display = "block";
-  // Đóng transfer panel khi reset
   const panel = document.getElementById("tk-transfer-panel");
   const toggle = document.getElementById("tk-transfer-toggle");
   if (panel) panel.style.display = "none";
@@ -2102,6 +2212,15 @@ function resetTongKet() {
 }
 
 // ================= CHUYỂN TIỀN NỘI BỘ =================
+function _rebuildTransferDelta() {
+  // Tính lại tkTransferDelta từ tkTransferLogData
+  tkTransferDelta = {};
+  tkTransferLogData.forEach(e => {
+    tkTransferDelta[e.from] = (tkTransferDelta[e.from] || 0) - e.amount;
+    tkTransferDelta[e.to]   = (tkTransferDelta[e.to]   || 0) + e.amount;
+  });
+}
+
 function renderTransferLog() {
   const logEl = document.getElementById("tk-transfer-log");
   if (!logEl) return;
@@ -2114,8 +2233,6 @@ function renderTransferLog() {
     return `<span class="tk-log-chip" style="background:${bg};border-color:${border};">${name}</span>`;
   }
 
-  const isPinnedState = tkTransferLogData.some(e => e.pinned);
-
   logEl.innerHTML = tkTransferLogData.map((e, i) =>
     `<div class="tk-transfer-log-item" data-idx="${i}">
       <span class="tk-log-num">${i + 1}.</span>
@@ -2124,7 +2241,7 @@ function renderTransferLog() {
       <span class="tk-log-amount">${formatVN(e.amount)}</span>
       <span class="tk-log-arrow">→</span>
       ${chip(e.to)}
-      ${e.pinned ? `<button class="tk-log-pin-btn" data-idx="${i}" title="Gỡ ghim dòng này">📌</button>` : ''}
+      <button class="tk-log-pin-btn" data-idx="${i}" title="Xóa dòng này">✕</button>
     </div>`
   ).join("");
 
@@ -2134,37 +2251,22 @@ function renderTransferLog() {
       const idx = parseInt(btn.dataset.idx);
       const entry = tkTransferLogData[idx];
       if (!entry) return;
-      tkInputs[entry.from] = (tkInputs[entry.from] || 0) + entry.amount;
-      tkInputs[entry.to]   = (tkInputs[entry.to]   || 0) - entry.amount;
-      document.querySelectorAll(".tk-amount-input").forEach(input => {
-        const nguon = input.dataset.nguon;
-        if (nguon === entry.from || nguon === entry.to)
-          input.value = formatVN(tkInputs[nguon], 2);
-      });
       tkTransferLogData.splice(idx, 1);
-      const anyPinned = tkTransferLogData.some(e => e.pinned);
-      if (anyPinned) {
-        localStorage.setItem("tkTransferPin", JSON.stringify(tkInputs));
-        localStorage.setItem("tkTransferLog", JSON.stringify(tkTransferLogData));
-      } else {
-        localStorage.removeItem("tkTransferPin");
-        localStorage.removeItem("tkTransferLog");
-      }
-      updateTransferPinUI(anyPinned);
+      _rebuildTransferDelta();
+      _syncInputsFromState();
       renderTransferLog();
       updateTransferIcons();
-      showToast(`Gỡ ghim: ${entry.from} → ${entry.to}`, 2000);
+      showToast(`Đã xóa: ${entry.from} → ${entry.to}`, 2000);
     };
   });
 }
 
 function updateTransferPinUI(pinned) {
-  // pin indicator removed — per-row ghim icons handle it
+  // không còn dùng localStorage pin — giữ lại để không lỗi các call cũ
 }
 
 function updateTransferIcons() {
-  const affected = new Set();
-  tkTransferLogData.forEach(e => { affected.add(e.from); affected.add(e.to); });
+  const affected = new Set(Object.keys(tkTransferDelta).filter(k => tkTransferDelta[k] !== 0));
   document.querySelectorAll(".tk-input-row-group").forEach(group => {
     const badge = group.querySelector(".tk-transfer-icon-badge");
     if (!badge) return;
@@ -2173,19 +2275,9 @@ function updateTransferIcons() {
 }
 
 function resetTransfers() {
-  tkTransferLogData.forEach(e => {
-    tkInputs[e.from] = (tkInputs[e.from] || 0) + e.amount;
-    tkInputs[e.to]   = (tkInputs[e.to]   || 0) - e.amount;
-  });
-  document.querySelectorAll(".tk-amount-input").forEach(input => {
-    const nguon = input.dataset.nguon;
-    if (nguon !== undefined && tkInputs[nguon] !== undefined)
-      input.value = formatVN(tkInputs[nguon], 2);
-  });
   tkTransferLogData = [];
-  localStorage.removeItem("tkTransferPin");
-  localStorage.removeItem("tkTransferLog");
-  updateTransferPinUI(false);
+  tkTransferDelta   = {};
+  _syncInputsFromState();
   renderTransferLog();
   updateTransferIcons();
 }
@@ -2201,7 +2293,6 @@ function populateTransferDropdowns() {
     .join("");
   fromSel.innerHTML = options;
   toSel.innerHTML   = options;
-  // Chọn 2 nguồn khác nhau mặc định
   if (toSel.options.length > 1) toSel.selectedIndex = 1;
 }
 
@@ -2223,40 +2314,27 @@ document.getElementById("tk-transfer-btn").onclick = () => {
   if (from === to)  { showToast("Nguồn chuyển và nhận phải khác nhau"); return; }
   if (!amount || amount <= 0) { showToast("Nhập số tiền hợp lệ"); return; }
 
-  tkInputs[from] = (tkInputs[from] || 0) - amount;
-  tkInputs[to]   = (tkInputs[to]   || 0) + amount;
+  // Cảnh báo nếu nguồn đã nhập tay — transfer không ảnh hưởng đến giá trị đó
+  const warnNames = [];
+  if (tkManual[from]) warnNames.push(from);
+  if (tkManual[to])   warnNames.push(to);
+  if (warnNames.length) {
+    showToast(`⚠ ${warnNames.join(', ')} đã nhập tay — transfer chỉ hiển thị cảnh báo`, 3500);
+  }
 
-  // Cập nhật ngay giá trị hiển thị trong các input tương ứng
-  document.querySelectorAll(".tk-amount-input").forEach(input => {
-    const nguon = input.dataset.nguon;
-    if (nguon === from || nguon === to) {
-      input.value = formatVN(tkInputs[nguon], 2);
-    }
-  });
-
-  document.getElementById("tk-transfer-amount").value = "";
-
-  // Thêm vào log và hiển thị
+  // Thêm vào log, rebuild delta, sync hiển thị
   tkTransferLogData.push({ from, to, amount });
+  _rebuildTransferDelta();
+  _syncInputsFromState();
+  document.getElementById("tk-transfer-amount").value = "";
   renderTransferLog();
   updateTransferIcons();
-
   showToast(`✅ Chuyển ${formatVN(amount)} từ <b>${from}</b> → <b>${to}</b>`, 3000);
-  // Nếu đang pin thì tự cập nhật pin + log luôn
-  if (localStorage.getItem("tkTransferPin")) {
-    localStorage.setItem("tkTransferPin", JSON.stringify(tkInputs));
-    localStorage.setItem("tkTransferLog", JSON.stringify(tkTransferLogData));
-  }
 };
 
 document.getElementById("tk-transfer-remember").onclick = () => {
-  if (!tkTransferLogData.length) { showToast("Chưa có lần chuyển nào để ghi nhớ"); return; }
-  tkTransferLogData.forEach(e => e.pinned = true);
-  localStorage.setItem("tkTransferPin", JSON.stringify(tkInputs));
-  localStorage.setItem("tkTransferLog", JSON.stringify(tkTransferLogData));
-  updateTransferPinUI(true);
-  renderTransferLog();
-  showToast("📌 Đã ghi nhớ! Cập nhật vẫn giữ lại", 3000);
+  // Nút này giờ không còn dùng localStorage — thông báo cho user
+  showToast("Transfer được giữ trong phiên. Dùng nút 💾 để lưu SDTT lên DB", 3000);
 };
 
 document.getElementById("tk-transfer-reset").onclick = () => {
