@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Test nhận giọng nói — Sổ Thu Chi</title>
+<style>
+  body {
+    font-family: -apple-system, system-ui, sans-serif;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px;
+    background: #f5f7fa;
+    color: #1a1a2e;
+  }
+  h1 { font-size: 1.2rem; }
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  #btn-mic {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 10px;
+    background: #3b82f6;
+    color: #fff;
+    cursor: pointer;
+  }
+  #btn-mic.recording { background: #ef4444; }
+  #btn-mic:disabled { background: #aaa; cursor: not-allowed; }
+  #transcript {
+    margin-top: 12px;
+    min-height: 24px;
+    font-style: italic;
+    color: #555;
+  }
+  #result {
+    white-space: pre-wrap;
+    background: #0f172a;
+    color: #d1fae5;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    overflow-x: auto;
+  }
+  .status { font-size: 0.85rem; color: #888; margin-top: 8px; }
+  .err { color: #ef4444; }
+  a.back { font-size: 0.85rem; color: #3b82f6; text-decoration: none; }
+</style>
+</head>
+<body>
+
+  <a class="back" href="index.html">&larr; Về trang chủ</a>
+  <h1>🎤 Test nhận giọng nói → dữ liệu thu/chi</h1>
+  <p style="font-size:0.85rem;color:#666">
+    Trang này độc lập với app chính — chỉ để test xem nhận diện giọng nói + Gemini
+    parse dữ liệu có chính xác không. Chưa lưu gì vào CSDL.
+  </p>
+
+  <div class="card">
+    <button id="btn-mic">🎙️ Bấm để nói</button>
+    <div id="transcript"></div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="card">
+    <strong>Kết quả Gemini phân tích:</strong>
+    <div id="result">(chưa có)</div>
+  </div>
+
+<script>
+const SUPA_URL = 'https://vspfbfeazipxjgymxpzr.supabase.co';
+const SUPA_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzcGZiZmVhemlweGpneW14cHpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMjk4MzUsImV4cCI6MjA4NzkwNTgzNX0.tPQtyJDRxqWxGF-bYYSYWu3moNbFrSRSPigvQJFPdDA';
+
+const elMic = document.getElementById('btn-mic');
+const elTranscript = document.getElementById('transcript');
+const elStatus = document.getElementById('status');
+const elResult = document.getElementById('result');
+
+function setStatus(msg, isErr) {
+  elStatus.textContent = msg || '';
+  elStatus.className = 'status' + (isErr ? ' err' : '');
+}
+
+// ---- Lấy danh mục thật từ Supabase để Gemini chọn đúng ----
+async function fetchDanhMuc() {
+  const headers = { apikey: SUPA_ANON_KEY, Authorization: 'Bearer ' + SUPA_ANON_KEY };
+  const [loaiChiRes, nguonTienRes, loaiThuRes] = await Promise.all([
+    fetch(`${SUPA_URL}/rest/v1/v_loai_chi?select=mo_ta_chi&active=eq.true`, { headers }),
+    fetch(`${SUPA_URL}/rest/v1/v_nguon_tien?select=nguon_tien&active=eq.true`, { headers }),
+    fetch(`${SUPA_URL}/rest/v1/loai_thu?select=loai_thu&active=eq.true`, { headers }),
+  ]);
+  const loaiChi = loaiChiRes.ok ? (await loaiChiRes.json()).map(r => r.mo_ta_chi) : [];
+  const nguonTien = nguonTienRes.ok ? (await nguonTienRes.json()).map(r => r.nguon_tien) : [];
+  const loaiThu = loaiThuRes.ok ? (await loaiThuRes.json()).map(r => r.loai_thu) : [];
+  return { loaiChi, nguonTien, loaiThu };
+}
+
+async function parseWithGemini(text) {
+  setStatus('Đang lấy danh mục + gọi Gemini...');
+  const danhMuc = await fetchDanhMuc();
+  const res = await fetch(`${SUPA_URL}/functions/v1/voice-parse`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPA_ANON_KEY,
+      Authorization: 'Bearer ' + SUPA_ANON_KEY,
+    },
+    body: JSON.stringify({ text, ...danhMuc }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Lỗi không xác định từ server');
+  return data;
+}
+
+// ---- Web Speech API ----
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognizing = false;
+let recognition = null;
+
+if (!SpeechRecognition) {
+  setStatus('Trình duyệt này không hỗ trợ nhận diện giọng nói (thử Chrome/Edge).', true);
+  elMic.disabled = true;
+} else {
+  recognition = new SpeechRecognition();
+  recognition.lang = 'vi-VN';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    recognizing = true;
+    elMic.textContent = '⏹️ Đang nghe... (bấm để dừng)';
+    elMic.classList.add('recording');
+    setStatus('Đang nghe...');
+  };
+
+  recognition.onerror = (e) => {
+    setStatus('Lỗi nhận diện giọng nói: ' + e.error, true);
+  };
+
+  recognition.onend = () => {
+    recognizing = false;
+    elMic.textContent = '🎙️ Bấm để nói';
+    elMic.classList.remove('recording');
+  };
+
+  recognition.onresult = async (event) => {
+    const text = event.results[0][0].transcript;
+    elTranscript.textContent = '📝 "' + text + '"';
+    try {
+      elResult.textContent = '(đang phân tích...)';
+      const data = await parseWithGemini(text);
+      elResult.textContent = JSON.stringify(data, null, 2);
+      setStatus('Xong.');
+    } catch (err) {
+      setStatus('Lỗi: ' + err.message, true);
+      elResult.textContent = '(lỗi, xem phía trên)';
+    }
+  };
+
+  elMic.addEventListener('click', () => {
+    if (recognizing) {
+      recognition.stop();
+    } else {
+      elTranscript.textContent = '';
+      elResult.textContent = '(chưa có)';
+      recognition.start();
+    }
+  });
+}
+</script>
+</body>
+</html>
